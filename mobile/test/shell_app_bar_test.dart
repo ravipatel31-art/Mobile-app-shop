@@ -1,0 +1,47 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/material.dart';
+import 'package:cafe_app/main.dart';
+import 'package:cafe_app/widgets/shell_app_bar.dart';
+
+void main() {
+  Widget host(String title) => MaterialApp(
+        theme: buildAppTheme(),
+        home: Scaffold(
+          appBar: ShellAppBar(
+            title: title,
+            userName: 'Priya',
+            onLogout: () {},
+          ),
+          body: const SizedBox(),
+        ),
+      );
+
+  testWidgets('ShellAppBar renders badge, large title, identity chip and logout',
+      (tester) async {
+    await tester.pumpWidget(host('Staff'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    // Title is pinned to its real size (TextScaler.noScaling) so it can't
+    // shrink and read as a blur of "0"s.
+    final title = tester.widget<Text>(find.text('Staff'));
+    expect(title.textScaler, TextScaler.noScaling);
+    expect(title.style?.fontSize, 26);
+    // Badge, identity chip (initial + full name), logout.
+    expect(find.byIcon(Icons.local_cafe_rounded), findsOneWidget);
+    expect(find.text('P'), findsOneWidget); // Priya's initial
+    expect(find.text('Priya'), findsOneWidget);
+    expect(find.byIcon(Icons.logout_rounded), findsOneWidget);
+  });
+
+  testWidgets('ShellAppBar animates the title when the view changes', (tester) async {
+    await tester.pumpWidget(host('Sales'));
+    await tester.pumpAndSettle();
+    await tester.pumpWidget(host('Staff'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Staff'), findsOneWidget);
+    expect(find.text('Sales'), findsNothing);
+  });
+}
