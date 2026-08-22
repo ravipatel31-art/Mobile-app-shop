@@ -34,3 +34,6 @@ class Config:
     RECOMMEND_LIMIT = int(os.getenv("RECOMMEND_LIMIT", "3"))
     RECOMMEND_CACHE_TTL = int(os.getenv("RECOMMEND_CACHE_TTL", "120"))
     POPULAR_DAYS = int(os.getenv("POPULAR_DAYS", "7"))
+
+    # --- Agentic Q&A assistant (services/assistant.py) ---
+    ASK_TIMEOUT_S = int(os.getenv("ASK_TIMEOUT_S", "25"))

@@ -10,6 +10,7 @@ class ShellAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.title,
     required this.userName,
     required this.onLogout,
+    this.onAsk,
   });
 
   /// Total height (toolbar + 1px hairline below it).
@@ -18,6 +19,9 @@ class ShellAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final String userName;
   final VoidCallback onLogout;
+
+  /// When set, shows the AI-assistant entry point in the app bar.
+  final VoidCallback? onAsk;
 
   @override
   Size get preferredSize => const Size.fromHeight(kHeight);
@@ -162,6 +166,12 @@ class ShellAppBar extends StatelessWidget implements PreferredSizeWidget {
           ),
         ),
         const SizedBox(width: 4),
+        if (onAsk != null)
+          IconButton(
+            tooltip: 'Ask the assistant',
+            icon: const Icon(Icons.auto_awesome_outlined),
+            onPressed: onAsk,
+          ),
         IconButton(
           tooltip: 'Log out ($userName)',
           icon: const Icon(Icons.logout_rounded),

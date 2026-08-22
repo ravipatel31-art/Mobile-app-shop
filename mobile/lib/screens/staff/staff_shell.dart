@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../state/auth_state.dart';
 import '../../widgets/shell_app_bar.dart';
+import 'ask_screen.dart';
 import 'staff_history_screen.dart';
 import 'staff_orders_screen.dart';
 import 'tables_grid_screen.dart';
@@ -34,6 +35,8 @@ class _StaffShellState extends State<StaffShell> {
         title: _titles[_index],
         userName: name,
         onLogout: () => context.read<AuthState>().logout(),
+        onAsk: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const AskScreen())),
       ),
       body: IndexedStack(index: _index, children: _pages),
       bottomNavigationBar: NavigationBar(

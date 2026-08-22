@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../state/auth_state.dart';
 import '../../widgets/shell_app_bar.dart';
 import '../admin/dashboard_screen.dart';
+import '../staff/ask_screen.dart';
 import '../admin/menu_editor_screen.dart';
 import '../admin/orders_queue_screen.dart';
 import 'billing_screen.dart';
@@ -42,6 +43,8 @@ class _OwnerShellState extends State<OwnerShell> {
         title: _titles[_index],
         userName: name,
         onLogout: () => context.read<AuthState>().logout(),
+        onAsk: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const AskScreen())),
       ),
       body: IndexedStack(index: _index, children: _pages),
       bottomNavigationBar: NavigationBar(

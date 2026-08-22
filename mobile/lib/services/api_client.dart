@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 
 import '../config.dart';
+import '../models/ask_result.dart';
 import '../models/billing.dart';
 import '../models/cafe_table.dart';
 import '../models/cart.dart';
@@ -35,6 +36,10 @@ class ApiClient {
   /// AI endpoints call a local LLM on the backend host (~15-25 s per answer),
   /// so they get a much longer ceiling than normal requests.
   static const Duration _aiTimeout = Duration(seconds: 40);
+
+  /// The agentic assistant may make two LLM calls per question (~20-30 s
+  /// total on the backend host's CPU).
+  static const Duration _askTimeout = Duration(seconds: 75);
 
   final http.Client _http;
   String? token;
@@ -127,6 +132,22 @@ class ApiClient {
     return ((data['suggestions'] ?? []) as List)
         .map((e) => Suggestion.fromJson(e as Map<String, dynamic>))
         .toList();
+  }
+
+  // ---- AI assistant (staff/owner) ----
+  Future<AskResult> askQuestion(String question) async {
+    final data = await _send('POST', '/ask', {'question': question},
+            timeout: _askTimeout)
+        as Map<String, dynamic>;
+    return AskResult.fromJson(data);
+  }
+
+  /// Runs a previously-proposed pending action after the user confirmed it.
+  Future<Map<String, dynamic>> executeAction(
+      String action, Map<String, dynamic> args) async {
+    return await _send('POST', '/ask/execute',
+            {'action': action, 'args': args}, timeout: _aiTimeout)
+        as Map<String, dynamic>;
   }
 
   // ---- Orders (staff/owner) ----
