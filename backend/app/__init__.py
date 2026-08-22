@@ -21,12 +21,14 @@ def create_app():
     from .routes.admin import bp as admin_bp
     from .routes.auth import bp as auth_bp
     from .routes.tables import bp as tables_bp
+    from .routes.recommend import bp as recommend_bp
 
     app.register_blueprint(menu_bp)
     app.register_blueprint(orders_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(tables_bp)
+    app.register_blueprint(recommend_bp)
 
     # ---- CORS: let the Flutter web build (and any browser) call the API ----
     @app.after_request

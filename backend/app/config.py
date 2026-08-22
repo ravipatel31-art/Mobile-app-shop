@@ -24,3 +24,13 @@ class Config:
 
     # Order statuses that count toward sales (everything except cancelled).
     SALES_STATUSES = ("received", "preparing", "ready", "collected")
+
+    # --- AI recommendations (local Ollama; see services/recommender.py) ---
+    OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+    # llama3.2:3b over 8b: ~3x faster on CPU; the only model that finishes
+    # inside the recommendation timeout on this hardware.
+    OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2:3b")
+    OLLAMA_TIMEOUT_S = int(os.getenv("OLLAMA_TIMEOUT_S", "25"))
+    RECOMMEND_LIMIT = int(os.getenv("RECOMMEND_LIMIT", "3"))
+    RECOMMEND_CACHE_TTL = int(os.getenv("RECOMMEND_CACHE_TTL", "120"))
+    POPULAR_DAYS = int(os.getenv("POPULAR_DAYS", "7"))

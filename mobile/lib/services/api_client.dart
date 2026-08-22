@@ -7,8 +7,10 @@ import 'package:http/http.dart' as http;
 import '../config.dart';
 import '../models/billing.dart';
 import '../models/cafe_table.dart';
+import '../models/cart.dart';
 import '../models/menu_item.dart';
 import '../models/order.dart';
+import '../models/recommendation.dart';
 import '../models/sales_summary.dart';
 import '../models/staff_member.dart';
 
@@ -29,6 +31,10 @@ class ApiClient {
   /// unreachable but still accepts the connection can hang the UI forever on a
   /// spinner (reported as the app "sticking" on a tab).
   static const Duration _timeout = Duration(seconds: 5);
+
+  /// AI endpoints call a local LLM on the backend host (~15-25 s per answer),
+  /// so they get a much longer ceiling than normal requests.
+  static const Duration _aiTimeout = Duration(seconds: 40);
 
   final http.Client _http;
   String? token;
@@ -71,13 +77,14 @@ class ApiClient {
     }
   }
 
-  Future<dynamic> _send(String method, String path, Object? body) async {
+  Future<dynamic> _send(String method, String path, Object? body,
+      {Duration? timeout}) async {
+    final t = timeout ?? _timeout;
     try {
       final req = http.Request(method, _uri(path))..headers.addAll(_headers);
       if (body != null) req.body = jsonEncode(body);
-      final streamed = await _http.send(req).timeout(_timeout);
-      return _decode(
-          await http.Response.fromStream(streamed).timeout(_timeout));
+      final streamed = await _http.send(req).timeout(t);
+      return _decode(await http.Response.fromStream(streamed).timeout(t));
     } on TimeoutException {
       throw ApiException('Cannot reach the server. Is the backend running?');
     } on SocketException {
@@ -107,6 +114,19 @@ class ApiClient {
   Future<List<String>> fetchCategories() async {
     final data = await _get('/categories') as List;
     return data.cast<String>();
+  }
+
+  // ---- AI recommendations (staff/owner) ----
+  Future<List<Suggestion>> fetchRecommendations(List<CartLine> cart) async {
+    final data = await _send('POST', '/recommend', {
+      'cart': [
+        for (final line in cart)
+          {'item_id': line.item.id, 'qty': line.qty},
+      ],
+    }, timeout: _aiTimeout) as Map<String, dynamic>;
+    return ((data['suggestions'] ?? []) as List)
+        .map((e) => Suggestion.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   // ---- Orders (staff/owner) ----

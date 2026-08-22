@@ -100,6 +100,36 @@ def billing_summary(order_date=None):
     }
 
 
+def top_items(days=7, top_n=10):
+    """Most-ordered items over the last N days, by item_id.
+
+    Used by the AI recommender as a popularity signal and fallback.
+    Returns [{"item_id", "name", "qty"}], best first; [] when there is
+    no sales history yet.
+    """
+    today = datetime.now().date()
+    qty = defaultdict(int)
+    name_by_id = {}
+    for offset in range(days):
+        day = (today - timedelta(days=offset)).strftime("%Y-%m-%d")
+        for o in orders_repo.list_by_date(day):
+            if o.get("status") not in Config.SALES_STATUSES:
+                continue  # skip cancelled
+            for line in o.get("items", []):
+                item_id = line.get("item_id")
+                if not item_id:
+                    continue
+                qty[item_id] += int(line.get("qty", 0))
+                name_by_id.setdefault(item_id, line.get("name", item_id))
+
+    ranked = sorted(
+        ({"item_id": i, "name": name_by_id[i], "qty": q} for i, q in qty.items()),
+        key=lambda x: x["qty"],
+        reverse=True,
+    )
+    return ranked[:top_n]
+
+
 def range_summary(date_from, date_to):
     """A daily series between two YYYY-MM-DD dates (inclusive)."""
     start = datetime.strptime(date_from, "%Y-%m-%d").date()

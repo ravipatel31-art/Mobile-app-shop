@@ -6,6 +6,7 @@ import '../../state/cart_state.dart';
 import '../../util/money.dart';
 import '../../widgets/collect_payment_dialog.dart' show paymentMethods;
 import '../../widgets/menu_picker_sheet.dart';
+import '../../widgets/recommendations_strip.dart';
 
 /// Review the current order for a table and send it to the kitchen.
 /// When [existingOrderId] is set, this adds items to a reopened order instead
@@ -136,6 +137,8 @@ class _OrderCartScreenState extends State<OrderCartScreen> {
                     ),
                   );
                 }),
+                const SizedBox(height: 12),
+                const RecommendationsStrip(),
                 const SizedBox(height: 8),
                 TextField(
                   controller: _notes,
