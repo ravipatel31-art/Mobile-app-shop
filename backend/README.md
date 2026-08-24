@@ -28,6 +28,28 @@ python scripts/seed.py       # prints the admin login (default owner / cafe123)
 flask --app run run --debug  # http://localhost:5000
 ```
 
+## Run with Docker (whole stack)
+
+From the **repo root** — brings up Floci + the API, creates resources and
+seeds sample data on first boot:
+
+```bash
+cp .env.example .env            # optional; defaults work without it
+docker compose up -d --build
+curl localhost:5000/health
+docker compose logs -f backend  # first boot prints the seed logins
+```
+
+- Data persists across `compose down/up` in the `floci-data` volume;
+  `docker compose down -v` wipes it and the next boot re-seeds.
+- Ollama stays on the host as before; the container reaches it at
+  `host.docker.internal:11434` (host-gateway).
+- Public demo URL: `docker compose --profile tunnel up -d tunnel`, then run the
+  app with `--dart-define=API_BASE_URL=https://<the-url-from-the-logs>`
+  (see `mobile/lib/config.dart`). Stable URL: named-tunnel token in `.env`,
+  profile `tunnel-token`.
+- Don't also run `floci start` while the stack is up — both want port 4566.
+
 ## Roles
 
 This is a **point-of-sale** backend with two roles:

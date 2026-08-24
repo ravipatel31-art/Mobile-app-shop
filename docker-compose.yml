@@ -1,0 +1,75 @@
+# Cafe POS demo stack: local AWS emulator (Floci) + Flask API + optional
+# Cloudflare tunnel for demos beyond the LAN.
+#
+#   cp .env.example .env           # optional — defaults work without it
+#   docker compose up -d --build   # API on http://localhost:5000
+#   docker compose logs -f backend # first boot prints the seed logins
+#
+# Public demo URL (random trycloudflare.com address):
+#   docker compose --profile tunnel up -d tunnel
+# Stable named tunnel: set TUNNEL_TOKEN in .env first, then
+#   docker compose --profile tunnel-token up -d named-tunnel
+#
+# Ollama keeps running on the host (models live there); the backend reaches it
+# via host-gateway. Don't run `floci start` while this stack is up — both want
+# port ${FLOCI_PORT:-4566}.
+
+services:
+  # Local AWS emulator: the DynamoDB tables + S3 bucket for menu photos.
+  floci:
+    image: floci/floci:latest
+    restart: unless-stopped
+    ports:
+      - "${FLOCI_PORT:-4566}:4566"
+    volumes:
+      - floci-data:/app/data # data survives down/up; wipe with `down -v`
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      - floci
+    environment:
+      # Bundled emulator by default. Set AWS_ENDPOINT_URL= (empty) in .env to
+      # talk to real AWS with real creds instead.
+      AWS_ENDPOINT_URL: ${AWS_ENDPOINT_URL-http://floci:4566}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-test}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-test}
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
+      JWT_TTL_HOURS: ${JWT_TTL_HOURS:-12}
+      # Ollama on the host machine.
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2:3b}
+      # First-boot seed logins (printed once in `compose logs backend`).
+      SEED_ADMIN_USER: ${SEED_ADMIN_USER:-owner}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-cafe123}
+      SEED_ON_START: ${SEED_ON_START:-1}
+    ports:
+      - "${BACKEND_PORT:-5000}:5000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # Free quick tunnel — random URL each run, printed in `logs tunnel`.
+  # (Image has no shell, so quick vs named are two services.)
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    profiles: ["tunnel"]
+    restart: unless-stopped
+    depends_on:
+      - backend
+    command: ["tunnel", "--no-autoupdate", "--url", "http://backend:5000"]
+
+  # Stable named tunnel — put your Zero Trust token in .env first (an empty
+  # token just makes this service exit with a cloudflared error).
+  named-tunnel:
+    image: cloudflare/cloudflared:latest
+    profiles: ["tunnel-token"]
+    restart: unless-stopped
+    depends_on:
+      - backend
+    command: ["tunnel", "--no-autoupdate", "run", "--token",
+              "${TUNNEL_TOKEN:-}"]
+
+volumes:
+  floci-data:
