@@ -8,7 +8,7 @@ import 'package:flutter/foundation.dart'
 /// Override at build/run time with:
 ///   --dart-define=API_BASE_URL=http://192.168.1.5:5000
 ///
-/// Note: the scheme must be http for local dev (the backend serves plain HTTP).
+/// Local dev uses plain http; a Cloudflare tunnel URL (https) works too.
 class AppConfig {
   static const String _override =
       String.fromEnvironment('API_BASE_URL', defaultValue: '');
