@@ -45,6 +45,18 @@ _ACTION_LABELS = {
         f"Move order {args.get('order_id', '?')} to its next status"),
 }
 
+def _money(minor):
+    """Minor units (paise) -> '₹18.00'.
+
+    Tool results expose ONLY formatted rupees: small models reliably copy a
+    ready-made string but will read a raw 1800 as ₹1800 (seen in practice).
+    """
+    try:
+        return f"₹{int(minor) / 100:,.2f}"
+    except (TypeError, ValueError):
+        return str(minor)
+
+
 _SELECT_PROMPT = """You are the assistant built into a cafe POS app. Staff ask you about live sales data. Today is {today} ({daypart}).
 
 TOOLS you may call (reply {{"tool": name, "args": {{...}}}}):
@@ -64,7 +76,7 @@ Question: {question}
 
 Tool result: {result}
 
-Answer in 1-4 short sentences of plain English with the concrete numbers/ids. Never copy JSON into the answer — turn it into words. If the result is empty, say there is nothing yet (e.g. "No orders so far today."). Reply as JSON: {{"answer": "Top sellers were Cappuccino (x4) and Muffin (x3)."}}"""
+Answer in 1-4 short sentences of plain English with the concrete numbers/ids. Money values arrive as formatted rupee strings (e.g. ₹18.00) — copy them EXACTLY; never multiply, divide or reconvert them. Never copy JSON into the answer — turn it into words. If the result is empty, say there is nothing yet (e.g. "No orders so far today."). Reply as JSON: {{"answer": "Top sellers were Cappuccino (x4) and Muffin (x3)."}}"""
 
 
 def _get_llm():
@@ -128,7 +140,7 @@ def _run_tool(name, args, role):
                     "id": o.get("id"),
                     "status": o.get("status"),
                     "table": o.get("table_number"),
-                    "total": o.get("total"),
+                    "total": _money(o.get("total")),
                     "items": [f"{l.get('name')} x{l.get('qty')}"
                               for l in o.get("items", [])],
                 }
@@ -137,7 +149,15 @@ def _run_tool(name, args, role):
         if name == "get_order":
             raw = _first_arg(args, "order_id", "order", "id")
             order = orders_repo.get(str(raw or ""))
-            return order or {"error": "Order not found"}
+            if not order:
+                return {"error": "Order not found"}
+            order = dict(order)
+            order["total"] = _money(order.get("total"))
+            order["items"] = [
+                {**line, "line_total": _money(line.get("line_total"))}
+                for line in order.get("items", [])
+            ]
+            return order
         if name == "tables_status":
             return [
                 {"number": t.get("number"), "status": t.get("status"),
@@ -147,7 +167,8 @@ def _run_tool(name, args, role):
         if name == "menu_items":
             return [
                 {"id": m["id"], "name": m.get("name"),
-                 "category": m.get("category"), "price": m.get("base_price"),
+                 "category": m.get("category"),
+                 "price": _money(m.get("base_price")),
                  "available": m.get("available")}
                 for m in menu_repo.list_items()
             ]
@@ -160,9 +181,15 @@ def _run_tool(name, args, role):
         if name == "daily_sales" and role == "owner":
             summary = reports_repo.daily_summary(args.get("date")
                                                  or datetime.now().strftime("%Y-%m-%d"))
-            return {k: summary[k] for k in
-                    ("date", "order_count", "gross_sales", "by_category",
-                     "top_items")}
+            out = {k: summary[k] for k in
+                   ("date", "order_count", "gross_sales", "by_category",
+                    "top_items")}
+            out["gross_sales"] = _money(out["gross_sales"])
+            out["by_category"] = {cat: _money(rev)
+                                  for cat, rev in out["by_category"].items()}
+            out["top_items"] = [{**t, "revenue": _money(t.get("revenue"))}
+                                for t in out["top_items"]]
+            return out
         return {"error": f"Unknown tool '{name}'"}
     except Exception as exc:  # surface tool failure to the model, not the caller
         return {"error": str(exc)}
