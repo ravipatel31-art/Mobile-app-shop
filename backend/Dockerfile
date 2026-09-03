@@ -12,7 +12,8 @@ EXPOSE 5000
 
 # Entrypoint waits for DynamoDB/S3 and seeds sample data on first boot.
 # Gunicorn instead of `python run.py` so the Werkzeug debug debugger is never
-# exposed through the public tunnel.
+# exposed through the public tunnel; access logs on so `compose logs` shows
+# every request.
 ENTRYPOINT ["/srv/backend/scripts/docker-entrypoint.sh"]
 CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "--threads", "4", \
-     "--timeout", "60", "run:app"]
+     "--timeout", "60", "--access-logfile", "-", "run:app"]

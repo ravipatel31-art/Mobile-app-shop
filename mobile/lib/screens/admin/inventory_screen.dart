@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../models/inventory_item.dart';
 import '../../services/api_client.dart';
+import '../../state/auth_state.dart';
 import '../../util/money.dart';
 
 class InventoryScreen extends StatefulWidget {
@@ -85,6 +86,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
     if (_loading) return const Center(child: CircularProgressIndicator());
     if (_error != null) return _ErrorView(message: _error!, onRetry: _load);
 
+    final scheme = Theme.of(context).colorScheme;
     final isLoss = !_inProfit;
 
     return SingleChildScrollView(
@@ -118,21 +120,17 @@ class _InventoryScreenState extends State<InventoryScreen> {
           const SizedBox(height: 12),
           if (isLoss) ...[_LossPill()],
           const SizedBox(height: 16),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: _InventoryList(inventory: _inventory),
-            ),
+          _Card(
+            title: 'Inventory Details',
+            child: _InventoryList(inventory: _inventory),
           ),
           const SizedBox(height: 16),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: _AISuggestionBox(
-                suggestion: _aiSuggestion,
-                onRequest: _getAISuggestion,
-                inLoss: isLoss,
-              ),
+          _Card(
+            title: isLoss ? 'AI Profit Suggestions' : 'No suggestions needed',
+            child: _AISuggestionBox(
+              suggestion: _aiSuggestion,
+              onRequest: _getAISuggestion,
+              inLoss: isLoss,
             ),
           ),
         ],
@@ -157,7 +155,6 @@ class _MetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -189,7 +186,7 @@ class _MetricCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text(subtitle,
                 style: TextStyle(
-                    color: scheme.onSurfaceVariant,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                     fontSize: 12,
                     fontWeight: FontWeight.w500)),
           ],

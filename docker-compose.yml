@@ -19,10 +19,26 @@ services:
   floci:
     image: floci/floci:latest
     restart: unless-stopped
+    # Persist emulator data to /app/data (the floci-data volume) so it
+    # survives container restarts. Without this flag Floci is in-memory only
+    # and every `docker compose up`/recreate wipes the database.
+    environment:
+      # Storage engine mode: "persistent" writes to FLOCI_STORAGE_PERSISTENT_PATH
+      # (/app/data, the floci-data volume) so the database survives restarts.
+      # Without this Floci runs in-memory and every recreate wipes all data.
+      FLOCI_STORAGE_MODE: "persistent"
+      FLOCI_STORAGE_PERSISTENT: "true"
+      FLOCI_STORAGE_PERSISTENT_PATH: "/app/data"
     ports:
       - "${FLOCI_PORT:-4566}:4566"
     volumes:
-      - floci-data:/app/data # data survives down/up; wipe with `down -v`
+      # DB data survives down/up; wipe with `down -v`.
+      - floci-data:/app/data
+      # Floci's web UI needs the container runtime to start its visualizer,
+      # so the host Docker socket must be mounted in (standard for
+      # LocalStack-style emulators). Security note: this gives the floci
+      # container control of the host Docker daemon — fine for local dev/demo.
+      - /var/run/docker.sock:/var/run/docker.sock
 
   backend:
     build: ./backend
