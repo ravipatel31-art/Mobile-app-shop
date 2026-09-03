@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../state/auth_state.dart';
 import '../../widgets/shell_app_bar.dart';
 import '../admin/dashboard_screen.dart';
+import '../admin/inventory_screen.dart';
 import '../staff/ask_screen.dart';
 import '../admin/menu_editor_screen.dart';
 import '../admin/orders_queue_screen.dart';
@@ -23,7 +24,7 @@ class _OwnerShellState extends State<OwnerShell> {
   int _index = 0;
 
   static const _titles = [
-    'Sales', 'Billing', 'Orders', 'Tables', 'Staff', 'Menu',
+    'Sales', 'Billing', 'Orders', 'Tables', 'Staff', 'Menu', 'Inventory',
   ];
   final _pages = const [
     DashboardScreen(),
@@ -32,6 +33,7 @@ class _OwnerShellState extends State<OwnerShell> {
     TablesAdminScreen(),
     StaffScreen(),
     MenuEditorScreen(),
+    InventoryScreen(),
   ];
 
   @override
@@ -71,10 +73,10 @@ class _OwnerShellState extends State<OwnerShell> {
               icon: Icon(Icons.people_outline),
               selectedIcon: Icon(Icons.people),
               label: 'Staff'),
-          NavigationDestination(
-              icon: Icon(Icons.restaurant_menu_outlined),
-              selectedIcon: Icon(Icons.restaurant_menu),
-              label: 'Menu'),
+NavigationDestination(
+    icon: Icon(Icons.inventory_outlined),
+    selectedIcon: Icon(Icons.inventory),
+    label: 'Inventory'),
         ],
       ),
     );

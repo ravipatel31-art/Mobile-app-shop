@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 
 import '../config.dart';
@@ -9,6 +10,7 @@ import '../models/ask_result.dart';
 import '../models/billing.dart';
 import '../models/cafe_table.dart';
 import '../models/cart.dart';
+import '../models/inventory_item.dart';
 import '../models/menu_item.dart';
 import '../models/order.dart';
 import '../models/recommendation.dart';
@@ -284,5 +286,20 @@ class ApiClient {
 
   Future<void> deleteMenuItem(String id) async {
     await _send('DELETE', '/admin/menu/$id', null);
+  }
+
+  // ---- Inventory (owner) ----
+  Future<List<InventoryItem>> fetchInventory() async {
+    final data =
+        await _get('/admin/inventory') as List;
+    return data
+        .map((e) => InventoryItem.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<Map<String, dynamic>> calculateProfitLoss({String? month}) async {
+    final date = month ?? DateFormat('yyyy-MM-dd').format(DateTime.now().subtract(Duration(days: DateTime.now().day - 1)));
+    final data = await _get('/admin/reports/profit-loss', {'month': date}) as Map<String, dynamic>;
+    return data;
   }
 }
