@@ -25,7 +25,7 @@ class BillScreen extends StatelessWidget {
       ..writeln('═══════════════════════════')
       ..writeln()
       ..writeln('Bill #: ${order.id}')
-      ..writeln('Date: ${DateFormat('dd MMM yyyy, hh:mm a').format(order.createdAt)}')
+      ..writeln('Date: ${DateFormat('dd MMM yyyy, hh:mm a').format(DateTime.tryParse(order.createdAt) ?? DateTime.now())}')
       ..writeln('Staff: ${order.takenBy ?? 'N/A'}')
       ..writeln()
       ..writeln('─── ITEMS ───────────────')
@@ -92,7 +92,7 @@ class BillScreen extends StatelessWidget {
                 _InfoRow(label: 'Bill #', value: order.id),
                 _InfoRow(
                   label: 'Date',
-                  value: DateFormat('dd MMM yyyy, hh:mm a').format(order.createdAt),
+                  value: DateFormat('dd MMM yyyy, hh:mm a').format(DateTime.tryParse(order.createdAt) ?? DateTime.now()),
                 ),
                 if (order.customerName.isNotEmpty)
                   _InfoRow(label: 'Customer', value: order.customerName),
