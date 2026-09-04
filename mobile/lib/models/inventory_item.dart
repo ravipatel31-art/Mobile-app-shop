@@ -2,7 +2,8 @@ class InventoryItem {
   final String id;
   final String name;
   final int quantity;
-  final int costPrice; // in minor units (paise/cents)
+  final int costPrice; // in whole currency units (rupees/dollars)
+  final String unit; // kg, litre, piece, etc.
   final String? purchaseDate;
   final String? lastRestocked;
 
@@ -11,6 +12,7 @@ class InventoryItem {
     required this.name,
     required this.quantity,
     required this.costPrice,
+    this.unit = 'piece',
     this.purchaseDate,
     this.lastRestocked,
   });
@@ -20,6 +22,7 @@ class InventoryItem {
         name: json['name'] as String,
         quantity: _toInt(json['quantity'] ?? 0),
         costPrice: _toInt(json['cost_price'] ?? 0),
+        unit: (json['unit'] as String?) ?? 'piece',
         purchaseDate: json['purchase_date'] as String?,
         lastRestocked: json['last_restocked'] as String?,
       );
@@ -36,6 +39,7 @@ class InventoryItem {
         'name': name,
         'quantity': quantity,
         'cost_price': costPrice,
+        'unit': unit,
         'purchase_date': purchaseDate,
         'last_restocked': lastRestocked,
       };

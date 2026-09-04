@@ -4,7 +4,8 @@ import 'package:provider/provider.dart';
 
 import '../../models/inventory_item.dart';
 import '../../services/api_client.dart';
-import '../../util/money.dart';
+
+const _units = ['piece', 'kg', 'g', 'litre', 'ml', 'dozen', 'pack'];
 
 class InventoryScreen extends StatefulWidget {
   const InventoryScreen({super.key});
@@ -14,7 +15,6 @@ class InventoryScreen extends StatefulWidget {
 }
 
 class _InventoryScreenState extends State<InventoryScreen> {
-  final _fmt = DateFormat('yyyy-MM-dd');
   List<InventoryItem> _inventory = [];
   int _totalValue = 0;
   int _totalItems = 0;
@@ -82,7 +82,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to update item: $e')),
+        SnackBar(content: Text('Failed to update: $e')),
       );
     }
   }
@@ -96,9 +96,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
         content: TextField(
           controller: qtyController,
           keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            labelText: 'Quantity to add',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: 'Quantity to add (${item.unit})',
+            border: const OutlineInputBorder(),
           ),
           autofocus: true,
         ),
@@ -215,8 +215,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: _MetricCard(
-                  title: 'Inventory Value',
-                  value: formatMoney(_totalValue),
+                  title: 'Total Value',
+                  value: '₹$_totalValue',
                   emoji: '💰',
                   colors: const [Color(0xFF10B981), Color(0xFF059669)],
                   subtitle: 'cost basis',
@@ -367,9 +367,10 @@ class _InventoryTile extends StatelessWidget {
                   Row(
                     children: [
                       Text(
-                        'Qty: ${item.quantity}',
+                        '${item.quantity} ${item.unit}',
                         style: TextStyle(
-                          color: lowStock ? scheme.error : scheme.onSurfaceVariant,
+                          color:
+                              lowStock ? scheme.error : scheme.onSurfaceVariant,
                           fontSize: 13,
                           fontWeight:
                               lowStock ? FontWeight.w600 : FontWeight.normal,
@@ -408,10 +409,10 @@ class _InventoryTile extends StatelessWidget {
               ),
             ),
             Text(
-              formatMoney(item.costPrice),
-              style: TextStyle(
-                color: scheme.onSurfaceVariant,
-                fontSize: 13,
+              '₹${item.costPrice}',
+              style: const TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 15,
               ),
             ),
             PopupMenuButton<String>(
@@ -457,6 +458,7 @@ class _AddEditItemDialogState extends State<_AddEditItemDialog> {
   late final TextEditingController _nameCtrl;
   late final TextEditingController _qtyCtrl;
   late final TextEditingController _costCtrl;
+  late String _unit;
   late DateTime _purchaseDate;
 
   bool get isEditing => widget.item != null;
@@ -469,6 +471,7 @@ class _AddEditItemDialogState extends State<_AddEditItemDialog> {
         text: isEditing ? widget.item!.quantity.toString() : '0');
     _costCtrl = TextEditingController(
         text: isEditing ? widget.item!.costPrice.toString() : '');
+    _unit = widget.item?.unit ?? 'piece';
 
     if (isEditing && widget.item!.purchaseDate != null) {
       try {
@@ -529,33 +532,58 @@ class _AddEditItemDialogState extends State<_AddEditItemDialog> {
                 controller: _nameCtrl,
                 decoration: const InputDecoration(
                   labelText: 'Item Name',
+                  hintText: 'e.g. Sugar, Coffee Beans',
                   border: OutlineInputBorder(),
                 ),
                 validator: (v) =>
                     v == null || v.trim().isEmpty ? 'Name is required' : null,
               ),
               const SizedBox(height: 12),
-              TextFormField(
-                controller: _qtyCtrl,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Quantity',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (v) {
-                  if (v == null || v.isEmpty) return 'Required';
-                  if (int.tryParse(v) == null) return 'Must be a number';
-                  return null;
-                },
+              Row(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: TextFormField(
+                      controller: _qtyCtrl,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Quantity',
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (v) {
+                        if (v == null || v.isEmpty) return 'Required';
+                        if (int.tryParse(v) == null) return 'Must be a number';
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    flex: 2,
+                    child: DropdownButtonFormField<String>(
+                      value: _unit,
+                      decoration: const InputDecoration(
+                        labelText: 'Unit',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: _units
+                          .map((u) => DropdownMenuItem(value: u, child: Text(u)))
+                          .toList(),
+                      onChanged: (v) {
+                        if (v != null) setState(() => _unit = v);
+                      },
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _costCtrl,
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(
-                  labelText: 'Cost Price (paise)',
+                  labelText: 'Price (₹)',
                   border: OutlineInputBorder(),
-                  helperText: 'Cost per unit in paise/cents',
+                  hintText: 'e.g. 230',
                 ),
                 validator: (v) {
                   if (v == null || v.isEmpty) return 'Required';
@@ -591,6 +619,7 @@ class _AddEditItemDialogState extends State<_AddEditItemDialog> {
                 'name': _nameCtrl.text.trim(),
                 'quantity': int.parse(_qtyCtrl.text),
                 'cost_price': int.parse(_costCtrl.text),
+                'unit': _unit,
                 'purchase_date': _purchaseDate.toUtc().toIso8601String(),
               });
             }

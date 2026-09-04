@@ -27,6 +27,7 @@ def create(data):
         "name": data["name"],
         "quantity": Decimal(str(data.get("quantity", 0))),
         "cost_price": Decimal(str(data.get("cost_price", 0))),
+        "unit": data.get("unit", "piece"),
         "purchase_date": purchase_date,
         "last_restocked": now,
         "created_at": now,
@@ -41,7 +42,7 @@ def update(item_id, data):
         raise ApiError("Inventory item not found", 404)
 
     updates = {}
-    for key in ("name", "purchase_date"):
+    for key in ("name", "purchase_date", "unit"):
         if key in data:
             updates[key] = data[key]
     for key in ("quantity", "cost_price"):
