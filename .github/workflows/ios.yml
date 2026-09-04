@@ -24,7 +24,7 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Clean and build
+      - name: Build iOS
         env:
           API_BASE_URL: ${{ vars.API_BASE_URL }}
         run: |
@@ -34,25 +34,37 @@ jobs:
           fi
           flutter clean
           flutter pub get
-          flutter build ios --release --no-codesign \
-            --dart-define=API_BASE_URL="$API_BASE_URL" || true
-          # Check both debug and release output paths
-          if [ -d "build/ios/iphoneos/Runner.app" ]; then
-            APP_DIR="build/ios/iphoneos/Runner.app"
-          elif [ -d "build/ios/Debug-iphoneos/Runner.app" ]; then
-            APP_DIR="build/ios/Debug-iphoneos/Runner.app"
-          elif [ -d "build/ios/Release-iphoneos/Runner.app" ]; then
-            APP_DIR="build/ios/Release-iphoneos/Runner.app"
-          else
-            echo "::error::Runner.app not found in any build output path"
-            find build/ios -name "Runner.app" -type d 2>/dev/null || echo "No Runner.app found at all"
+          flutter pub run build_runner build --delete-conflicting-outputs || true
+          cd ios
+          xcodebuild -workspace Runner.xcworkspace \
+            -scheme Runner \
+            -sdk iphoneos \
+            -configuration Release \
+            -derivedDataPath ../build/ios \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="-" \
+            DEVELOPMENT_TEAM="" \
+            ENABLE_BITCODE=NO \
+            RUN_LIBRARY_CODE_SIGNING=NO \
+            -quiet
+
+      - name: Package IPA
+        env:
+          API_BASE_URL: ${{ vars.API_BASE_URL }}
+        run: |
+          cd mobile
+          APP_PATH="build/ios/Build/Products/Release-iphoneos/Runner.app"
+          if [ ! -d "$APP_PATH" ]; then
+            echo "::error::Runner.app not found at expected path"
+            find build/ios -name "Runner.app" -type d 2>/dev/null
             exit 1
           fi
-          echo "Found Runner.app at: $APP_DIR"
           mkdir Payload
-          cp -r "$APP_DIR" Payload/
+          cp -r "$APP_PATH" Payload/
           zip -r cafe-app-unsigned.ipa Payload
           rm -rf Payload
+          ls -lh cafe-app-unsigned.ipa
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4
