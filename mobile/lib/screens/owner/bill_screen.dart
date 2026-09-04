@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../../models/order.dart';
 import '../../services/api_client.dart';
@@ -12,7 +12,7 @@ class BillScreen extends StatelessWidget {
 
   String _formatMoney(int amount) => '₹$amount';
 
-  void _shareBill() {
+  void _copyBill() {
     final items = order.items.map((item) {
       final opts = item.options.map((o) => '  $o').join('\n');
       return '${item.name} x${item.qty}  ₹${item.lineTotal}'
@@ -25,7 +25,7 @@ class BillScreen extends StatelessWidget {
       ..writeln('═══════════════════════════')
       ..writeln()
       ..writeln('Bill #: ${order.id}')
-      ...writeln('Date: ${DateFormat('dd MMM yyyy, hh:mm a').format(order.createdAt)}')
+      ..writeln('Date: ${DateFormat('dd MMM yyyy, hh:mm a').format(order.createdAt)}')
       ..writeln('Staff: ${order.takenBy ?? 'N/A'}')
       ..writeln()
       ..writeln('─── ITEMS ───────────────')
@@ -41,7 +41,7 @@ class BillScreen extends StatelessWidget {
       ..writeln('  Thank you for your visit!')
       ..writeln('═══════════════════════════');
 
-    Share.share(buffer.toString(), subject: 'Cafe Bill #${order.id}');
+    Clipboard.setData(ClipboardData(text: buffer.toString()));
   }
 
   @override
@@ -53,8 +53,8 @@ class BillScreen extends StatelessWidget {
         title: Text('Bill #${order.id}'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.share),
-            onPressed: _shareBill,
+            icon: const Icon(Icons.copy),
+            onPressed: _copyBill,
           ),
         ],
       ),
@@ -251,9 +251,9 @@ class BillScreen extends StatelessWidget {
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton.icon(
-                    onPressed: _shareBill,
-                    icon: const Icon(Icons.share),
-                    label: const Text('Share Bill'),
+                    onPressed: _copyBill,
+                    icon: const Icon(Icons.copy),
+                    label: const Text('Copy Bill to Clipboard'),
                   ),
                 ),
 
