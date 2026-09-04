@@ -34,17 +34,25 @@ jobs:
           fi
           flutter clean
           flutter pub get
-          flutter build ios --debug --no-codesign \
+          flutter build ios --release --no-codesign \
             --dart-define=API_BASE_URL="$API_BASE_URL" || true
+          # Check both debug and release output paths
           if [ -d "build/ios/iphoneos/Runner.app" ]; then
-            mkdir Payload
-            cp -r build/ios/iphoneos/Runner.app Payload/
-            zip -r cafe-app-unsigned.ipa Payload
-            rm -rf Payload
+            APP_DIR="build/ios/iphoneos/Runner.app"
+          elif [ -d "build/ios/Debug-iphoneos/Runner.app" ]; then
+            APP_DIR="build/ios/Debug-iphoneos/Runner.app"
+          elif [ -d "build/ios/Release-iphoneos/Runner.app" ]; then
+            APP_DIR="build/ios/Release-iphoneos/Runner.app"
           else
-            echo "::error::Runner.app not found after build"
+            echo "::error::Runner.app not found in any build output path"
+            find build/ios -name "Runner.app" -type d 2>/dev/null || echo "No Runner.app found at all"
             exit 1
           fi
+          echo "Found Runner.app at: $APP_DIR"
+          mkdir Payload
+          cp -r "$APP_DIR" Payload/
+          zip -r cafe-app-unsigned.ipa Payload
+          rm -rf Payload
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4
