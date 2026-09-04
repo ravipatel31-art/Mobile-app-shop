@@ -18,7 +18,6 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.27.4'
           channel: stable
           cache: true
 
@@ -28,21 +27,31 @@ jobs:
       - name: Build unsigned IPA
         env:
           API_BASE_URL: ${{ vars.API_BASE_URL }}
-          CODE_SIGN_IDENTITY: ""
-          CODE_SIGNING_REQUIRED: "NO"
-          CODE_SIGNING_ALLOWED: "NO"
-          DEVELOPMENT_TEAM: ""
         run: |
           if [ -z "$API_BASE_URL" ]; then
             echo "::error::Repository variable API_BASE_URL is not set"
             exit 1
           fi
-          flutter build ipa --release --no-codesign \
+          SIM_NAME=$(xcrun simctl list devices available -j | python3 -c "
+          import sys, json
+          devs = json.load(sys.stdin)['devices']
+          for runtime, devices in devs.items():
+              for d in devices:
+                  if d['isAvailable'] and 'iPhone' in d['name']:
+                      print(d['name'])
+                      sys.exit(0)
+          ")
+          echo "Building for simulator: $SIM_NAME"
+          flutter build ios --debug -d "$SIM_NAME" \
             --dart-define=API_BASE_URL="$API_BASE_URL"
+          mkdir Payload
+          cp -r build/ios/simulator/Runner.app Payload/
+          zip -r cafe-app-unsigned.ipa Payload
+          rm -rf Payload
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
           name: cafe-ios-ipa
-          path: mobile/build/ios/ipa/*.ipa
+          path: mobile/cafe-app-unsigned.ipa
           retention-days: 30
