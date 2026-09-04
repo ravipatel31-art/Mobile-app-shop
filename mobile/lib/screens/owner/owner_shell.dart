@@ -73,10 +73,14 @@ class _OwnerShellState extends State<OwnerShell> {
               icon: Icon(Icons.people_outline),
               selectedIcon: Icon(Icons.people),
               label: 'Staff'),
-NavigationDestination(
-    icon: Icon(Icons.inventory_outlined),
-    selectedIcon: Icon(Icons.inventory),
-    label: 'Inventory'),
+          NavigationDestination(
+              icon: Icon(Icons.restaurant_menu_outlined),
+              selectedIcon: Icon(Icons.restaurant_menu),
+              label: 'Menu'),
+          NavigationDestination(
+              icon: Icon(Icons.inventory_outlined),
+              selectedIcon: Icon(Icons.inventory),
+              label: 'Inventory'),
         ],
       ),
     );
