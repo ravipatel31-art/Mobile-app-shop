@@ -31,6 +31,7 @@ jobs:
         run: |
           cd mobile
           flutter build ios --release --no-codesign \
+            --target-platform=ios-simulator \
             --dart-define=API_BASE_URL="$API_BASE_URL"
           mkdir Payload
           cp -r build/ios/simulator/Runner.app Payload/
