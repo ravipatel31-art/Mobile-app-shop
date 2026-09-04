@@ -1,0 +1,56 @@
+name: Build iOS IPA
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.22.0'
+          channel: 'stable'
+
+      - name: Install dependencies
+        run: cd mobile && flutter pub get
+
+      - name: Generate locale files
+        run: cd mobile && flutter gen l10n
+
+      - name: Build IPA (unsigned)
+        run: |
+          cd mobile
+          flutter build ipa --release \
+            --dart-define=API_BASE_URL=https://nutten-anywhere-stones-articles.trycloudflare.com \
+            --target=dart-define-ios/appdelegate.swift
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-app
+          path: mobile/build/ios/archive/Runner/Runner.app.dSYM.zip
+          retention-days: 30
+
+      - name: Upload IPAs
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-apps
+          path: |
+            mobile/build/ios/ipa/*.ipa
+          retention-days: 30
+
+      - name: Flutter build info
+        run: |
+          echo "Flutter build completed"
+          echo "IPA location: mobile/build/ios/ipa/"
