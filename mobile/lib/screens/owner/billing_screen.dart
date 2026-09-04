@@ -6,6 +6,7 @@ import '../../models/billing.dart';
 import '../../models/order.dart';
 import '../../services/api_client.dart';
 import '../../util/money.dart';
+import 'bill_screen.dart';
 
 /// Owner billing: collected orders grouped by date, with paid/unpaid totals
 /// and the ability to confirm payment.
@@ -281,37 +282,44 @@ class _OrderCard extends StatelessWidget {
     final isPaid = order.paymentStatus == 'paid';
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Flexible(
-                  child: Text('#${order.id}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 15)),
-                ),
-                const SizedBox(width: 8),
-                Chip(
-                  label: Text(isPaid ? 'PAID' : 'UNPAID',
-                      style: const TextStyle(
-                          color: Colors.white, fontSize: 11)),
-                  backgroundColor: isPaid ? Colors.green : Colors.orange,
-                  visualDensity: VisualDensity.compact,
-                ),
-                const Spacer(),
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(formatMoney(order.total),
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 16)),
-                ),
-              ],
-            ),
+      child: InkWell(
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => BillScreen(order: order)),
+          );
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Flexible(
+                    child: Text('#${order.id}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 15)),
+                  ),
+                  const SizedBox(width: 8),
+                  Chip(
+                    label: Text(isPaid ? 'PAID' : 'UNPAID',
+                        style: const TextStyle(
+                            color: Colors.white, fontSize: 11)),
+                    backgroundColor: isPaid ? Colors.green : Colors.orange,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  const Spacer(),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(formatMoney(order.total),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16)),
+                  ),
+                ],
+              ),
             const SizedBox(height: 8),
             Row(
               children: [
@@ -393,6 +401,7 @@ class _OrderCard extends StatelessWidget {
               ),
             ],
           ],
+        ),
         ),
       ),
     );

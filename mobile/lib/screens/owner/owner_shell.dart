@@ -9,10 +9,11 @@ import '../staff/ask_screen.dart';
 import '../admin/menu_editor_screen.dart';
 import '../admin/orders_queue_screen.dart';
 import 'billing_screen.dart';
+import 'reports_screen.dart';
 import 'staff_screen.dart';
 import 'tables_admin_screen.dart';
 
-/// Owner container: Sales, Billing, Orders, Tables, Staff, Menu.
+/// Owner container: Sales, Reports, Billing, Orders, Tables, Staff, Menu, Inventory.
 class OwnerShell extends StatefulWidget {
   const OwnerShell({super.key});
 
@@ -24,10 +25,11 @@ class _OwnerShellState extends State<OwnerShell> {
   int _index = 0;
 
   static const _titles = [
-    'Sales', 'Billing', 'Orders', 'Tables', 'Staff', 'Menu', 'Inventory',
+    'Sales', 'Reports', 'Billing', 'Orders', 'Tables', 'Staff', 'Menu', 'Inventory',
   ];
   final _pages = const [
     DashboardScreen(),
+    ReportsScreen(),
     BillingScreen(),
     OrdersQueueScreen(),
     TablesAdminScreen(),
@@ -57,6 +59,10 @@ class _OwnerShellState extends State<OwnerShell> {
               icon: Icon(Icons.bar_chart_outlined),
               selectedIcon: Icon(Icons.bar_chart),
               label: 'Sales'),
+          NavigationDestination(
+              icon: Icon(Icons.assessment_outlined),
+              selectedIcon: Icon(Icons.assessment),
+              label: 'Reports'),
           NavigationDestination(
               icon: Icon(Icons.point_of_sale_outlined),
               selectedIcon: Icon(Icons.point_of_sale),
