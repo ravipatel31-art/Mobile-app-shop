@@ -297,6 +297,30 @@ class ApiClient {
         .toList();
   }
 
+  Future<Map<String, dynamic>> fetchInventorySummary() async {
+    final data = await _get('/admin/inventory/summary') as Map<String, dynamic>;
+    return data;
+  }
+
+  Future<InventoryItem> createInventoryItem(Map<String, dynamic> payload) async {
+    final data = await _send('POST', '/admin/inventory', payload) as Map<String, dynamic>;
+    return InventoryItem.fromJson(data);
+  }
+
+  Future<InventoryItem> updateInventoryItem(String id, Map<String, dynamic> payload) async {
+    final data = await _send('PUT', '/admin/inventory/$id', payload) as Map<String, dynamic>;
+    return InventoryItem.fromJson(data);
+  }
+
+  Future<InventoryItem> restockItem(String id, int quantity) async {
+    final data = await _send('POST', '/admin/inventory/$id/restock', {'quantity': quantity}) as Map<String, dynamic>;
+    return InventoryItem.fromJson(data);
+  }
+
+  Future<void> deleteInventoryItem(String id) async {
+    await _send('DELETE', '/admin/inventory/$id', null);
+  }
+
   Future<Map<String, dynamic>> calculateProfitLoss({String? month}) async {
     final date = month ?? DateFormat('yyyy-MM-dd').format(DateTime.now().subtract(Duration(days: DateTime.now().day - 1)));
     final data = await _get('/admin/reports/profit-loss', {'month': date}) as Map<String, dynamic>;

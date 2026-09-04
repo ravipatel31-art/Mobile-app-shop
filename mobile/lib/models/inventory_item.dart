@@ -18,11 +18,18 @@ class InventoryItem {
   factory InventoryItem.fromJson(Map<String, dynamic> json) => InventoryItem(
         id: json['id'] as String,
         name: json['name'] as String,
-        quantity: (json['quantity'] ?? 0) as int,
-        costPrice: (json['cost_price'] ?? 0) as int,
-        salePrice: (json['sale_price'] ?? 0) as int,
+        quantity: _toInt(json['quantity'] ?? 0),
+        costPrice: _toInt(json['cost_price'] ?? 0),
+        salePrice: _toInt(json['sale_price'] ?? 0),
         lastRestocked: json['last_restocked'] as String?,
       );
+
+  static int _toInt(dynamic v) {
+    if (v is int) return v;
+    if (v is String) return int.tryParse(v) ?? 0;
+    if (v is double) return v.toInt();
+    return 0;
+  }
 
   Map<String, dynamic> toJson() => {
         'id': id,

@@ -43,3 +43,7 @@ def staff_table():
 
 def tables_table():
     return dynamodb().Table(Config.TABLES_TABLE)
+
+
+def inventory_table():
+    return dynamodb().Table(Config.INVENTORY_TABLE)

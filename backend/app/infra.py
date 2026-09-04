@@ -11,6 +11,7 @@ from .repositories import menu as menu_repo
 from .repositories import orders as orders_repo
 from .repositories import staff as staff_repo
 from .repositories import tables as tables_repo
+from .repositories import inventory as inventory_repo
 
 
 # --------------------------------------------------------------------------- #
@@ -89,6 +90,18 @@ def ensure_tables_table():
     _wait_active(Config.TABLES_TABLE)
 
 
+def ensure_inventory_table():
+    if _table_exists(Config.INVENTORY_TABLE):
+        return
+    dynamodb_client().create_table(
+        TableName=Config.INVENTORY_TABLE,
+        BillingMode="PAY_PER_REQUEST",
+        KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
+    )
+    _wait_active(Config.INVENTORY_TABLE)
+
+
 def ensure_bucket():
     client = s3()
     try:
@@ -109,6 +122,7 @@ def ensure_infra():
     ensure_orders_table()
     ensure_staff_table()
     ensure_tables_table()
+    ensure_inventory_table()
     ensure_bucket()
     # Create the default set of tables on first boot.
     tables_repo.ensure_default()
@@ -187,6 +201,29 @@ def seed_staff():
     return demo
 
 
+SAMPLE_INVENTORY = [
+    {"name": "Coffee Beans (Arabica)", "quantity": 50, "cost_price": 800, "sale_price": 0},
+    {"name": "Milk (Whole, 1L)", "quantity": 30, "cost_price": 60, "sale_price": 0},
+    {"name": "Oat Milk (1L)", "quantity": 20, "cost_price": 120, "sale_price": 0},
+    {"name": "Sugar Packets", "quantity": 200, "cost_price": 5, "sale_price": 0},
+    {"name": "Cups (Medium)", "quantity": 150, "cost_price": 10, "sale_price": 0},
+    {"name": "Cups (Large)", "quantity": 100, "cost_price": 15, "sale_price": 0},
+    {"name": "Croissant Dough", "quantity": 40, "cost_price": 30, "sale_price": 0},
+    {"name": "Avocado", "quantity": 25, "cost_price": 50, "sale_price": 0},
+    {"name": "Bread (Sourdough)", "quantity": 15, "cost_price": 40, "sale_price": 0},
+    {"name": "Blueberries", "quantity": 10, "cost_price": 120, "sale_price": 0},
+]
+
+
+def seed_inventory():
+    for item in SAMPLE_INVENTORY:
+        existing = inventory_repo.get(
+            item["name"].lower().replace(" ", "-").replace("(", "").replace(")", "")
+        )
+        if not existing:
+            inventory_repo.create(item)
+
+
 def seed_orders():
     """A few of today's orders so the sales dashboard isn't empty."""
     samples = [
@@ -212,6 +249,7 @@ def seed_orders():
 
 def seed_all():
     seed_menu()
+    seed_inventory()
     user, password = seed_owner()
     staff = seed_staff()
     orders = seed_orders()

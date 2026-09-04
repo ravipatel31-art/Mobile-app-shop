@@ -11,6 +11,7 @@ class Config:
     ORDERS_TABLE = os.getenv("ORDERS_TABLE", "orders")
     STAFF_TABLE = os.getenv("STAFF_TABLE", "staff")
     TABLES_TABLE = os.getenv("TABLES_TABLE", "cafe_tables")
+    INVENTORY_TABLE = os.getenv("INVENTORY_TABLE", "inventory_items")
     ORDER_DATE_INDEX = os.getenv("ORDER_DATE_INDEX", "order_date-index")
     IMAGES_BUCKET = os.getenv("IMAGES_BUCKET", "cafe-menu-images")
 
