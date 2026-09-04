@@ -25,29 +25,19 @@ jobs:
       - name: Install dependencies
         run: cd mobile && flutter pub get
 
-      - name: Generate locale files
-        run: cd mobile && flutter gen l10n
-
       - name: Build IPA (unsigned)
+        env:
+          API_BASE_URL: ${{ vars.API_BASE_URL }}
         run: |
           cd mobile
-          flutter build ipa --release \
-            --dart-define=API_BASE_URL=https://nutten-anywhere-stones-articles.trycloudflare.com \
-            --target=dart-define-ios/appdelegate.swift
+          flutter build ipa --release --no-codesign \
+            --dart-define=API_BASE_URL="$API_BASE_URL"
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
-          name: ios-app
-          path: mobile/build/ios/archive/Runner/Runner.app.dSYM.zip
-          retention-days: 30
-
-      - name: Upload IPAs
-        uses: actions/upload-artifact@v4
-        with:
-          name: ios-apps
-          path: |
-            mobile/build/ios/ipa/*.ipa
+          name: cafe-ios-ipa
+          path: mobile/build/ios/ipa/*.ipa
           retention-days: 30
 
       - name: Flutter build info
