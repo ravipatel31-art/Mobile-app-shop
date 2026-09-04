@@ -35,19 +35,19 @@ jobs:
           cd ios
           xcodebuild -workspace Runner.xcworkspace \
             -scheme Runner \
-            -configuration Release \
+            -configuration Debug \
             -sdk iphonesimulator \
             -destination 'generic/platform=iOS Simulator' \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
             ONLY_ACTIVE_ARCH=NO \
-            FLUTTER_BUILD_MODE=release \
+            FLUTTER_BUILD_MODE=debug \
             BUILD_DIR="${GITHUB_WORKSPACE}/mobile/build/ios" \
             -quiet
           cd ..
           mkdir Payload
-          cp -r build/ios/Build/Products/Release-iphonesimulator/Runner.app Payload/
+          cp -r build/ios/Build/Products/Debug-iphonesimulator/Runner.app Payload/
           zip -r cafe-app-unsigned.ipa Payload
           rm -rf Payload
 
