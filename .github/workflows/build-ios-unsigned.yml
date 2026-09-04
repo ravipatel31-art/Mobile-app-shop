@@ -28,7 +28,7 @@ jobs:
             echo "::error::Repository variable API_BASE_URL is not set (Settings → Secrets and variables → Actions → Variables). Example: http://192.168.1.50:5000"
             exit 1
           fi
-          flutter build ios --release --no-codesign --simulator "iPhone 15" \
+          flutter build ios --release --no-codesign \
             --dart-define=API_BASE_URL="$API_BASE_URL"
           mkdir Payload
           cp -r build/ios/simulator/Runner.app Payload/
