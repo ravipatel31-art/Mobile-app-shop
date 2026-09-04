@@ -46,7 +46,6 @@ jobs:
 
       - name: Package IPA
         run: |
-          cd mobile
           for dir in \
             build/ios/iphoneos/Runner.app \
             build/ios/Release-iphoneos/Runner.app \
