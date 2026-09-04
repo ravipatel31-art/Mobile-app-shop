@@ -14,13 +14,13 @@ jobs:
 
       - uses: subosito/flutter-action@v2
         with:
-          channel: stable
+          channel: '3.22.2'
           cache: true
 
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Build unsigned IPA
+      - name: Build unsigned IPA (simulator)
         env:
           API_BASE_URL: ${{ vars.API_BASE_URL }}
         run: |
@@ -31,8 +31,9 @@ jobs:
           flutter build ios --release --no-codesign \
             --dart-define=API_BASE_URL="$API_BASE_URL"
           mkdir Payload
-          cp -r build/ios/iphoneos/Runner.app Payload/
+          cp -r build/ios/simulator/Runner.app Payload/
           zip -r cafe-app-unsigned.ipa Payload
+
       - uses: actions/upload-artifact@v4
         with:
           name: cafe-ios-ipa-unsigned
