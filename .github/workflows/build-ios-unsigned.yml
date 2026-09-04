@@ -20,7 +20,7 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Build unsigned IPA (simulator)
+      - name: Build unsigned IPA
         env:
           API_BASE_URL: ${{ vars.API_BASE_URL }}
         run: |
