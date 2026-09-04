@@ -37,7 +37,7 @@ jobs:
           flutter build ios --debug --no-codesign \
             --dart-define=API_BASE_URL="$API_BASE_URL"
           mkdir Payload
-          cp -r build/ios/simulator/Runner.app Payload/
+          cp -r build/ios/iphoneos/Runner.app Payload/
           zip -r cafe-app-unsigned.ipa Payload
           rm -rf Payload
 
