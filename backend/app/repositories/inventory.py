@@ -54,13 +54,24 @@ def update(item_id, data):
 
     updates["updated_at"] = datetime.now(timezone.utc).isoformat()
 
-    expr = "SET " + ", ".join(f"{k} = :{k}" for k in updates)
-    vals = {f":{k}": v for k, v in updates.items()}
+    # 'name' is a reserved keyword in DynamoDB — use expression attribute names
+    attr_names = {}
+    expr_parts = []
+    expr_vals = {}
+    for k, v in updates.items():
+        safe = f"#{k}"
+        placeholder = f":{k}"
+        attr_names[safe] = k
+        expr_parts.append(f"{safe} = {placeholder}")
+        expr_vals[placeholder] = v
+
+    expr = "SET " + ", ".join(expr_parts)
 
     inventory_table().update_item(
         Key={"id": item_id},
         UpdateExpression=expr,
-        ExpressionAttributeValues=vals,
+        ExpressionAttributeNames=attr_names,
+        ExpressionAttributeValues=expr_vals,
     )
     return get(item_id)
 
