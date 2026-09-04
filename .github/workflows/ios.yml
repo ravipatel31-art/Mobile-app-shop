@@ -7,11 +7,10 @@ on:
 
 jobs:
   build-ios:
-    runs-on: macos-latest
-    permissions:
-      contents: read
-      packages: write
-
+    runs-on: macos-15
+    defaults:
+      run:
+        working-directory: mobile
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -23,28 +22,26 @@ jobs:
           cache: true
 
       - name: Install dependencies
-        run: cd mobile && flutter pub get
+        run: flutter pub get
 
-      - name: Build unsigned IPA
+      - name: Disable automatic signing
+        run: |
+          sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' ios/Runner.xcodeproj/project.pbxproj
+
+      - name: Build IPA (unsigned)
         env:
           API_BASE_URL: ${{ vars.API_BASE_URL }}
         run: |
-          cd mobile
-          flutter build ios --debug --no-codesign \
+          if [ -z "$API_BASE_URL" ]; then
+            echo "::error::Repository variable API_BASE_URL is not set"
+            exit 1
+          fi
+          flutter build ipa --release --no-codesign \
             --dart-define=API_BASE_URL="$API_BASE_URL"
-          mkdir Payload
-          cp -r build/ios/iphoneos/Runner.app Payload/
-          zip -r cafe-app-unsigned.ipa Payload
-          rm -rf Payload
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
           name: cafe-ios-ipa
-          path: mobile/cafe-app-unsigned.ipa
+          path: mobile/build/ios/ipa/*.ipa
           retention-days: 30
-
-      - name: Flutter build info
-        run: |
-          echo "Flutter build completed"
-          echo "IPA location: mobile/build/ios/ipa/"
