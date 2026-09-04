@@ -27,6 +27,7 @@ jobs:
       - name: Build iOS
         env:
           API_BASE_URL: ${{ vars.API_BASE_URL }}
+          DEVELOPMENT_TEAM: ""
         run: |
           if [ -z "$API_BASE_URL" ]; then
             echo "::error::Repository variable API_BASE_URL is not set"
@@ -34,19 +35,18 @@ jobs:
           fi
           flutter clean
           flutter pub get
-          # Patch Xcode project to remove Development Team requirement
-          sed -i '' 's/DEVELOPMENT_TEAM = "[^"]*"/DEVELOPMENT_TEAM = ""/g' ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/CODE_SIGN_STYLE = Automatic/CODE_SIGN_STYLE = Manual/g' ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/ProvisioningStyle = Automatic/ProvisioningStyle = Manual/g' ios/Runner.xcodeproj/project.pbxproj
-          # Re-run flutter to regenerate project files (keeps our signing changes)
-          flutter pub get
+          # Write xcconfig to override signing settings AFTER pub get
+          echo 'DEVELOPMENT_TEAM =' > ios/Flutter/Release.xcconfig
+          echo 'CODE_SIGN_STYLE = Manual' >> ios/Flutter/Release.xcconfig
+          echo 'CODE_SIGN_IDENTITY = -' >> ios/Flutter/Release.xcconfig
+          echo 'CODE_SIGNING_REQUIRED = NO' >> ios/Flutter/Release.xcconfig
+          echo 'CODE_SIGNING_ALLOWED = NO' >> ios/Flutter/Release.xcconfig
           flutter build ios --release --no-codesign \
             --dart-define=API_BASE_URL="$API_BASE_URL"
 
       - name: Package IPA
         run: |
           cd mobile
-          # Find Runner.app in any build output path
           for dir in \
             build/ios/iphoneos/Runner.app \
             build/ios/Release-iphoneos/Runner.app \
@@ -62,7 +62,6 @@ jobs:
             exit 1
           fi
           echo "Found Runner.app at: $APP_PATH"
-          # Verify it's a real app (not just plugin bundles)
           if [ ! -f "$APP_PATH/Runner" ]; then
             echo "::error::Runner.app is incomplete - missing Runner binary"
             ls -la "$APP_PATH/"
