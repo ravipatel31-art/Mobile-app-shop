@@ -21,12 +21,13 @@ def get(item_id):
 def create(data):
     item_id = data.get("id") or f"inv-{uuid.uuid4().hex[:8]}"
     now = datetime.now(timezone.utc).isoformat()
+    purchase_date = data.get("purchase_date") or now
     item = {
         "id": item_id,
         "name": data["name"],
         "quantity": Decimal(str(data.get("quantity", 0))),
         "cost_price": Decimal(str(data.get("cost_price", 0))),
-        "sale_price": Decimal(str(data.get("sale_price", 0))),
+        "purchase_date": purchase_date,
         "last_restocked": now,
         "created_at": now,
     }
@@ -40,10 +41,10 @@ def update(item_id, data):
         raise ApiError("Inventory item not found", 404)
 
     updates = {}
-    for key in ("name",):
+    for key in ("name", "purchase_date"):
         if key in data:
             updates[key] = data[key]
-    for key in ("quantity", "cost_price", "sale_price"):
+    for key in ("quantity", "cost_price"):
         if key in data:
             updates[key] = Decimal(str(data[key]))
 
@@ -112,13 +113,7 @@ def summary():
     total_value = sum(
         int(i.get("quantity", 0)) * int(i.get("cost_price", 0)) for i in items
     )
-    total_potential = sum(
-        int(i.get("quantity", 0))
-        * (int(i.get("sale_price", 0)) - int(i.get("cost_price", 0)))
-        for i in items
-    )
     return {
         "total_items": len(items),
         "total_value": total_value,
-        "total_potential_profit": total_potential,
     }

@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 
 import '../../models/inventory_item.dart';
 import '../../services/api_client.dart';
-import '../../state/auth_state.dart';
 import '../../util/money.dart';
 
 class InventoryScreen extends StatefulWidget {
@@ -163,6 +162,16 @@ class _InventoryScreenState extends State<InventoryScreen> {
     }
   }
 
+  String _formatDate(String? dateStr) {
+    if (dateStr == null || dateStr.isEmpty) return 'Not set';
+    try {
+      final dt = DateTime.parse(dateStr);
+      return DateFormat('dd MMM yyyy, hh:mm a').format(dt);
+    } catch (_) {
+      return dateStr;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) return const Center(child: CircularProgressIndicator());
@@ -243,6 +252,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   onEdit: () => _editItem(item),
                   onRestock: () => _restockItem(item),
                   onDelete: () => _deleteItem(item),
+                  formatDate: _formatDate,
                 )),
         ],
       ),
@@ -312,11 +322,13 @@ class _InventoryTile extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onRestock;
   final VoidCallback onDelete;
+  final String Function(String?) formatDate;
   const _InventoryTile({
     required this.item,
     required this.onEdit,
     required this.onRestock,
     required this.onDelete,
+    required this.formatDate,
   });
 
   @override
@@ -330,11 +342,14 @@ class _InventoryTile extends StatelessWidget {
         child: Row(
           children: [
             CircleAvatar(
-              backgroundColor: lowStock ? scheme.errorContainer : scheme.primaryContainer,
+              backgroundColor:
+                  lowStock ? scheme.errorContainer : scheme.primaryContainer,
               child: Text(
                 item.name.substring(0, 1).toUpperCase(),
                 style: TextStyle(
-                  color: lowStock ? scheme.onErrorContainer : scheme.onPrimaryContainer,
+                  color: lowStock
+                      ? scheme.onErrorContainer
+                      : scheme.onPrimaryContainer,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -356,13 +371,15 @@ class _InventoryTile extends StatelessWidget {
                         style: TextStyle(
                           color: lowStock ? scheme.error : scheme.onSurfaceVariant,
                           fontSize: 13,
-                          fontWeight: lowStock ? FontWeight.w600 : FontWeight.normal,
+                          fontWeight:
+                              lowStock ? FontWeight.w600 : FontWeight.normal,
                         ),
                       ),
                       if (lowStock) ...[
                         const SizedBox(width: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 1),
                           decoration: BoxDecoration(
                             color: scheme.errorContainer,
                             borderRadius: BorderRadius.circular(8),
@@ -377,24 +394,24 @@ class _InventoryTile extends StatelessWidget {
                           ),
                         ),
                       ],
-                      const SizedBox(width: 12),
-                      Text(
-                        formatMoney(item.costPrice),
-                        style: TextStyle(
-                          color: scheme.onSurfaceVariant,
-                          fontSize: 13,
-                        ),
-                      ),
-                      Text(
-                        ' / unit',
-                        style: TextStyle(
-                          color: scheme.onSurfaceVariant,
-                          fontSize: 12,
-                        ),
-                      ),
                     ],
                   ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Bought: ${formatDate(item.purchaseDate)}',
+                    style: TextStyle(
+                      color: scheme.onSurfaceVariant,
+                      fontSize: 12,
+                    ),
+                  ),
                 ],
+              ),
+            ),
+            Text(
+              formatMoney(item.costPrice),
+              style: TextStyle(
+                color: scheme.onSurfaceVariant,
+                fontSize: 13,
               ),
             ),
             PopupMenuButton<String>(
@@ -440,7 +457,7 @@ class _AddEditItemDialogState extends State<_AddEditItemDialog> {
   late final TextEditingController _nameCtrl;
   late final TextEditingController _qtyCtrl;
   late final TextEditingController _costCtrl;
-  late final TextEditingController _saleCtrl;
+  late DateTime _purchaseDate;
 
   bool get isEditing => widget.item != null;
 
@@ -452,8 +469,16 @@ class _AddEditItemDialogState extends State<_AddEditItemDialog> {
         text: isEditing ? widget.item!.quantity.toString() : '0');
     _costCtrl = TextEditingController(
         text: isEditing ? widget.item!.costPrice.toString() : '');
-    _saleCtrl = TextEditingController(
-        text: isEditing ? widget.item!.salePrice.toString() : '');
+
+    if (isEditing && widget.item!.purchaseDate != null) {
+      try {
+        _purchaseDate = DateTime.parse(widget.item!.purchaseDate!);
+      } catch (_) {
+        _purchaseDate = DateTime.now();
+      }
+    } else {
+      _purchaseDate = DateTime.now();
+    }
   }
 
   @override
@@ -461,12 +486,37 @@ class _AddEditItemDialogState extends State<_AddEditItemDialog> {
     _nameCtrl.dispose();
     _qtyCtrl.dispose();
     _costCtrl.dispose();
-    _saleCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _purchaseDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+    );
+    if (picked == null) return;
+
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_purchaseDate),
+    );
+
+    setState(() {
+      _purchaseDate = DateTime(
+        picked.year,
+        picked.month,
+        picked.day,
+        time?.hour ?? _purchaseDate.hour,
+        time?.minute ?? _purchaseDate.minute,
+      );
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final dateFmt = DateFormat('dd MMM yyyy, hh:mm a');
     return AlertDialog(
       title: Text(isEditing ? 'Edit Item' : 'Add Inventory Item'),
       content: Form(
@@ -514,19 +564,16 @@ class _AddEditItemDialogState extends State<_AddEditItemDialog> {
                 },
               ),
               const SizedBox(height: 12),
-              TextFormField(
-                controller: _saleCtrl,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Sale Price (paise)',
-                  border: OutlineInputBorder(),
-                  helperText: 'Selling price per unit in paise/cents',
+              InkWell(
+                onTap: _pickDate,
+                child: InputDecorator(
+                  decoration: const InputDecoration(
+                    labelText: 'Purchase Date & Time',
+                    border: OutlineInputBorder(),
+                    suffixIcon: Icon(Icons.calendar_today),
+                  ),
+                  child: Text(dateFmt.format(_purchaseDate)),
                 ),
-                validator: (v) {
-                  if (v == null || v.isEmpty) return 'Required';
-                  if (int.tryParse(v) == null) return 'Must be a number';
-                  return null;
-                },
               ),
             ],
           ),
@@ -544,7 +591,7 @@ class _AddEditItemDialogState extends State<_AddEditItemDialog> {
                 'name': _nameCtrl.text.trim(),
                 'quantity': int.parse(_qtyCtrl.text),
                 'cost_price': int.parse(_costCtrl.text),
-                'sale_price': int.parse(_saleCtrl.text),
+                'purchase_date': _purchaseDate.toUtc().toIso8601String(),
               });
             }
           },

@@ -3,7 +3,7 @@ class InventoryItem {
   final String name;
   final int quantity;
   final int costPrice; // in minor units (paise/cents)
-  final int salePrice; // in minor units (paise/cents)
+  final String? purchaseDate;
   final String? lastRestocked;
 
   const InventoryItem({
@@ -11,7 +11,7 @@ class InventoryItem {
     required this.name,
     required this.quantity,
     required this.costPrice,
-    required this.salePrice,
+    this.purchaseDate,
     this.lastRestocked,
   });
 
@@ -20,7 +20,7 @@ class InventoryItem {
         name: json['name'] as String,
         quantity: _toInt(json['quantity'] ?? 0),
         costPrice: _toInt(json['cost_price'] ?? 0),
-        salePrice: _toInt(json['sale_price'] ?? 0),
+        purchaseDate: json['purchase_date'] as String?,
         lastRestocked: json['last_restocked'] as String?,
       );
 
@@ -36,10 +36,9 @@ class InventoryItem {
         'name': name,
         'quantity': quantity,
         'cost_price': costPrice,
-        'sale_price': salePrice,
+        'purchase_date': purchaseDate,
         'last_restocked': lastRestocked,
       };
 
   int get totalValue => quantity * costPrice;
-  int get potentialProfit => quantity * (salePrice - costPrice);
 }
