@@ -27,10 +27,6 @@ jobs:
       - name: Clean and build
         env:
           API_BASE_URL: ${{ vars.API_BASE_URL }}
-          CODE_SIGN_IDENTITY: "-"
-          CODE_SIGNING_REQUIRED: "NO"
-          CODE_SIGNING_ALLOWED: "NO"
-          DEVELOPMENT_TEAM: ""
         run: |
           if [ -z "$API_BASE_URL" ]; then
             echo "::error::Repository variable API_BASE_URL is not set"
@@ -38,12 +34,17 @@ jobs:
           fi
           flutter clean
           flutter pub get
-          flutter build ios --no-codesign --debug \
-            --dart-define=API_BASE_URL="$API_BASE_URL"
-          mkdir Payload
-          cp -r build/ios/iphoneos/Runner.app Payload/
-          zip -r cafe-app-unsigned.ipa Payload
-          rm -rf Payload
+          flutter build ios --debug --no-codesign \
+            --dart-define=API_BASE_URL="$API_BASE_URL" || true
+          if [ -d "build/ios/iphoneos/Runner.app" ]; then
+            mkdir Payload
+            cp -r build/ios/iphoneos/Runner.app Payload/
+            zip -r cafe-app-unsigned.ipa Payload
+            rm -rf Payload
+          else
+            echo "::error::Runner.app not found after build"
+            exit 1
+          fi
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4
