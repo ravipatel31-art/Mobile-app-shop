@@ -25,13 +25,24 @@ jobs:
       - name: Install dependencies
         run: cd mobile && flutter pub get
 
-      - name: Build unsigned IPA
+      - name: Boot simulator and build
         env:
           API_BASE_URL: ${{ vars.API_BASE_URL }}
         run: |
           cd mobile
+          SIM_ID=$(xcrun simctl list devices available -j | python3 -c "
+          import sys, json
+          devs = json.load(sys.stdin)['devices']
+          for runtime, devices in devs.items():
+              for d in devices:
+                  if d['isAvailable'] and 'iPhone' in d['name']:
+                      print(d['udid'])
+                      sys.exit(0)
+          ")
+          echo "Using simulator: $SIM_ID"
+          xcrun simctl boot "$SIM_ID" || true
           flutter build ios --release --no-codesign \
-            --target-platform=ios-simulator \
+            -d "$SIM_ID" \
             --dart-define=API_BASE_URL="$API_BASE_URL"
           mkdir Payload
           cp -r build/ios/simulator/Runner.app Payload/
