@@ -76,45 +76,11 @@ class BillScreen extends StatelessWidget {
       ..toString();
   }
 
+  static const _ownerWhatsApp = '6351770056';
+
   Future<void> _sendWhatsApp() async {
-    final phoneController = TextEditingController(
-      text: order.customerPhone ?? '',
-    );
-
-    final phone = await showDialog<String>(
-      context: Navigator.of(context).context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Send Bill via WhatsApp'),
-        content: TextField(
-          controller: phoneController,
-          keyboardType: TextInputType.phone,
-          decoration: const InputDecoration(
-            labelText: 'Phone number',
-            hintText: '+91 98765 43210',
-            prefixIcon: Icon(Icons.phone),
-          ),
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, phoneController.text.trim()),
-            child: const Text('Send'),
-          ),
-        ],
-      ),
-    );
-
-    if (phone == null || phone.isEmpty) return;
-
-    final cleaned = phone.replaceAll(RegExp(r'[^0-9+]'), '');
-    final number = cleaned.startsWith('+') ? cleaned.substring(1) : cleaned;
-    final billText = Uri.encodeComponent(_buildBillText());
-    final url = Uri.parse('https://wa.me/$number?text=$billText');
-
+    final billText = _buildBillText();
+    final url = Uri.parse('https://wa.me/$_ownerWhatsApp?text=${Uri.encodeComponent(billText)}');
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     } else {

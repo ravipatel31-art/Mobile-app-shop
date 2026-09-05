@@ -427,6 +427,8 @@ class _OrderCard extends StatelessWidget {
       .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
       .join(' ');
 
+  static const _ownerWhatsApp = '6351770056';
+
   void _sendWhatsApp(BuildContext context) {
     final items = order.items.map((item) {
       final opts = item.options.map((o) => '  $o').join('\n');
@@ -456,49 +458,15 @@ class _OrderCard extends StatelessWidget {
       ..writeln('═══════════════════════════')
       ..toString();
 
-    final phoneController = TextEditingController(
-      text: order.customerPhone ?? '',
-    );
-
-    showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Send Bill via WhatsApp'),
-        content: TextField(
-          controller: phoneController,
-          keyboardType: TextInputType.phone,
-          decoration: const InputDecoration(
-            labelText: 'Phone number',
-            hintText: '+91 98765 43210',
-            prefixIcon: Icon(Icons.phone),
-          ),
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, phoneController.text.trim()),
-            child: const Text('Send'),
-          ),
-        ],
-      ),
-    ).then((phone) {
-      if (phone == null || phone.isEmpty) return;
-      final cleaned = phone.replaceAll(RegExp(r'[^0-9+]'), '');
-      final number = cleaned.startsWith('+') ? cleaned.substring(1) : cleaned;
-      final url = Uri.parse('https://wa.me/$number?text=${Uri.encodeComponent(billText)}');
-      canLaunchUrl(url).then((ok) {
-        if (ok) {
-          launchUrl(url, mode: LaunchMode.externalApplication);
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Could not open WhatsApp')),
-          );
-        }
-      });
+    final url = Uri.parse('https://wa.me/$_ownerWhatsApp?text=${Uri.encodeComponent(billText)}');
+    canLaunchUrl(url).then((ok) {
+      if (ok) {
+        launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open WhatsApp')),
+        );
+      }
     });
   }
 }
