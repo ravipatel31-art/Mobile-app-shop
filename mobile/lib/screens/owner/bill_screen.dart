@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/order.dart';
 import '../../services/api_client.dart';
@@ -44,6 +45,87 @@ class BillScreen extends StatelessWidget {
     Clipboard.setData(ClipboardData(text: buffer.toString()));
   }
 
+  String _buildBillText() {
+    final items = order.items.map((item) {
+      final opts = item.options.map((o) => '  $o').join('\n');
+      return '${item.name} x${item.qty}  ₹${item.lineTotal}'
+          '${opts.isNotEmpty ? '\n$opts' : ''}';
+    }).join('\n');
+
+    return StringBuffer()
+      ..writeln('═══════════════════════════')
+      ..writeln('       CAFE POS BILL')
+      ..writeln('═══════════════════════════')
+      ..writeln()
+      ..writeln('Bill #: ${order.id}')
+      ..writeln('Date: ${DateFormat('dd MMM yyyy, hh:mm a').format(DateTime.tryParse(order.createdAt) ?? DateTime.now())}')
+      ..writeln('Staff: ${order.takenBy ?? 'N/A'}')
+      ..writeln()
+      ..writeln('─── ITEMS ───────────────')
+      ..writeln(items)
+      ..writeln()
+      ..writeln('─────────────────────────')
+      ..writeln('TOTAL: ₹${order.total}')
+      ..writeln()
+      ..writeln('Payment: ${order.paymentMethod.toUpperCase()}')
+      ..writeln('Status: ${order.paymentStatus.toUpperCase()}')
+      ..writeln()
+      ..writeln('═══════════════════════════')
+      ..writeln('  Thank you for your visit!')
+      ..writeln('═══════════════════════════')
+      ..toString();
+  }
+
+  Future<void> _sendWhatsApp() async {
+    final phoneController = TextEditingController(
+      text: order.customerPhone ?? '',
+    );
+
+    final phone = await showDialog<String>(
+      context: Navigator.of(context).context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Send Bill via WhatsApp'),
+        content: TextField(
+          controller: phoneController,
+          keyboardType: TextInputType.phone,
+          decoration: const InputDecoration(
+            labelText: 'Phone number',
+            hintText: '+91 98765 43210',
+            prefixIcon: Icon(Icons.phone),
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, phoneController.text.trim()),
+            child: const Text('Send'),
+          ),
+        ],
+      ),
+    );
+
+    if (phone == null || phone.isEmpty) return;
+
+    final cleaned = phone.replaceAll(RegExp(r'[^0-9+]'), '');
+    final number = cleaned.startsWith('+') ? cleaned.substring(1) : cleaned;
+    final billText = Uri.encodeComponent(_buildBillText());
+    final url = Uri.parse('https://wa.me/$number?text=$billText');
+
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } else {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open WhatsApp')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -55,6 +137,10 @@ class BillScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.copy),
             onPressed: _copyBill,
+          ),
+          IconButton(
+            icon: const Icon(Icons.whatsapp, color: Colors.green),
+            onPressed: _sendWhatsApp,
           ),
         ],
       ),
@@ -247,14 +333,28 @@ class BillScreen extends StatelessWidget {
 
                 const SizedBox(height: 16),
 
-                // Share button
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: _copyBill,
-                    icon: const Icon(Icons.copy),
-                    label: const Text('Copy Bill to Clipboard'),
-                  ),
+                // Buttons
+                Row(
+                  children: [
+                    Expanded(
+                      child: FilledButton.tonalIcon(
+                        onPressed: _copyBill,
+                        icon: const Icon(Icons.copy),
+                        label: const Text('Copy'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: _sendWhatsApp,
+                        icon: const Icon(Icons.whatsapp),
+                        label: const Text('WhatsApp'),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Colors.green,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
 
                 const SizedBox(height: 16),

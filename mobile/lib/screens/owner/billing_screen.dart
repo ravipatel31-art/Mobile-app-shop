@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/billing.dart';
 import '../../models/order.dart';
@@ -400,6 +401,20 @@ class _OrderCard extends StatelessWidget {
                 ),
               ),
             ],
+            if (isPaid) ...[
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerRight,
+                child: FilledButton.icon(
+                  onPressed: () => _sendWhatsApp(context),
+                  icon: const Icon(Icons.whatsapp, size: 18),
+                  label: const Text('Send Bill'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.green,
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
         ),
@@ -411,4 +426,79 @@ class _OrderCard extends StatelessWidget {
       .split(' ')
       .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
       .join(' ');
+
+  void _sendWhatsApp(BuildContext context) {
+    final items = order.items.map((item) {
+      final opts = item.options.map((o) => '  $o').join('\n');
+      return '${item.name} x${item.qty}  ₹${item.lineTotal}'
+          '${opts.isNotEmpty ? '\n$opts' : ''}';
+    }).join('\n');
+
+    final billText = StringBuffer()
+      ..writeln('═══════════════════════════')
+      ..writeln('       CAFE POS BILL')
+      ..writeln('═══════════════════════════')
+      ..writeln()
+      ..writeln('Bill #: ${order.id}')
+      ..writeln('Date: ${DateFormat('dd MMM yyyy, hh:mm a').format(DateTime.tryParse(order.createdAt) ?? DateTime.now())}')
+      ..writeln('Staff: ${order.takenBy ?? 'N/A'}')
+      ..writeln()
+      ..writeln('─── ITEMS ───────────────')
+      ..writeln(items)
+      ..writeln()
+      ..writeln('─────────────────────────')
+      ..writeln('TOTAL: ₹${order.total}')
+      ..writeln()
+      ..writeln('Payment: ${order.paymentMethod.toUpperCase()}')
+      ..writeln()
+      ..writeln('═══════════════════════════')
+      ..writeln('  Thank you for your visit!')
+      ..writeln('═══════════════════════════')
+      ..toString();
+
+    final phoneController = TextEditingController(
+      text: order.customerPhone ?? '',
+    );
+
+    showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Send Bill via WhatsApp'),
+        content: TextField(
+          controller: phoneController,
+          keyboardType: TextInputType.phone,
+          decoration: const InputDecoration(
+            labelText: 'Phone number',
+            hintText: '+91 98765 43210',
+            prefixIcon: Icon(Icons.phone),
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, phoneController.text.trim()),
+            child: const Text('Send'),
+          ),
+        ],
+      ),
+    ).then((phone) {
+      if (phone == null || phone.isEmpty) return;
+      final cleaned = phone.replaceAll(RegExp(r'[^0-9+]'), '');
+      final number = cleaned.startsWith('+') ? cleaned.substring(1) : cleaned;
+      final url = Uri.parse('https://wa.me/$number?text=${Uri.encodeComponent(billText)}');
+      canLaunchUrl(url).then((ok) {
+        if (ok) {
+          launchUrl(url, mode: LaunchMode.externalApplication);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not open WhatsApp')),
+          );
+        }
+      });
+    });
+  }
 }
