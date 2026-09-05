@@ -76,7 +76,7 @@ class BillScreen extends StatelessWidget {
       ..toString();
   }
 
-  static const _ownerWhatsApp = '6351770056';
+  static const _ownerWhatsApp = '916351770056';
 
   Future<void> _sendWhatsApp() async {
     final billText = _buildBillText();

@@ -427,7 +427,7 @@ class _OrderCard extends StatelessWidget {
       .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
       .join(' ');
 
-  static const _ownerWhatsApp = '6351770056';
+  static const _ownerWhatsApp = '916351770056';
 
   void _sendWhatsApp(BuildContext context) {
     final items = order.items.map((item) {
