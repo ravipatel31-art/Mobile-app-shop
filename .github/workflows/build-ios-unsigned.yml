@@ -25,10 +25,11 @@ jobs:
             echo "::error::Repository variable API_BASE_URL is not set (Settings → Secrets and variables → Actions → Variables). Example: http://192.168.1.50:5000"
             exit 1
           fi
-          flutter build ios --release --no-codesign \
+          xcrun simctl boot "iPhone 16" 2>/dev/null || true
+          flutter build ios --release --simulator \
             --dart-define=API_BASE_URL="$API_BASE_URL"
           mkdir Payload
-          cp -r build/ios/simulator/Runner.app Payload/
+          cp -r build/ios/iphonesimulator/Runner.app Payload/
           zip -r cafe-app-unsigned.ipa Payload
 
       - uses: actions/upload-artifact@v4
