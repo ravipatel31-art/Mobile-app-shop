@@ -407,7 +407,7 @@ class _OrderCard extends StatelessWidget {
                 alignment: Alignment.centerRight,
                 child: FilledButton.icon(
                   onPressed: () => _sendWhatsApp(context),
-                  icon: const Icon(Icons.whatsapp, size: 18),
+                  icon: const Icon(Icons.chat, size: 18),
                   label: const Text('Send Bill'),
                   style: FilledButton.styleFrom(
                     backgroundColor: Colors.green,
@@ -456,7 +456,7 @@ class _OrderCard extends StatelessWidget {
       ..writeln('═══════════════════════════')
       ..writeln('  Thank you for your visit!')
       ..writeln('═══════════════════════════')
-      ..toString();
+      .toString();
 
     final url = Uri.parse('https://wa.me/$_ownerWhatsApp?text=${Uri.encodeComponent(billText)}');
     canLaunchUrl(url).then((ok) {

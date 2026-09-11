@@ -73,12 +73,12 @@ class BillScreen extends StatelessWidget {
       ..writeln('═══════════════════════════')
       ..writeln('  Thank you for your visit!')
       ..writeln('═══════════════════════════')
-      ..toString();
+      .toString();
   }
 
   static const _ownerWhatsApp = '916351770056';
 
-  Future<void> _sendWhatsApp() async {
+  Future<void> _sendWhatsApp(BuildContext context) async {
     final billText = _buildBillText();
     final url = Uri.parse('https://wa.me/$_ownerWhatsApp?text=${Uri.encodeComponent(billText)}');
     if (await canLaunchUrl(url)) {
@@ -105,8 +105,8 @@ class BillScreen extends StatelessWidget {
             onPressed: _copyBill,
           ),
           IconButton(
-            icon: const Icon(Icons.whatsapp, color: Colors.green),
-            onPressed: _sendWhatsApp,
+            icon: const Icon(Icons.chat, color: Colors.green),
+            onPressed: () => _sendWhatsApp(context),
           ),
         ],
       ),
@@ -312,8 +312,8 @@ class BillScreen extends StatelessWidget {
                     const SizedBox(width: 12),
                     Expanded(
                       child: FilledButton.icon(
-                        onPressed: _sendWhatsApp,
-                        icon: const Icon(Icons.whatsapp),
+                        onPressed: () => _sendWhatsApp(context),
+                        icon: const Icon(Icons.chat),
                         label: const Text('WhatsApp'),
                         style: FilledButton.styleFrom(
                           backgroundColor: Colors.green,
