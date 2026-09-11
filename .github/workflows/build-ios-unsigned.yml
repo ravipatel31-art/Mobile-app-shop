@@ -17,12 +17,7 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Disable code signing
-        run: |
-          sed -i '' 's/CODE_SIGN_STYLE = Automatic/CODE_SIGN_STYLE = Manual/g' ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/DEVELOPMENT_TEAM =.*/DEVELOPMENT_TEAM = "";/g' ios/Runner.xcodeproj/project.pbxproj
-
-      - name: Build unsigned IPA
+      - name: Build iOS app (no signing)
         env:
           API_BASE_URL: ${{ vars.API_BASE_URL }}
         run: |
@@ -30,10 +25,21 @@ jobs:
             echo "::error::Repository variable API_BASE_URL is not set"
             exit 1
           fi
-          flutter build ipa --no-codesign \
-            --dart-define=API_BASE_URL="$API_BASE_URL"
+          flutter pub get
+          cd ios
+          xcodebuild -workspace Runner.xcworkspace -scheme Runner -sdk iphoneos -configuration Release \
+            CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO \
+            DEVELOPMENT_TEAM="" PROVISIONING_PROFILE_SPECIFIER="" \
+            BUILD_DIR="../build/ios" -quiet
+          cd ..
+
+      - name: Package IPA
+        run: |
+          mkdir -p Payload
+          cp -r build/ios/Release-iphoneos/Runner.app Payload/
+          zip -r cafe-app-unsigned.ipa Payload
 
       - uses: actions/upload-artifact@v4
         with:
           name: cafe-ios-ipa-unsigned
-          path: mobile/build/ios/ipa/*.ipa
+          path: mobile/cafe-app-unsigned.ipa
