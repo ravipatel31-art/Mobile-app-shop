@@ -436,7 +436,7 @@ class _OrderCard extends StatelessWidget {
           '${opts.isNotEmpty ? '\n$opts' : ''}';
     }).join('\n');
 
-    final billText = StringBuffer()
+    final buffer = StringBuffer()
       ..writeln('═══════════════════════════')
       ..writeln('       CAFE POS BILL')
       ..writeln('═══════════════════════════')
@@ -455,8 +455,8 @@ class _OrderCard extends StatelessWidget {
       ..writeln()
       ..writeln('═══════════════════════════')
       ..writeln('  Thank you for your visit!')
-      ..writeln('═══════════════════════════')
-      .toString();
+      ..writeln('═══════════════════════════');
+    final billText = buffer.toString();
 
     final url = Uri.parse('https://wa.me/$_ownerWhatsApp?text=${Uri.encodeComponent(billText)}');
     canLaunchUrl(url).then((ok) {

@@ -52,7 +52,7 @@ class BillScreen extends StatelessWidget {
           '${opts.isNotEmpty ? '\n$opts' : ''}';
     }).join('\n');
 
-    return StringBuffer()
+    final buffer = StringBuffer()
       ..writeln('═══════════════════════════')
       ..writeln('       CAFE POS BILL')
       ..writeln('═══════════════════════════')
@@ -72,8 +72,8 @@ class BillScreen extends StatelessWidget {
       ..writeln()
       ..writeln('═══════════════════════════')
       ..writeln('  Thank you for your visit!')
-      ..writeln('═══════════════════════════')
-      .toString();
+      ..writeln('═══════════════════════════');
+    return buffer.toString();
   }
 
   static const _ownerWhatsApp = '916351770056';
