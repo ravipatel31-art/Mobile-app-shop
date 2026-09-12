@@ -68,6 +68,7 @@ services:
 
   # Free quick tunnel — random URL each run, printed in `logs tunnel`.
   # (Image has no shell, so quick vs named are two services.)
+  # NOTE: This gives a RANDOM URL each time. Use named-tunnel for static URL.
   tunnel:
     image: cloudflare/cloudflared:latest
     profiles: ["tunnel"]
@@ -76,8 +77,12 @@ services:
       - backend
     command: ["tunnel", "--no-autoupdate", "--url", "http://backend:5000"]
 
-  # Stable named tunnel — put your Zero Trust token in .env first (an empty
-  # token just makes this service exit with a cloudflared error).
+  # Stable named tunnel — STATIC URL that never changes.
+  # Setup:
+  # 1. Go to https://one.dash.cloudflare.com/ → Networks → Tunnels
+  # 2. Create a tunnel, add public hostname pointing to http://backend:5000
+  # 3. Copy the tunnel token to TUNNEL_TOKEN in .env
+  # 4. Run: docker compose --profile tunnel-token up -d named-tunnel
   named-tunnel:
     image: cloudflare/cloudflared:latest
     profiles: ["tunnel-token"]

@@ -9,6 +9,7 @@ import 'package:flutter/foundation.dart'
 ///   --dart-define=API_BASE_URL=http://192.168.1.5:5000
 ///
 /// Local dev uses plain http; a Cloudflare tunnel URL (https) works too.
+/// Static tunnel URL: https://enb-symposium-seating-keywords.trycloudflare.com
 class AppConfig {
   static const String _override =
       String.fromEnvironment('API_BASE_URL', defaultValue: '');
