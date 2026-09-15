@@ -20,7 +20,7 @@ class TablesGridScreen extends StatefulWidget {
 
 class _TablesGridScreenState extends State<TablesGridScreen> {
   List<CafeTable> _tables = [];
-  Map<String, CafeOrder?> _orderCache = {}; // For checking who's serving the table
+  Map<String, CafeOrder?> _orderCache = {};
   bool _loading = true;
   String? _error;
   int _lastTablesTick = 0;
@@ -36,8 +36,6 @@ class _TablesGridScreenState extends State<TablesGridScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // The grid stays alive inside the IndexedStack, so listen for newly placed
-    // orders and refresh (the table should flip to occupied right away).
     final cart = context.read<CartState>();
     if (_cart != cart) {
       _cart?.removeListener(_onCartChanged);
@@ -68,15 +66,12 @@ class _TablesGridScreenState extends State<TablesGridScreen> {
     try {
       final tables = await context.read<ApiClient>().fetchTables();
       _orderCache.clear();
-
-      // Fetch all orders to check staff assignments
       final orders = await context.read<ApiClient>().fetchOrders();
       for (final order in orders) {
         if (order.id.isNotEmpty) {
           _orderCache[order.id] = order;
         }
       }
-
       if (!mounted) return;
       setState(() {
         _tables = tables;
@@ -93,13 +88,11 @@ class _TablesGridScreenState extends State<TablesGridScreen> {
 
   Future<void> _openTable(CafeTable t) async {
     if (t.isOccupied) {
-      // Check if this table is being served by the current staff member.
       final order = t.orderId != null ? _orderCache[t.orderId] : null;
       final auth = context.read<AuthState>();
       final server = order?.takenBy ?? t.takenBy;
       final isOwner = auth.isOwner;
       final currentUsername = auth.username;
-      // Locked = served by another staff member (owners can always manage).
       final locked = !isOwner &&
           server != null &&
           server.isNotEmpty &&
@@ -107,8 +100,8 @@ class _TablesGridScreenState extends State<TablesGridScreen> {
 
       await _showOccupied(t, order, locked: locked, server: server);
     } else {
-      // Empty table - proceed to customer info
-      await Navigator.push(context,
+      await Navigator.push(
+          context,
           MaterialPageRoute(
               builder: (_) => CustomerInfoScreen(tableNumber: t.number)));
     }
@@ -124,68 +117,221 @@ class _TablesGridScreenState extends State<TablesGridScreen> {
     if (!mounted) return;
     await showModalBottomSheet(
       context: context,
-      builder: (_) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+      isScrollControlled: true,
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.5,
+        minChildSize: 0.3,
+        maxChildSize: 0.85,
+        expand: false,
+        builder: (context, scrollController) => Column(
           children: [
-            ListTile(
-              title: Text('Table ${t.number}'),
-              subtitle: Text(order == null
-                  ? 'Order #${t.orderId ?? ''}'
-                  : 'Order #${order.id} • ${order.status} • ${formatMoney(order.total)}'),
-              trailing: server != null
-                  ? Text('Served by $server',
-                      style: const TextStyle(
-                          fontSize: 12, color: Colors.black54))
-                  : null,
-            ),
-            if (order != null)
-              ...order.items.map((l) => ListTile(
-                    dense: true,
-                    leading: Text('${l.qty}×'),
-                    title: Text(l.name),
-                    subtitle:
-                        l.options.isEmpty ? null : Text(l.options.join(' · ')),
-                    trailing: Text(formatMoney(l.lineTotal)),
-                  )),
-            const Divider(),
-            if (locked) ...[
-              const ListTile(
-                leading: Icon(Icons.lock_outline),
-                title: Text('Locked'),
-                subtitle: Text(
-                    'This table is being served by another staff member. '
-                    'Use the shared order queue to advance its order.'),
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
               ),
-            ] else ...[
-              if (order != null && order.status != 'collected')
-                ListTile(
-                  leading: Icon(
-                    order.status == 'ready' ? Icons.shopping_bag : Icons.skip_next,
-                    color: order.status == 'ready' ? Colors.green : null,
-                  ),
-                  title: Text(
-                    _advanceLabel(order.status),
-                    style: TextStyle(
-                      color: order.status == 'ready' ? Colors.green : null,
-                      fontWeight: order.status == 'ready' ? FontWeight.bold : null,
+            ),
+            // ── Header ──
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: t.isOccupied
+                          ? Colors.red.shade50
+                          : Colors.green.shade50,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      Icons.table_restaurant_rounded,
+                      color: t.isOccupied
+                          ? Colors.red.shade400
+                          : Colors.green.shade600,
                     ),
                   ),
-                  onTap: () async {
-                    Navigator.pop(context);
-                    await _advance(order);
-                  },
-                ),
-              ListTile(
-                leading: const Icon(Icons.check_circle_outline),
-                title: const Text('Free table'),
-                onTap: () async {
-                  Navigator.pop(context);
-                  await context.read<ApiClient>().freeTable(t.number);
-                  _load();
-                },
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Table ${t.number}',
+                          style: const TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        if (order != null)
+                          Text(
+                            'Order #${order.id} • ${order.status} • ${formatMoney(order.total)}',
+                            style: TextStyle(
+                                fontSize: 13, color: Colors.grey.shade600),
+                          ),
+                      ],
+                    ),
+                  ),
+                  if (server != null)
+                    Container(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        'by $server',
+                        style: TextStyle(
+                            fontSize: 11, color: Colors.blue.shade700),
+                      ),
+                    ),
+                ],
               ),
-            ],
+            ),
+
+            const Divider(height: 1),
+
+            // ── Items ──
+            if (order != null)
+              Expanded(
+                child: ListView(
+                  controller: scrollController,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  children: [
+                    const SizedBox(height: 8),
+                    for (final l in order.items)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text('${l.qty}×',
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13)),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(l.name,
+                                      style: const TextStyle(fontSize: 14)),
+                                  if (l.options.isNotEmpty)
+                                    Text(l.options.join(' • '),
+                                        style: TextStyle(
+                                            fontSize: 11,
+                                            color: Colors.grey.shade500)),
+                                ],
+                              ),
+                            ),
+                            Text(formatMoney(l.lineTotal),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w600)),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+
+            // ── Actions ──
+            const Divider(height: 1),
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: locked
+                    ? Row(
+                        children: [
+                          Icon(Icons.lock_outline,
+                              color: Colors.grey.shade500, size: 20),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Locked by $server',
+                              style: TextStyle(color: Colors.grey.shade600),
+                            ),
+                          ),
+                        ],
+                      )
+                    : Row(
+                        children: [
+                          if (order != null && order.status != 'collected')
+                            Expanded(
+                              child: FilledButton.icon(
+                                onPressed: () async {
+                                  Navigator.pop(context);
+                                  await _advance(order);
+                                },
+                                icon: Icon(
+                                  order.status == 'ready'
+                                      ? Icons.shopping_bag
+                                      : Icons.skip_next,
+                                  size: 18,
+                                ),
+                                label: Text(_advanceLabel(order.status)),
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: order.status == 'ready'
+                                      ? Colors.green
+                                      : null,
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 14),
+                                ),
+                              ),
+                            ),
+                          if (order != null &&
+                              order.status != 'collected') ...[
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: () async {
+                                  Navigator.pop(context);
+                                  await context
+                                      .read<ApiClient>()
+                                      .freeTable(t.number);
+                                  _load();
+                                },
+                                icon: const Icon(Icons.check_circle_outline,
+                                    size: 18),
+                                label: const Text('Free table'),
+                                style: OutlinedButton.styleFrom(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 14),
+                                ),
+                              ),
+                            ),
+                          ],
+                          if (order == null || order.status == 'collected')
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: () async {
+                                  Navigator.pop(context);
+                                  await context
+                                      .read<ApiClient>()
+                                      .freeTable(t.number);
+                                  _load();
+                                },
+                                icon: const Icon(Icons.check_circle_outline,
+                                    size: 18),
+                                label: const Text('Free table'),
+                                style: OutlinedButton.styleFrom(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 14),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+              ),
+            ),
           ],
         ),
       ),
@@ -211,9 +357,8 @@ class _TablesGridScreenState extends State<TablesGridScreen> {
     final next = CafeOrder.flow[idx + 1];
     try {
       if (next == 'collected') {
-        // Completing requires payment — the flow also runs Google Pay.
         final updated = await collectOrderAndPay(context, order);
-        if (updated == null || !mounted) return; // cancelled or failed
+        if (updated == null || !mounted) return;
       } else {
         await context.read<ApiClient>().updateOrderStatus(order.id, next);
       }
@@ -231,62 +376,168 @@ class _TablesGridScreenState extends State<TablesGridScreen> {
     if (_error != null) {
       return Center(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Text(_error!),
+          const Icon(Icons.error_outline, size: 40, color: Colors.grey),
+          const SizedBox(height: 8),
+          Text(_error!, style: const TextStyle(color: Colors.grey)),
           const SizedBox(height: 12),
           OutlinedButton(onPressed: _load, child: const Text('Retry')),
         ]),
       );
     }
-    final scheme = Theme.of(context).colorScheme;
-    final occupiedFill = scheme.errorContainer.withValues(alpha: 0.4);
-    final emptyFill = scheme.primaryContainer.withValues(alpha: 0.35);
+
+    final occupied = _tables.where((t) => t.isOccupied).length;
+    final empty = _tables.length - occupied;
+
     return RefreshIndicator(
       onRefresh: _load,
-      child: GridView.count(
-        crossAxisCount: 3,
-        padding: const EdgeInsets.all(12),
-        children: _tables
-            .map((t) => Card(
-                  margin: const EdgeInsets.all(6),
-                  color: t.isOccupied ? occupiedFill : emptyFill,
-                  child: InkWell(
-                    onTap: () => _openTable(t),
-                    child: Padding(
-                      padding: const EdgeInsets.all(4),
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              t.isOccupied
-                                  ? Icons.table_restaurant
-                                  : Icons.table_restaurant_outlined,
-                              size: 34,
-                              color: t.isOccupied
-                                  ? Colors.red.shade400
-                                  : Colors.green.shade600,
-                            ),
-                            const SizedBox(height: 6),
-                            Text('Table ${t.number}',
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold)),
-                            Text(
-                                t.isOccupied ? 'Occupied' : 'Tap to order',
-                                style: const TextStyle(
-                                    fontSize: 11, color: Colors.black54)),
-                            if (t.isOccupied && t.takenBy != null)
-                              Text('Served by ${t.takenBy}',
-                                  style: const TextStyle(
-                                      fontSize: 10, color: Colors.black45)),
-                          ],
-                        ),
-                      ),
-                    ),
+      child: Column(
+        children: [
+          // ── Summary ──
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            color: Theme.of(context)
+                .colorScheme
+                .primaryContainer
+                .withValues(alpha: 0.45),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _SummaryTile(
+                    label: 'Total', value: '${_tables.length}', color: Colors.blueGrey),
+                _SummaryTile(
+                    label: 'Occupied', value: '$occupied', color: Colors.red),
+                _SummaryTile(
+                    label: 'Available', value: '$empty', color: Colors.green),
+              ],
+            ),
+          ),
+
+          // ── Grid ──
+          Expanded(
+            child: _tables.isEmpty
+                ? const Center(child: Text('No tables configured'))
+                : LayoutBuilder(
+                    builder: (context, constraints) {
+                      final crossAxisCount = constraints.maxWidth > 600 ? 4 : 3;
+                      return GridView.count(
+                        crossAxisCount: crossAxisCount,
+                        padding: const EdgeInsets.all(12),
+                        mainAxisSpacing: 10,
+                        crossAxisSpacing: 10,
+                        children: _tables.map((t) => _TableCard(
+                              table: t,
+                              onTap: () => _openTable(t),
+                            )).toList(),
+                      );
+                    },
                   ),
-                ))
-            .toList(),
+          ),
+        ],
       ),
+    );
+  }
+}
+
+// ─── Table Card ───
+
+class _TableCard extends StatelessWidget {
+  final CafeTable table;
+  final VoidCallback onTap;
+
+  const _TableCard({required this.table, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final isOccupied = table.isOccupied;
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      color: isOccupied
+          ? scheme.errorContainer.withValues(alpha: 0.35)
+          : scheme.primaryContainer.withValues(alpha: 0.3),
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.table_restaurant_rounded,
+                size: 36,
+                color: isOccupied
+                    ? Colors.red.shade400
+                    : Colors.green.shade600,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Table ${table.number}',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: isOccupied
+                      ? Colors.red.shade100
+                      : Colors.green.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  isOccupied ? 'Occupied' : 'Available',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: isOccupied
+                        ? Colors.red.shade700
+                        : Colors.green.shade700,
+                  ),
+                ),
+              ),
+              if (isOccupied && table.takenBy != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  table.takenBy!,
+                  style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Summary Tile ───
+
+class _SummaryTile extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color color;
+
+  const _SummaryTile({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          value,
+          style: TextStyle(
+              fontSize: 20, fontWeight: FontWeight.bold, color: color),
+        ),
+        Text(label, style: const TextStyle(fontSize: 11)),
+      ],
     );
   }
 }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -25,13 +26,21 @@ class _StaffOrdersScreenState extends State<StaffOrdersScreen> {
   bool _loading = true;
   String? _error;
   bool _activeOnly = true;
+  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
     _load();
-    // Auto-refresh every 3 seconds for real-time updates
-    Future.delayed(const Duration(seconds: 3), _autoRefresh);
+    _refreshTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      if (mounted && !_loading) _load();
+    });
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -55,24 +64,14 @@ class _StaffOrdersScreenState extends State<StaffOrdersScreen> {
     }
   }
 
-  Future<void> _autoRefresh() async {
-    if (mounted && !_loading) {
-      await _load();
-    }
-    if (mounted) {
-      Future.delayed(const Duration(seconds: 3), _autoRefresh);
-    }
-  }
-
   Future<void> _advance(CafeOrder order) async {
     final idx = CafeOrder.flow.indexOf(order.status);
     if (idx < 0 || idx >= CafeOrder.flow.length - 1) return;
     final next = CafeOrder.flow[idx + 1];
     try {
       if (next == 'collected') {
-        // Completing requires payment — the flow also runs Google Pay.
         final updated = await collectOrderAndPay(context, order);
-        if (updated == null || !mounted) return; // cancelled or failed
+        if (updated == null || !mounted) return;
       } else {
         await context.read<ApiClient>().updateOrderStatus(order.id, next);
       }
@@ -90,8 +89,6 @@ class _StaffOrdersScreenState extends State<StaffOrdersScreen> {
     'ready': 'Pickup & Pay',
   };
 
-  /// Reopen a completed order so the customer can add more items. The already
-  /// paid amount carries over as credit; only the difference is collected later.
   Future<void> _reopenAndAdd(CafeOrder order) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -116,7 +113,7 @@ class _StaffOrdersScreenState extends State<StaffOrdersScreen> {
     if (confirmed != true || !mounted) return;
     try {
       await context.read<ApiClient>().reopenOrder(order.id);
-      context.read<CartState>().tablesChanged(); // grid: table occupied again
+      context.read<CartState>().tablesChanged();
       await _load();
       if (!mounted) return;
       await Navigator.push(
@@ -136,9 +133,6 @@ class _StaffOrdersScreenState extends State<StaffOrdersScreen> {
     }
   }
 
-  /// Add items to an existing order straight from the queue: open the menu
-  /// popup, then POST the picked items. A collected order is reopened first so
-  /// the already-paid amount carries over as credit.
   Future<void> _addItemsToOrder(CafeOrder order) async {
     final cart = context.read<CartState>();
     final api = context.read<ApiClient>();
@@ -147,11 +141,11 @@ class _StaffOrdersScreenState extends State<StaffOrdersScreen> {
     await showMenuPickerSheet(context);
     if (!mounted) return;
     final added = cart.lines.where((l) => !snapshot.contains(l)).toList();
-    if (added.isEmpty) return; // nothing picked — leave the cart as-is
+    if (added.isEmpty) return;
     try {
       if (order.status == 'collected') {
         await api.reopenOrder(order.id);
-        cart.tablesChanged(); // grid: table occupied again
+        cart.tablesChanged();
       }
       final updated = await api.addOrderItems(
           order.id, added.map((l) => l.toOrderItemJson()).toList());
@@ -188,13 +182,17 @@ class _StaffOrdersScreenState extends State<StaffOrdersScreen> {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthState>();
-    if (_loading) return const Center(child: CircularProgressIndicator());
-    if (_error != null) {
+    if (_loading && _orders.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_error != null && _orders.isEmpty) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(_error!),
+            const Icon(Icons.error_outline, size: 40, color: Colors.grey),
+            const SizedBox(height: 8),
+            Text(_error!, style: const TextStyle(color: Colors.grey)),
             const SizedBox(height: 12),
             OutlinedButton(onPressed: _load, child: const Text('Retry')),
           ],
@@ -214,8 +212,9 @@ class _StaffOrdersScreenState extends State<StaffOrdersScreen> {
       onRefresh: _load,
       child: Column(
         children: [
+          // ── Status summary bar ──
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             color: Theme.of(context)
                 .colorScheme
                 .primaryContainer
@@ -229,27 +228,31 @@ class _StaffOrdersScreenState extends State<StaffOrdersScreen> {
               ],
             ),
           ),
+
+          // ── Active only toggle ──
           Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
               children: [
+                Icon(Icons.circle, size: 8, color: Colors.green.shade400),
+                const SizedBox(width: 6),
                 Text(
-                  '📡 Real-time Updates',
-                  style: Theme.of(context).textTheme.labelLarge,
+                  'Live updates',
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                 ),
                 const Spacer(),
-                SizedBox(
-                  height: 24,
-                  child: Checkbox(
-                    value: _activeOnly,
-                    onChanged: (v) =>
-                        setState(() => _activeOnly = v ?? true),
-                  ),
+                Switch(
+                  value: _activeOnly,
+                  onChanged: (v) => setState(() => _activeOnly = v),
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
-                const Text('Active only'),
               ],
             ),
           ),
+
+          // ── Orders list ──
           Expanded(
             child: visible.isEmpty
                 ? ListView(children: const [
@@ -257,125 +260,216 @@ class _StaffOrdersScreenState extends State<StaffOrdersScreen> {
                     Center(child: Text('No orders yet.')),
                   ])
                 : ListView.separated(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
                     itemCount: visible.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
                     itemBuilder: (context, i) {
                       final o = visible[i];
                       final canAdvance = _nextLabel.containsKey(o.status);
                       final canEdit = canEditOrder(auth, o);
-                      return Card(
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Text('#${o.id}',
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16)),
-                                  const SizedBox(width: 10),
-                                  Chip(
-                                    label: Text(o.status,
-                                        style: const TextStyle(
-                                            color: Colors.white, fontSize: 12)),
-                                    backgroundColor: _statusColor(o.status),
-                                    visualDensity: VisualDensity.compact,
-                                  ),
-                                  if (o.tableNumber != null) ...[
-                                    const SizedBox(width: 8),
-                                    Chip(
-                                      label: Text('Table ${o.tableNumber}',
-                                          style: const TextStyle(fontSize: 12)),
-                                      backgroundColor:
-                                          Colors.orange.shade100,
-                                      visualDensity: VisualDensity.compact,
-                                    ),
-                                  ],
-                                  const Spacer(),
-                                  Text(formatMoney(o.total),
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16)),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                o.customerName +
-                                    (o.takenBy != null &&
-                                            o.takenBy!.isNotEmpty
-                                        ? ' • served by ${o.takenBy}'
-                                        : ''),
-                                style: const TextStyle(
-                                    color: Colors.black54),
-                              ),
-                              const SizedBox(height: 6),
-                              ...o.items.map((line) => Padding(
-                                padding: const EdgeInsets.only(bottom: 2),
-                                child: Text(
-                                    '${line.qty}× ${line.name}'
-                                    '${line.options.isEmpty ? '' : ' (${line.options.join(', ')})'}',
-                                    style: const TextStyle(fontSize: 13)),
-                              )),
-                              if (o.notes.isNotEmpty) ...[
-                                const SizedBox(height: 4),
-                                Container(
-                                  padding: const EdgeInsets.all(6),
-                                  decoration: BoxDecoration(
-                                    color: Colors.amber.shade50,
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Text(
-                                    '📝 ${o.notes}',
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      fontStyle: FontStyle.italic,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                              const SizedBox(height: 12),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  if (canEdit)
-                                    OutlinedButton.icon(
-                                      onPressed: () => _addItemsToOrder(o),
-                                      icon: const Icon(Icons.add, size: 18),
-                                      label: const Text('Add item'),
-                                    ),
-                                  if (canEdit && canAdvance)
-                                    const SizedBox(width: 8),
-                                  if (canAdvance)
-                                    o.status == 'ready'
-                                        ? FilledButton.icon(
-                                            onPressed: () => _advance(o),
-                                            icon: const Icon(Icons.shopping_bag, size: 18),
-                                            label: Text(_nextLabel[o.status]!),
-                                            style: FilledButton.styleFrom(
-                                              backgroundColor: Colors.green,
-                                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                            ),
-                                          )
-                                        : FilledButton.tonal(
-                                            onPressed: () => _advance(o),
-                                            child: Text(_nextLabel[o.status]!),
-                                          )
-                                  else if (canEdit && o.status == 'collected')
-                                    FilledButton.tonal(
-                                      onPressed: () => _reopenAndAdd(o),
-                                      child: const Text('Reopen & add items'),
-                                    ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
+                      return _OrderCard(
+                        order: o,
+                        statusColor: _statusColor(o.status),
+                        canAdvance: canAdvance,
+                        canEdit: canEdit,
+                        nextLabel: _nextLabel[o.status],
+                        onAdvance: () => _advance(o),
+                        onAddItem: () => _addItemsToOrder(o),
+                        onReopen: () => _reopenAndAdd(o),
                       );
                     },
                   ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Reusable Order Card ───
+
+class _OrderCard extends StatelessWidget {
+  final CafeOrder order;
+  final Color statusColor;
+  final bool canAdvance;
+  final bool canEdit;
+  final String? nextLabel;
+  final VoidCallback onAdvance;
+  final VoidCallback onAddItem;
+  final VoidCallback onReopen;
+
+  const _OrderCard({
+    required this.order,
+    required this.statusColor,
+    required this.canAdvance,
+    required this.canEdit,
+    this.nextLabel,
+    required this.onAdvance,
+    required this.onAddItem,
+    required this.onReopen,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final o = order;
+    final scheme = Theme.of(context).colorScheme;
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Header: ID, status, table, total ──
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            color: statusColor.withValues(alpha: 0.08),
+            child: Row(
+              children: [
+                Text('#${o.id}',
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 15)),
+                const SizedBox(width: 8),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: statusColor,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(o.status,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600)),
+                ),
+                if (o.tableNumber != null) ...[
+                  const SizedBox(width: 6),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text('T${o.tableNumber}',
+                        style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.orange.shade800)),
+                  ),
+                ],
+                const Spacer(),
+                Text(formatMoney(o.total),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 15)),
+              ],
+            ),
+          ),
+
+          // ── Customer + staff ──
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
+            child: Row(
+              children: [
+                Icon(Icons.person_outline,
+                    size: 14, color: scheme.onSurfaceVariant),
+                const SizedBox(width: 4),
+                Text(o.customerName,
+                    style: const TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.w500)),
+                if (o.takenBy != null && o.takenBy!.isNotEmpty) ...[
+                  const SizedBox(width: 8),
+                  Icon(Icons.storefront_outlined,
+                      size: 12, color: scheme.onSurfaceVariant),
+                  const SizedBox(width: 3),
+                  Text(o.takenBy!,
+                      style: TextStyle(
+                          fontSize: 12, color: scheme.onSurfaceVariant)),
+                ],
+              ],
+            ),
+          ),
+
+          // ── Items ──
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 8, 14, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (final line in o.items)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 3),
+                    child: Text(
+                      '${line.qty}× ${line.name}'
+                      '${line.options.isEmpty ? '' : ' (${line.options.join(', ')})'}',
+                      style: TextStyle(
+                          fontSize: 13, color: scheme.onSurfaceVariant),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+
+          // ── Notes ──
+          if (o.notes.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 6, 14, 0),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.amber.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  o.notes,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontStyle: FontStyle.italic,
+                    color: Colors.amber.shade900,
+                  ),
+                ),
+              ),
+            ),
+
+          // ── Actions ──
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                if (canEdit)
+                  OutlinedButton.icon(
+                    onPressed: onAddItem,
+                    icon: const Icon(Icons.add, size: 16),
+                    label: const Text('Add'),
+                    style: OutlinedButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
+                if (canEdit && canAdvance) const SizedBox(width: 8),
+                if (canAdvance)
+                  o.status == 'ready'
+                      ? FilledButton.icon(
+                          onPressed: onAdvance,
+                          icon: const Icon(Icons.shopping_bag, size: 16),
+                          label: Text(nextLabel!),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        )
+                      : FilledButton.tonal(
+                          onPressed: onAdvance,
+                          child: Text(nextLabel!),
+                        )
+                else if (canEdit && o.status == 'collected')
+                  FilledButton.tonal(
+                    onPressed: onReopen,
+                    child: const Text('Reopen'),
+                  ),
+              ],
+            ),
           ),
         ],
       ),
@@ -395,7 +489,7 @@ class _StatusBadge extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
             color: color.withOpacity(0.2),
             borderRadius: BorderRadius.circular(12),
@@ -405,7 +499,7 @@ class _StatusBadge extends StatelessWidget {
               Text(
                 '$count',
                 style: TextStyle(
-                  fontSize: 18,
+                  fontSize: 20,
                   fontWeight: FontWeight.bold,
                   color: color,
                 ),

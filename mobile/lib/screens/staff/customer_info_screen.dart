@@ -16,6 +16,7 @@ class CustomerInfoScreen extends StatefulWidget {
 class _CustomerInfoScreenState extends State<CustomerInfoScreen> {
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
 
   @override
   void dispose() {
@@ -25,21 +26,13 @@ class _CustomerInfoScreenState extends State<CustomerInfoScreen> {
   }
 
   void _proceed() {
-    final name = _nameController.text.trim();
-    if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter customer name')),
-      );
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
 
-    // Store customer info in cart state
     context.read<CartState>().setCustomerInfo(
-          name: name,
+          name: _nameController.text.trim(),
           phone: _phoneController.text.trim(),
         );
 
-    // Navigate to menu
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
@@ -50,57 +43,98 @@ class _CustomerInfoScreenState extends State<CustomerInfoScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text('Table ${widget.tableNumber} • Customer Info'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
+        title: Text('Table ${widget.tableNumber}'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 20),
-            Text(
-              'Who is this order for?',
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            const SizedBox(height: 30),
-            TextField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Customer Name *',
-                hintText: 'e.g., John Smith',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.person_outline),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+            children: [
+              // ── Table badge ──
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: scheme.primaryContainer,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.table_restaurant_rounded,
+                    size: 40,
+                    color: scheme.primary,
+                  ),
+                ),
               ),
-              textInputAction: TextInputAction.next,
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _phoneController,
-              decoration: const InputDecoration(
-                labelText: 'Phone Number (optional)',
-                hintText: 'e.g., +91 98765 43210',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.phone_outlined),
+              const SizedBox(height: 24),
+
+              // ── Heading ──
+              Text(
+                'Who is this order for?',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                textAlign: TextAlign.center,
               ),
-              keyboardType: TextInputType.phone,
-              textInputAction: TextInputAction.done,
-              onSubmitted: (_) => _proceed(),
-            ),
-            const SizedBox(height: 30),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
+              const SizedBox(height: 8),
+              Text(
+                'Enter customer details to start the order',
+                style: TextStyle(color: scheme.onSurfaceVariant),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 32),
+
+              // ── Form ──
+              Form(
+                key: _formKey,
+                child: Column(
+                  children: [
+                    TextFormField(
+                      controller: _nameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Customer Name',
+                        hintText: 'e.g., John Smith',
+                        prefixIcon: Icon(Icons.person_outline),
+                      ),
+                      textInputAction: TextInputAction.next,
+                      validator: (v) =>
+                          (v == null || v.trim().isEmpty) ? 'Name is required' : null,
+                      autofocus: true,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _phoneController,
+                      decoration: const InputDecoration(
+                        labelText: 'Phone (optional)',
+                        hintText: 'e.g., +91 98765 43210',
+                        prefixIcon: Icon(Icons.phone_outlined),
+                      ),
+                      keyboardType: TextInputType.phone,
+                      textInputAction: TextInputAction.done,
+                      onFieldSubmitted: (_) => _proceed(),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 32),
+
+              // ── CTA ──
+              FilledButton(
                 onPressed: _proceed,
-                child: const Text('Proceed to Menu'),
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+                child: const Text(
+                  'Start Order',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

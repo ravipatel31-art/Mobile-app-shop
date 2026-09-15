@@ -11,6 +11,7 @@ class ShellAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.userName,
     required this.onLogout,
     this.onAsk,
+    this.actions,
   });
 
   /// Total height (toolbar + 1px hairline below it).
@@ -22,6 +23,9 @@ class ShellAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   /// When set, shows the AI-assistant entry point in the app bar.
   final VoidCallback? onAsk;
+
+  /// Additional action widgets to show in the app bar.
+  final List<Widget>? actions;
 
   @override
   Size get preferredSize => const Size.fromHeight(kHeight);
@@ -115,6 +119,7 @@ class ShellAppBar extends StatelessWidget implements PreferredSizeWidget {
         ],
       ),
       actions: [
+        if (actions != null) ...actions!,
         // Signed-in identity: gradient initial + full name, so the avatar's
         // single letter is always in context (no lone "O" read as "0").
         Container(

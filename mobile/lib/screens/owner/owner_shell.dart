@@ -14,8 +14,8 @@ import 'staff_screen.dart';
 import 'tables_admin_screen.dart';
 import 'vendor_message_screen.dart';
 
-/// Owner container: 5 main tabs (Sales, Orders, Tables, Billing, Vendors)
-/// plus a "More" menu for less-used screens (Reports, Staff, Menu, Inventory).
+/// Owner container with bottom navigation:
+/// 5 main tabs + "More" overflow menu for less-used screens.
 class OwnerShell extends StatefulWidget {
   const OwnerShell({super.key});
 
@@ -27,7 +27,7 @@ class _OwnerShellState extends State<OwnerShell> {
   int _index = 0;
 
   static const _titles = [
-    'Sales',
+    'Dashboard',
     'Orders',
     'Tables',
     'Billing',
@@ -45,65 +45,97 @@ class _OwnerShellState extends State<OwnerShell> {
   void _openMoreMenu() {
     showModalBottomSheet(
       context: context,
-      builder: (_) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+      isScrollControlled: true,
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.5,
+        minChildSize: 0.3,
+        maxChildSize: 0.8,
+        expand: false,
+        builder: (context, scrollController) => Column(
           children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Text(
-                'More Options',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
               ),
             ),
-            ListTile(
-              leading: const Icon(Icons.assessment),
-              title: const Text('Reports'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const ReportsScreen()),
-                );
-              },
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 20, 20, 12),
+              child: Row(
+                children: [
+                  Text(
+                    'More',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
             ),
-            ListTile(
-              leading: const Icon(Icons.people),
-              title: const Text('Staff'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const StaffScreen()),
-                );
-              },
+            Expanded(
+              child: ListView(
+                controller: scrollController,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                children: [
+                  _MoreTile(
+                    icon: Icons.assessment_outlined,
+                    selectedIcon: Icons.assessment,
+                    title: 'Reports',
+                    subtitle: 'Sales analytics & P&L',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const ReportsScreen()),
+                      );
+                    },
+                  ),
+                  _MoreTile(
+                    icon: Icons.people_outline,
+                    selectedIcon: Icons.people,
+                    title: 'Staff',
+                    subtitle: 'Manage team members',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const StaffScreen()),
+                      );
+                    },
+                  ),
+                  _MoreTile(
+                    icon: Icons.restaurant_menu_outlined,
+                    selectedIcon: Icons.restaurant_menu,
+                    title: 'Menu',
+                    subtitle: 'Edit menu items & prices',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const MenuEditorScreen()),
+                      );
+                    },
+                  ),
+                  _MoreTile(
+                    icon: Icons.inventory_outlined,
+                    selectedIcon: Icons.inventory,
+                    title: 'Inventory',
+                    subtitle: 'Stock tracking',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const InventoryScreen()),
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
-            ListTile(
-              leading: const Icon(Icons.restaurant_menu),
-              title: const Text('Menu Editor'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const MenuEditorScreen()),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.inventory),
-              title: const Text('Inventory'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const InventoryScreen()),
-                );
-              },
-            ),
-            const SizedBox(height: 8),
           ],
         ),
       ),
@@ -121,22 +153,22 @@ class _OwnerShellState extends State<OwnerShell> {
         onLogout: () => context.read<AuthState>().logout(),
         onAsk: () => Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => const AskScreen())),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.more_horiz),
+            tooltip: 'More',
+            onPressed: _openMoreMenu,
+          ),
+        ],
       ),
       body: IndexedStack(index: _index, children: _pages),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
-        onDestinationSelected: (i) {
-          if (i == 4) {
-            // "More" button
-            _openMoreMenu();
-          } else {
-            setState(() => _index = i);
-          }
-        },
+        onDestinationSelected: (i) => setState(() => _index = i),
         destinations: const [
           NavigationDestination(
-            icon: Icon(Icons.bar_chart_outlined),
-            selectedIcon: Icon(Icons.bar_chart),
+            icon: Icon(Icons.dashboard_outlined),
+            selectedIcon: Icon(Icons.dashboard),
             label: 'Sales',
           ),
           NavigationDestination(
@@ -160,6 +192,37 @@ class _OwnerShellState extends State<OwnerShell> {
             label: 'Vendors',
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _MoreTile extends StatelessWidget {
+  final IconData icon;
+  final IconData selectedIcon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _MoreTile({
+    required this.icon,
+    required this.selectedIcon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: ListTile(
+        leading: Icon(icon, size: 24),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+        subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
+        trailing: const Icon(Icons.chevron_right, size: 20),
+        onTap: onTap,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
