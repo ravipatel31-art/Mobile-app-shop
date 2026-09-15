@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../config.dart';
 import '../../models/billing.dart';
 import '../../models/order.dart';
 import '../../services/api_client.dart';
@@ -427,22 +428,41 @@ class _OrderCard extends StatelessWidget {
       .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
       .join(' ');
 
-  static const _ownerWhatsApp = '916351770056';
+  String get _customerPhone {
+    final phone = order.customerPhone?.replaceAll(RegExp(r'[^0-9]'), '') ?? '';
+    if (phone.isEmpty) return '';
+    if (phone.startsWith('91') && phone.length >= 12) return phone;
+    if (phone.length == 10) return '91$phone';
+    return phone;
+  }
 
   void _sendWhatsApp(BuildContext context) {
+    final phone = _customerPhone;
+    if (phone.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No customer phone number on this order')),
+      );
+      return;
+    }
+
     final items = order.items.map((item) {
       final opts = item.options.map((o) => '  $o').join('\n');
       return '${item.name} x${item.qty}  ₹${item.lineTotal}'
           '${opts.isNotEmpty ? '\n$opts' : ''}';
     }).join('\n');
 
+    final upiLink = 'upi://pay?pa=${AppConfig.upiId}&pn=${Uri.encodeComponent(AppConfig.merchantName)}&am=${order.total}&cu=INR';
+
     final buffer = StringBuffer()
       ..writeln('═══════════════════════════')
-      ..writeln('       CAFE POS BILL')
+      ..writeln('       ${AppConfig.merchantName}')
       ..writeln('═══════════════════════════')
       ..writeln()
       ..writeln('Bill #: ${order.id}')
       ..writeln('Date: ${DateFormat('dd MMM yyyy, hh:mm a').format(DateTime.tryParse(order.createdAt) ?? DateTime.now())}')
+      ..writeln('Customer: ${order.customerName}')
+      if (order.tableNumber != null)
+        ..writeln('Table: ${order.tableNumber}')
       ..writeln('Staff: ${order.takenBy ?? 'N/A'}')
       ..writeln()
       ..writeln('─── ITEMS ───────────────')
@@ -452,13 +472,17 @@ class _OrderCard extends StatelessWidget {
       ..writeln('TOTAL: ₹${order.total}')
       ..writeln()
       ..writeln('Payment: ${order.paymentMethod.toUpperCase()}')
+      ..writeln('Status: ${order.paymentStatus.toUpperCase()}')
+      ..writeln()
+      ..writeln('UPI Payment Link:')
+      ..writeln(upiLink)
       ..writeln()
       ..writeln('═══════════════════════════')
       ..writeln('  Thank you for your visit!')
       ..writeln('═══════════════════════════');
     final billText = buffer.toString();
 
-    final url = Uri.parse('https://wa.me/$_ownerWhatsApp?text=${Uri.encodeComponent(billText)}');
+    final url = Uri.parse('https://wa.me/$phone?text=${Uri.encodeComponent(billText)}');
     canLaunchUrl(url).then((ok) {
       if (ok) {
         launchUrl(url, mode: LaunchMode.externalApplication);

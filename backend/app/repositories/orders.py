@@ -1,5 +1,6 @@
 """Order data access (DynamoDB)."""
 import uuid
+import logging
 from datetime import datetime, timezone
 
 from boto3.dynamodb.conditions import Key, Attr
@@ -10,6 +11,9 @@ from ..util import plain, ApiError
 from ..pricing import price_order
 from . import menu as menu_repo
 from . import tables as tables_repo
+from . import inventory as inventory_repo
+
+logger = logging.getLogger(__name__)
 
 VALID_STATUSES = ("received", "preparing", "ready", "collected", "cancelled")
 NEXT_STATUS = {
@@ -66,6 +70,25 @@ def get(order_id):
     return plain(resp["Item"]) if "Item" in resp else None
 
 
+def _deduct_ingredients(order):
+    """Auto-deduct inventory based on menu item ingredients when order is collected."""
+    for line in order.get("items", []):
+        menu_item = menu_repo.get_raw(line.get("item_id"))
+        if not menu_item:
+            continue
+        ingredients = menu_item.get("ingredients", [])
+        for ing in ingredients:
+            inv_id = ing.get("inventory_item_id")
+            qty_per_serving = ing.get("qty_per_serving", 0)
+            if inv_id and qty_per_serving > 0:
+                total_qty = qty_per_serving * line.get("qty", 1)
+                try:
+                    inventory_repo.deduct_stock(inv_id, total_qty)
+                    logger.info(f"Deducted {total_qty} of inventory {inv_id} for menu item {line.get('name')}")
+                except Exception as e:
+                    logger.warning(f"Failed to deduct inventory {inv_id}: {e}")
+
+
 def update_status(order_id, status, confirm_payment=False, payment_method=None,
                   payment_token=None):
     """Move an order to [status]. Collecting an order REQUIRES the staff to
@@ -91,6 +114,8 @@ def update_status(order_id, status, confirm_payment=False, payment_method=None,
             existing["payment_method"] = payment_method
         if payment_token:
             existing["payment_token"] = payment_token
+        # Auto-deduct inventory based on menu item ingredients
+        _deduct_ingredients(existing)
     orders_table().put_item(Item=existing)
     # Free the table once the order is done.
     if status in FREEING_STATUSES and existing.get("table_number"):

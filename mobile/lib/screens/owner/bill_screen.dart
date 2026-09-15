@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../config.dart';
 import '../../models/order.dart';
 import '../../services/api_client.dart';
 
@@ -52,13 +53,18 @@ class BillScreen extends StatelessWidget {
           '${opts.isNotEmpty ? '\n$opts' : ''}';
     }).join('\n');
 
+    final upiLink = 'upi://pay?pa=${AppConfig.upiId}&pn=${Uri.encodeComponent(AppConfig.merchantName)}&am=${order.total}&cu=INR';
+
     final buffer = StringBuffer()
       ..writeln('═══════════════════════════')
-      ..writeln('       CAFE POS BILL')
+      ..writeln('       ${AppConfig.merchantName}')
       ..writeln('═══════════════════════════')
       ..writeln()
       ..writeln('Bill #: ${order.id}')
       ..writeln('Date: ${DateFormat('dd MMM yyyy, hh:mm a').format(DateTime.tryParse(order.createdAt) ?? DateTime.now())}')
+      ..writeln('Customer: ${order.customerName}')
+      if (order.tableNumber != null)
+        ..writeln('Table: ${order.tableNumber}')
       ..writeln('Staff: ${order.takenBy ?? 'N/A'}')
       ..writeln()
       ..writeln('─── ITEMS ───────────────')
@@ -70,17 +76,35 @@ class BillScreen extends StatelessWidget {
       ..writeln('Payment: ${order.paymentMethod.toUpperCase()}')
       ..writeln('Status: ${order.paymentStatus.toUpperCase()}')
       ..writeln()
+      ..writeln('UPI Payment Link:')
+      ..writeln(upiLink)
+      ..writeln()
       ..writeln('═══════════════════════════')
       ..writeln('  Thank you for your visit!')
       ..writeln('═══════════════════════════');
     return buffer.toString();
   }
 
-  static const _ownerWhatsApp = '916351770056';
+  String get _customerPhone {
+    final phone = order.customerPhone?.replaceAll(RegExp(r'[^0-9]'), '') ?? '';
+    if (phone.isEmpty) return '';
+    if (phone.startsWith('91') && phone.length >= 12) return phone;
+    if (phone.length == 10) return '91$phone';
+    return phone;
+  }
 
   Future<void> _sendWhatsApp(BuildContext context) async {
+    final phone = _customerPhone;
+    if (phone.isEmpty) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No customer phone number on this order')),
+        );
+      }
+      return;
+    }
     final billText = _buildBillText();
-    final url = Uri.parse('https://wa.me/$_ownerWhatsApp?text=${Uri.encodeComponent(billText)}');
+    final url = Uri.parse('https://wa.me/$phone?text=${Uri.encodeComponent(billText)}');
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     } else {

@@ -35,6 +35,14 @@ class AppConfig {
   static const String currencyCode = 'INR';
   static const String countryCode = 'IN';
 
+  // ---- UPI Payments -------------------------------------------------------
+  static const String upiId = 'ravi.chudgar-1@okicici';
+  static const String merchantName = 'Cafe POS';
+
+  // ---- WhatsApp -----------------------------------------------------------
+  // Vendor phone for stock orders (with country code, no + or spaces).
+  static const String vendorPhone = '919998814647';
+
   // ---- Google Pay ---------------------------------------------------------
   // Defaults run in Google's TEST environment (no real money). For production,
   // pass your merchant details at build/run time:

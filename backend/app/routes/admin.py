@@ -97,6 +97,9 @@ def create_item():
     data = request.get_json(silent=True) or {}
     if not data.get("name") or "base_price" not in data:
         raise ApiError("'name' and 'base_price' are required")
+    # Store ingredients mapping for auto stock deduction
+    if "ingredients" in data:
+        data["ingredients"] = data["ingredients"]
     return jsonify(menu_repo.create(data)), 201
 
 
@@ -104,6 +107,8 @@ def create_item():
 @owner_required
 def update_item(item_id):
     data = request.get_json(silent=True) or {}
+    if "ingredients" in data:
+        data["ingredients"] = data["ingredients"]
     return jsonify(menu_repo.update(item_id, data))
 
 

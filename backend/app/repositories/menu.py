@@ -63,6 +63,7 @@ def create(data):
         "image_key": data.get("image_key"),
         "available": bool(data.get("available", True)),
         "options": data.get("options", []),
+        "ingredients": data.get("ingredients", []),
     }
     menu_table().put_item(Item=item)
     return present(item)
@@ -72,7 +73,7 @@ def update(item_id, data):
     existing = get_raw(item_id)
     if not existing:
         raise ApiError("Menu item not found", 404)
-    for field in ("name", "description", "category", "options", "image_key"):
+    for field in ("name", "description", "category", "options", "image_key", "ingredients"):
         if field in data:
             existing[field] = data[field]
     if "base_price" in data:
