@@ -11,6 +11,8 @@ jobs:
     defaults:
       run:
         working-directory: mobile
+    env:
+      DEVELOPMENT_TEAM: "placeholder"
     steps:
       - uses: actions/checkout@v4
 
@@ -22,43 +24,34 @@ jobs:
       - name: Install Flutter dependencies
         run: flutter pub get
 
-      - name: Patch Xcode project to remove team requirement
+      - name: Patch Xcode project
         run: |
           PBX="ios/Runner.xcodeproj/project.pbxproj"
           sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' "$PBX"
           sed -i '' 's/"CODE_SIGN_IDENTITY\[sdk=iphoneos\*\]" = "iPhone Developer";/"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "-";/g' "$PBX"
           sed -i '' '/DEVELOPMENT_TEAM/d' "$PBX"
 
-      - name: Install CocoaPods
-        run: cd ios && pod install
-
-      - name: Build with xcodebuild
+      - name: Build iOS (Flutter handles pod install + dart compilation)
         run: |
-          cd ios
-          xcodebuild \
-            -workspace Runner.xcworkspace \
-            -scheme Runner \
-            -configuration Release \
-            -destination "generic/platform=iOS" \
-            -derivedDataPath ../build/ios/device \
-            CODE_SIGN_IDENTITY="-" \
-            CODE_SIGN_STYLE=Manual \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            DEVELOPMENT_TEAM="" \
-            ENABLE_BITCODE=NO \
-            2>&1 | tail -40
-          echo "xcodebuild exit: ${PIPESTATUS[0]}"
+          flutter build ios --release --no-codesign \
+            --dart-define=API_BASE_URL="https://mobileapp.unonomercysound.online"
 
-      - name: Package IPA
+      - name: Package IPA from build
         run: |
-          APP_PATH=$(find build/ios/device -name "Runner.app" -type d | head -1)
+          for dir in \
+            build/ios/iphoneos/Runner.app \
+            build/ios/Release-iphoneos/Runner.app; do
+            if [ -d "$dir" ]; then
+              APP_PATH="$dir"
+              break
+            fi
+          done
           if [ -z "$APP_PATH" ]; then
             echo "::error::Runner.app not found"
             find build/ios -name "Runner.app" -type d 2>/dev/null
             exit 1
           fi
-          echo "Found Runner.app: $APP_PATH"
+          echo "Found Runner.app at: $APP_PATH"
           ls -lh "$APP_PATH/Runner" 2>/dev/null || true
           rm -rf Payload cafe-app-unsigned.ipa
           mkdir Payload
