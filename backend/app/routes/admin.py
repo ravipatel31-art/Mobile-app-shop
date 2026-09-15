@@ -197,7 +197,7 @@ def delete_inventory_item(item_id):
 @bp.get("/reports/profit-loss")
 @owner_required
 def profit_loss():
-    """Profit/loss report for inventory-based cost vs sales revenue."""
+    """Profit/loss report using actual COGS from collected orders."""
     month_str = request.args.get("month")
     if month_str:
         try:
@@ -210,37 +210,51 @@ def profit_loss():
     year, month = target.year, target.month
     days_in_month = 30  # approximate
 
-    # Sum sales revenue for the month
+    # Sum sales revenue and COGS for the month
     total_sales = 0
+    total_cogs = 0
+    total_orders = 0
     for day in range(1, days_in_month + 1):
         try:
             date_str = f"{year}-{month:02d}-{day:02d}"
             summary = reports_repo.daily_summary(date_str)
             total_sales += summary.get("gross_sales", 0)
+            total_orders += summary.get("order_count", 0)
         except Exception:
             continue
 
-    # Sum inventory cost
-    inv_summary = inventory_repo.summary()
-    total_cost = inv_summary.get("total_value", 0)
+    # Sum COGS from collected orders
+    all_orders = orders_repo.list_orders(status="collected")
+    for o in all_orders:
+        created = o.get("created_at", "")
+        if created.startswith(f"{year}-{month:02d}"):
+            total_cogs += int(o.get("cogs", 0))
 
-    in_profit = total_sales >= total_cost and total_cost > 0
+    # Fallback: if no COGS tracked, use inventory value
+    if total_cogs == 0:
+        inv_summary = inventory_repo.summary()
+        total_cogs = inv_summary.get("total_value", 0)
+
+    net_profit = total_sales - total_cogs
+    in_profit = net_profit >= 0 and total_cogs > 0
     profit_margin = 0
-    if total_cost > 0:
-        profit_margin = round(((total_sales - total_cost) / total_cost) * 100, 1)
+    if total_cogs > 0:
+        profit_margin = round((net_profit / total_cogs) * 100, 1)
 
     suggestion = None
-    if not in_profit and total_cost > 0:
+    if not in_profit and total_cogs > 0:
         suggestion = (
-            f"Sales ({total_sales}) are below inventory cost ({total_cost}). "
+            f"Sales ({total_sales}) are below cost ({total_cogs}). "
             f"Consider: (1) reduce slow-moving stock, (2) negotiate better supplier prices, "
             f"(3) increase prices on low-margin items."
         )
 
     return jsonify({
         "total_sales": total_sales,
-        "total_cost": total_cost,
+        "total_cost": total_cogs,
+        "net_profit": net_profit,
         "in_profit": in_profit,
         "profit_margin": profit_margin,
+        "total_orders": total_orders,
         "suggestion": suggestion,
     })

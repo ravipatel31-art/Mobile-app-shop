@@ -71,7 +71,8 @@ def get(order_id):
 
 
 def _deduct_ingredients(order):
-    """Auto-deduct inventory based on menu item ingredients when order is collected."""
+    """Auto-deduct inventory based on menu item ingredients and calculate COGS."""
+    total_cogs = 0
     for line in order.get("items", []):
         menu_item = menu_repo.get_raw(line.get("item_id"))
         if not menu_item:
@@ -83,10 +84,15 @@ def _deduct_ingredients(order):
             if inv_id and qty_per_serving > 0:
                 total_qty = qty_per_serving * line.get("qty", 1)
                 try:
+                    inv_item = inventory_repo.get(inv_id)
+                    if inv_item:
+                        cost_per_unit = int(inv_item.get("cost_price", 0))
+                        total_cogs += cost_per_unit * total_qty
                     inventory_repo.deduct_stock(inv_id, total_qty)
                     logger.info(f"Deducted {total_qty} of inventory {inv_id} for menu item {line.get('name')}")
                 except Exception as e:
                     logger.warning(f"Failed to deduct inventory {inv_id}: {e}")
+    order["cogs"] = total_cogs
 
 
 def update_status(order_id, status, confirm_payment=False, payment_method=None,

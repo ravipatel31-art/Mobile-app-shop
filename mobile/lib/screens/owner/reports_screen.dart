@@ -413,8 +413,10 @@ class _ProfitLossSummary extends StatelessWidget {
   Widget build(BuildContext context) {
     final totalSales = data['total_sales'] as int? ?? 0;
     final totalCost = data['total_cost'] as int? ?? 0;
+    final netProfit = data['net_profit'] as int? ?? (totalSales - totalCost);
     final inProfit = data['in_profit'] as bool? ?? true;
     final margin = (data['profit_margin'] as num?) ?? 0;
+    final totalOrders = data['total_orders'] as int? ?? 0;
     final suggestion = data['suggestion'] as String?;
 
     return Card(
@@ -423,30 +425,53 @@ class _ProfitLossSummary extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Profit & Loss Statement',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w700),
+            Row(
+              children: [
+                Icon(
+                  inProfit ? Icons.trending_up : Icons.trending_down,
+                  color: inProfit ? Colors.green : Colors.red,
+                  size: 24,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Profit & Loss Statement',
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w700),
+                ),
+              ],
             ),
             const Divider(),
             _PLRow(label: 'Total Sales', value: '₹$totalSales', color: Colors.green),
             const SizedBox(height: 8),
-            _PLRow(label: 'Inventory Cost', value: '₹$totalCost', color: Colors.red),
+            _PLRow(label: 'Cost of Goods Sold', value: '₹$totalCost', color: Colors.red),
+            const SizedBox(height: 4),
+            Text(
+              '  Based on $totalOrders orders this month',
+              style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+            ),
             const Divider(),
             _PLRow(
-              label: inProfit ? 'PROFIT' : 'LOSS',
-              value: '₹${(totalSales - totalCost).abs()}',
+              label: inProfit ? 'NET PROFIT' : 'NET LOSS',
+              value: '₹${netProfit.abs()}',
               color: inProfit ? Colors.green : Colors.red,
               bold: true,
             ),
             const SizedBox(height: 4),
-            Text(
-              'Margin: ${margin.toStringAsFixed(1)}%',
-              style: TextStyle(
-                color: inProfit ? Colors.green.shade700 : Colors.red.shade700,
-                fontWeight: FontWeight.w600,
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: inProfit ? Colors.green.shade50 : Colors.red.shade50,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                'Margin: ${margin.toStringAsFixed(1)}%',
+                style: TextStyle(
+                  color: inProfit ? Colors.green.shade700 : Colors.red.shade700,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                ),
               ),
             ),
             if (suggestion != null) ...[

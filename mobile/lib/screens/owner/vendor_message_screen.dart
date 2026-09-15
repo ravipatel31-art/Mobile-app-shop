@@ -18,8 +18,6 @@ class _VendorMessageScreenState extends State<VendorMessageScreen> {
   List<InventoryItem> _items = [];
   bool _loading = true;
   String? _error;
-
-  /// Selected item IDs mapped to the quantity to order.
   final Map<String, int> _selected = {};
 
   @override
@@ -71,42 +69,22 @@ class _VendorMessageScreenState extends State<VendorMessageScreen> {
 
   String _buildMessage() {
     final buffer = StringBuffer()
-      ..writeln('Hi! I need to restock:')
+      ..writeln('📦 Stock Restock Request')
+      ..writeln('━━━━━━━━━━━━━━━━━━━━━━')
       ..writeln();
 
     for (final entry in _selected.entries) {
       final item = _items.firstWhere((i) => i.id == entry.key);
-      final emoji = _emojiForUnit(item.unit);
-      buffer.writeln('$emoji ${item.name} — ${entry.value} ${item.unit}');
+      buffer.writeln('  ${item.name}  →  ${entry.value} ${item.unit}');
     }
 
     buffer
       ..writeln()
-      ..writeln('Please deliver as soon as possible. Thanks!');
+      ..writeln('━━━━━━━━━━━━━━━━━━━━━━')
+      ..writeln('Please deliver as soon as possible.')
+      ..writeln('Thanks!');
 
     return buffer.toString();
-  }
-
-  String _emojiForUnit(String unit) {
-    switch (unit.toLowerCase()) {
-      case 'kg':
-        return '📦';
-      case 'litre':
-      case 'liter':
-        return '🥛';
-      case 'piece':
-        return '📋';
-      case 'g':
-        return '🧈';
-      case 'ml':
-        return '🫗';
-      case 'dozen':
-        return '🥚';
-      case 'pack':
-        return '📦';
-      default:
-        return '📦';
-    }
   }
 
   Future<void> _sendWhatsApp() async {
@@ -140,7 +118,9 @@ class _VendorMessageScreenState extends State<VendorMessageScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(_error!),
+            const Icon(Icons.error_outline, size: 40, color: Colors.grey),
+            const SizedBox(height: 8),
+            Text(_error!, style: const TextStyle(color: Colors.grey)),
             const SizedBox(height: 12),
             OutlinedButton(onPressed: _load, child: const Text('Retry')),
           ],
@@ -148,65 +128,136 @@ class _VendorMessageScreenState extends State<VendorMessageScreen> {
       );
     }
 
-    final lowStock =
-        _items.where((i) => i.quantity <= 10).toList();
+    final lowStock = _items.where((i) => i.quantity <= 10).toList();
     final allItems = _items.toList();
 
     return Column(
       children: [
-        // Vendor info card
+        // Vendor info header
         Container(
-          margin: const EdgeInsets.all(12),
-          padding: const EdgeInsets.all(12),
+          margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.green.shade50,
-            borderRadius: BorderRadius.circular(12),
+            gradient: LinearGradient(
+              colors: [Colors.green.shade400, Colors.teal.shade400],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.green.withValues(alpha: 0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Row(
             children: [
-              const Icon(Icons.storefront, color: Colors.green),
-              const SizedBox(width: 12),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.storefront, color: Colors.white, size: 28),
+              ),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text('Stock Vendor',
-                        style: TextStyle(fontWeight: FontWeight.bold)),
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            fontSize: 16)),
+                    const SizedBox(height: 2),
                     Text(AppConfig.vendorPhone,
-                        style: const TextStyle(
-                            fontSize: 12, color: Colors.black54)),
+                        style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.white.withValues(alpha: 0.85))),
                   ],
                 ),
               ),
               if (lowStock.isNotEmpty)
-                Chip(
-                  label: Text('${lowStock.length} low stock',
-                      style: const TextStyle(
-                          color: Colors.white, fontSize: 11)),
-                  backgroundColor: Colors.orange,
-                  visualDensity: VisualDensity.compact,
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.orange,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.warning_amber_rounded,
+                          color: Colors.white, size: 16),
+                      const SizedBox(width: 4),
+                      Text('${lowStock.length} low',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold)),
+                    ],
+                  ),
                 ),
             ],
           ),
         ),
 
-        // Selected count + send button
+        // Selected items bar
         if (_selected.isNotEmpty)
           Container(
-            margin: const EdgeInsets.symmetric(horizontal: 12),
+            margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.blue.shade50,
+              color: Colors.white,
               borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.green.shade200),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.green.withValues(alpha: 0.1),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: Row(
               children: [
-                Icon(Icons.shopping_cart, color: Colors.blue.shade700),
-                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(Icons.shopping_cart,
+                      color: Colors.green.shade700, size: 20),
+                ),
+                const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    '${_selected.length} item(s) selected for restocking',
-                    style: TextStyle(color: Colors.blue.shade700),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${_selected.length} item(s) selected',
+                        style: TextStyle(
+                          color: Colors.green.shade700,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        _selected.entries.map((e) {
+                          final item = _items.firstWhere((i) => i.id == e.key);
+                          return '${item.name} ×${e.value}';
+                        }).join(', '),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 FilledButton.icon(
@@ -215,13 +266,14 @@ class _VendorMessageScreenState extends State<VendorMessageScreen> {
                   label: const Text('Send'),
                   style: FilledButton.styleFrom(
                     backgroundColor: Colors.green,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
                   ),
                 ),
               ],
             ),
           ),
 
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
 
         // Items list
         Expanded(
@@ -231,13 +283,11 @@ class _VendorMessageScreenState extends State<VendorMessageScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 12),
               children: [
                 if (lowStock.isNotEmpty) ...[
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8),
-                    child: Text('LOW STOCK',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                            color: Colors.orange)),
+                  _SectionHeader(
+                    title: 'LOW STOCK',
+                    subtitle: '${lowStock.length} items need attention',
+                    color: Colors.orange,
+                    icon: Icons.warning_amber_rounded,
                   ),
                   ...lowStock.map((item) => _ItemTile(
                         item: item,
@@ -248,13 +298,11 @@ class _VendorMessageScreenState extends State<VendorMessageScreen> {
                       )),
                   const SizedBox(height: 16),
                 ],
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Text('ALL ITEMS',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                          color: Colors.black54)),
+                _SectionHeader(
+                  title: 'ALL ITEMS',
+                  subtitle: '${allItems.length} items in inventory',
+                  color: Colors.blueGrey,
+                  icon: Icons.inventory_2_outlined,
                 ),
                 ...allItems
                     .where((i) => !_selected.containsKey(i.id))
@@ -265,11 +313,48 @@ class _VendorMessageScreenState extends State<VendorMessageScreen> {
                           onTap: () => _toggleItem(item),
                           onQtyChanged: null,
                         )),
+                const SizedBox(height: 80),
               ],
             ),
           ),
         ),
       ],
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final Color color;
+  final IconData icon;
+
+  const _SectionHeader({
+    required this.title,
+    required this.subtitle,
+    required this.color,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: color),
+          const SizedBox(width: 6),
+          Text(title,
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                  color: color,
+                  letterSpacing: 0.5)),
+          const SizedBox(width: 8),
+          Text(subtitle,
+              style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+        ],
+      ),
     );
   }
 }
@@ -292,9 +377,19 @@ class _ItemTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isLow = item.quantity <= 10;
+    final scheme = Theme.of(context).colorScheme;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 6),
+      elevation: selected ? 2 : 0,
       color: selected ? Colors.green.shade50 : null,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: selected ? Colors.green.shade300 : Colors.grey.shade200,
+          width: selected ? 1.5 : 1,
+        ),
+      ),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
@@ -302,48 +397,105 @@ class _ItemTile extends StatelessWidget {
           padding: const EdgeInsets.all(12),
           child: Row(
             children: [
-              Checkbox(
-                value: selected,
-                onChanged: (_) => onTap(),
-                activeColor: Colors.green,
+              // Checkbox with colored background
+              Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: selected ? Colors.green : Colors.grey.shade200,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: selected
+                    ? const Icon(Icons.check, color: Colors.white, size: 18)
+                    : null,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 12),
+              // Item info
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(item.name,
-                        style: const TextStyle(fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Stock: ${item.quantity} ${item.unit}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: isLow ? Colors.orange.shade700 : Colors.black54,
-                      ),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 14)),
+                    const SizedBox(height: 3),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: isLow
+                                ? Colors.orange.shade50
+                                : Colors.green.shade50,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            '${item.quantity} ${item.unit}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: isLow
+                                  ? Colors.orange.shade700
+                                  : Colors.green.shade700,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          '₹${item.costPrice}/${item.unit}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey.shade500,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
+              // Quantity controls
               if (selected && onQtyChanged != null)
-                SizedBox(
-                  width: 100,
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
                   child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.remove_circle_outline, size: 20),
-                        onPressed: () => onQtyChanged!(quantity! - 1),
+                        icon: Icon(Icons.remove_circle,
+                            size: 24,
+                            color: quantity! > 1
+                                ? Colors.green
+                                : Colors.grey.shade300),
+                        onPressed: quantity! > 1
+                            ? () => onQtyChanged!(quantity! - 1)
+                            : null,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                            minWidth: 32, minHeight: 32),
                       ),
-                      Expanded(
+                      Container(
+                        width: 36,
+                        alignment: Alignment.center,
                         child: Text(
                           '$quantity',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.add_circle_outline, size: 20),
+                        icon: const Icon(Icons.add_circle,
+                            size: 24, color: Colors.green),
                         onPressed: () => onQtyChanged!(quantity! + 1),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                            minWidth: 32, minHeight: 32),
                       ),
                     ],
                   ),
