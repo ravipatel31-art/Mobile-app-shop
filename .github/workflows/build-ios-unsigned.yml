@@ -19,33 +19,20 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Install dependencies
+      - name: Install Flutter dependencies
         run: flutter pub get
 
-      - name: Patch Xcode project BEFORE build
+      - name: Patch Xcode project to remove team requirement
         run: |
           PBX="ios/Runner.xcodeproj/project.pbxproj"
-          # Set CODE_SIGN_STYLE to Manual everywhere
           sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' "$PBX"
-          # Set ad-hoc signing identity
           sed -i '' 's/"CODE_SIGN_IDENTITY\[sdk=iphoneos\*\]" = "iPhone Developer";/"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "-";/g' "$PBX"
-          # Remove ALL DEVELOPMENT_TEAM lines
           sed -i '' '/DEVELOPMENT_TEAM/d' "$PBX"
-          # Also add overrides to Release.xcconfig (keep #include line)
-          cat > ios/Flutter/Release.xcconfig << 'XCCONFIG'
-          #include "Generated.xcconfig"
-          DEVELOPMENT_TEAM =
-          CODE_SIGN_STYLE = Manual
-          CODE_SIGN_IDENTITY = -
-          CODE_SIGNING_REQUIRED = NO
-          CODE_SIGNING_ALLOWED = NO
-          XCCONFIG
-          echo "=== Verification ==="
-          grep -c "CODE_SIGN_STYLE = Manual" "$PBX"
-          grep -c "DEVELOPMENT_TEAM" "$PBX" || echo "0 DEVELOPMENT_TEAM lines (good)"
-          cat ios/Flutter/Release.xcconfig
 
-      - name: Build with xcodebuild (bypass Flutter's xcodebuild)
+      - name: Install CocoaPods
+        run: cd ios && pod install
+
+      - name: Build with xcodebuild
         run: |
           cd ios
           xcodebuild \
@@ -59,37 +46,20 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
             DEVELOPMENT_TEAM="" \
-            PROVISIONING_PROFILE="" \
             ENABLE_BITCODE=NO \
-            ENABLE_USER_SCRIPT_SANDBOXING=NO \
-            COMPILER_INDEX_STORE_ENABLE=NO \
-            2>&1 | tail -30
-          echo "xcodebuild exit code: $?"
-
-      - name: Compile Flutter dart code
-        run: |
-          # Generate the Flutter dart kernel only (no xcodebuild)
-          flutter build aot --release --target-platform=ios 2>&1 | tail -5 || true
-          # The dart snapshot goes into build/aot/
-          ls -la build/aot/ 2>/dev/null || echo "aot dir not found, trying other paths"
-          find build -name "app.dill" -o -name "vm_snapshot_data" -o -name "flutter_assets" 2>/dev/null | head -10
+            2>&1 | tail -40
+          echo "xcodebuild exit: ${PIPESTATUS[0]}"
 
       - name: Package IPA
         run: |
-          # Find the built Runner.app from xcodebuild
           APP_PATH=$(find build/ios/device -name "Runner.app" -type d | head -1)
           if [ -z "$APP_PATH" ]; then
-            echo "::error::Runner.app not found from xcodebuild"
+            echo "::error::Runner.app not found"
             find build/ios -name "Runner.app" -type d 2>/dev/null
-            # Try flutter path as fallback
-            APP_PATH=$(find build -path "*/Release-iphoneos/Runner.app" -type d | head -1)
-          fi
-          if [ -z "$APP_PATH" ]; then
-            echo "::error::Runner.app not found anywhere"
             exit 1
           fi
-          echo "Found Runner.app at: $APP_PATH"
-          ls "$APP_PATH/" | head -20
+          echo "Found Runner.app: $APP_PATH"
+          ls -lh "$APP_PATH/Runner" 2>/dev/null || true
           rm -rf Payload cafe-app-unsigned.ipa
           mkdir Payload
           cp -r "$APP_PATH" Payload/
