@@ -11,7 +11,11 @@ import 'screens/staff/staff_shell.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await NotificationService.init();
+  try {
+    await NotificationService.init();
+  } catch (_) {
+    // Notification setup failed — app still works, just no push alerts.
+  }
   runApp(const CafeApp());
 }
 
