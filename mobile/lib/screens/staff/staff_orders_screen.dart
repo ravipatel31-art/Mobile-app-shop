@@ -5,12 +5,14 @@ import 'package:provider/provider.dart';
 import '../../models/cart.dart';
 import '../../models/order.dart';
 import '../../services/api_client.dart';
+import '../../services/notification_service.dart';
 import '../../state/auth_state.dart';
 import '../../state/cart_state.dart';
 import '../../util/money.dart';
 import '../../util/permissions.dart';
 import '../../widgets/collect_order_flow.dart';
 import '../../widgets/menu_picker_sheet.dart';
+import 'order_detail_screen.dart';
 import 'take_order_screen.dart';
 
 /// Staff dashboard: shared real-time order queue visible to all staff members.
@@ -75,6 +77,16 @@ class _StaffOrdersScreenState extends State<StaffOrdersScreen> {
       } else {
         await context.read<ApiClient>().updateOrderStatus(order.id, next);
       }
+
+      // Notify when order is ready to serve
+      if (next == 'ready') {
+        await NotificationService.showOrderReady(
+          orderId: order.id,
+          customerName: order.customerName,
+          tableNumber: order.tableNumber,
+        );
+      }
+
       await _load();
     } catch (e) {
       if (!mounted) return;
@@ -316,7 +328,19 @@ class _OrderCard extends StatelessWidget {
 
     return Card(
       clipBehavior: Clip.antiAlias,
-      child: Column(
+      child: InkWell(
+        onTap: () async {
+          final refreshed = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => OrderDetailScreen(order: o),
+            ),
+          );
+          if (refreshed == true && context.mounted) {
+            // Parent will handle refresh via its own _load
+          }
+        },
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ── Header: ID, status, table, total ──
@@ -472,6 +496,7 @@ class _OrderCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }

@@ -2,13 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'services/api_client.dart';
+import 'services/notification_service.dart';
 import 'state/auth_state.dart';
 import 'state/cart_state.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/owner/owner_shell.dart';
 import 'screens/staff/staff_shell.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await NotificationService.init();
   runApp(const CafeApp());
 }
 

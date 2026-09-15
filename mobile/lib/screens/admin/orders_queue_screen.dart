@@ -4,12 +4,14 @@ import 'package:provider/provider.dart';
 import '../../models/cart.dart';
 import '../../models/order.dart';
 import '../../services/api_client.dart';
+import '../../services/notification_service.dart';
 import '../../state/auth_state.dart';
 import '../../state/cart_state.dart';
 import '../../util/money.dart';
 import '../../util/permissions.dart';
 import '../../widgets/collect_order_flow.dart';
 import '../../widgets/menu_picker_sheet.dart';
+import '../staff/order_detail_screen.dart';
 import '../staff/take_order_screen.dart';
 
 /// Owner's view of all orders with full management capabilities.
@@ -64,6 +66,16 @@ class _OrdersQueueScreenState extends State<OrdersQueueScreen> {
       } else {
         await context.read<ApiClient>().updateOrderStatus(order.id, next);
       }
+
+      // Notify when order is ready to serve
+      if (next == 'ready') {
+        await NotificationService.showOrderReady(
+          orderId: order.id,
+          customerName: order.customerName,
+          tableNumber: order.tableNumber,
+        );
+      }
+
       await _load();
     } catch (e) {
       if (!mounted) return;
@@ -307,7 +319,16 @@ class _OrderCard extends StatelessWidget {
 
     return Card(
       clipBehavior: Clip.antiAlias,
-      child: Column(
+      child: InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => OrderDetailScreen(order: o),
+            ),
+          );
+        },
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ── Header ──
@@ -487,6 +508,7 @@ class _OrderCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }
