@@ -80,9 +80,11 @@ services:
   # Stable named tunnel — STATIC URL that never changes.
   # Setup:
   # 1. Go to https://one.dash.cloudflare.com/ → Networks → Tunnels
-  # 2. Create a tunnel, add public hostname pointing to http://backend:5000
+  # 2. Create a tunnel, add public hostname:
+  #    mobileapp.unonomercysound.online → http://backend:5000
   # 3. Copy the tunnel token to TUNNEL_TOKEN in .env
   # 4. Run: docker compose --profile tunnel-token up -d named-tunnel
+  # 5. Mobile app API base URL: https://mobileapp.unonomercysound.online
   named-tunnel:
     image: cloudflare/cloudflared:latest
     profiles: ["tunnel-token"]

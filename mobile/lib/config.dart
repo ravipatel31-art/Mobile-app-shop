@@ -8,8 +8,8 @@ import 'package:flutter/foundation.dart'
 /// Override at build/run time with:
 ///   --dart-define=API_BASE_URL=http://192.168.1.5:5000
 ///
-/// Local dev uses plain http; a Cloudflare tunnel URL (https) works too.
-/// Static tunnel URL: https://enb-symposium-seating-keywords.trycloudflare.com
+/// Production (Cloudflare tunnel):
+///   https://mobileapp.unonomercysound.online
 class AppConfig {
   static const String _override =
       String.fromEnvironment('API_BASE_URL', defaultValue: '');
@@ -20,8 +20,13 @@ class AppConfig {
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
       return 'http://10.0.2.2:5000';
     }
-    return 'http://localhost:5000';
+    // Web, iOS, macOS, Windows, Linux — use production tunnel URL.
+    return productionBaseUrl;
   }
+
+  /// Production API base URL (Cloudflare tunnel).
+  static const String productionBaseUrl =
+      'https://mobileapp.unonomercysound.online';
 
   /// Currency symbol used across the UI. Amounts are integers in minor units.
   static const String currencySymbol = '₹'; // ₹
