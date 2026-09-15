@@ -312,7 +312,7 @@ class _VendorHeader extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: scheme.primary.withOpacity(0.2),
+                  color: scheme.primary.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(Icons.storefront_rounded, color: scheme.primary, size: 24),
@@ -334,7 +334,7 @@ class _VendorHeader extends StatelessWidget {
                       AppConfig.vendorPhone,
                       style: TextStyle(
                         fontSize: 12,
-                        color: scheme.onPrimaryContainer.withOpacity(0.7),
+                        color: scheme.onPrimaryContainer.withValues(alpha: 0.7),
                       ),
                     ),
                   ],
@@ -365,7 +365,7 @@ class _VendorHeader extends StatelessWidget {
               hintText: 'Search items...',
               prefixIcon: const Icon(Icons.search, size: 20),
               filled: true,
-              fillColor: Colors.white.withOpacity(0.7),
+              fillColor: Colors.white.withValues(alpha: 0.7),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
                 borderSide: BorderSide.none,
@@ -504,7 +504,7 @@ class _SectionHeader extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.15),
+              color: color.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(

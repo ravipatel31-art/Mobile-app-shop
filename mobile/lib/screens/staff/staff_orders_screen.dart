@@ -366,10 +366,9 @@ class _StaffOrdersScreenState extends State<StaffOrdersScreen> {
                                   else if (canEdit && o.status == 'collected')
                                     FilledButton.tonal(
                                       onPressed: () => _reopenAndAdd(o),
-                                        child: const Text('Reopen & add items'),
-                                      ),
-                                  ],
-                                ),
+                                      child: const Text('Reopen & add items'),
+                                    ),
+                                ],
                               ),
                             ],
                           ),
