@@ -24,21 +24,33 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Disable code signing in Xcode project
-        run: |
-          sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/"CODE_SIGN_IDENTITY\[sdk=iphoneos\*\]" = "iPhone Developer";/"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "-";/g' ios/Runner.xcodeproj/project.pbxproj
-
-      - name: Build iOS app (no signing)
+      - name: Build Flutter iOS (genkernel only)
         run: |
           flutter build ios --release --no-codesign \
             --dart-define=API_BASE_URL="https://mobileapp.unonomercysound.online"
 
-      - name: Package IPA
+      - name: Build IPA with xcodebuild (no signing)
         run: |
-          rm -rf Payload
+          cd ios
+          xcodebuild -workspace Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            -derivedDataPath ../build/ios \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            DEVELOPMENT_TEAM="" \
+            PROVISIONING_PROFILE="" \
+            PRODUCT_BUNDLE_IDENTIFIER=com.ravi.cafeapp \
+            ENABLE_BITCODE=NO \
+            archive \
+            ARCHIVE_PATH="../build/ios/archive/Runner.xcarchive"
+
+      - name: Export unsigned IPA
+        run: |
           mkdir -p Payload
-          cp -r build/ios/iphoneos/Runner.app Payload/
+          cp -r build/ios/archive/Runner.xcarchive/Products/Applications/Runner.app Payload/
           zip -r cafe-app-unsigned.ipa Payload
           rm -rf Payload
 
