@@ -160,8 +160,17 @@ class _TablesGridScreenState extends State<TablesGridScreen> {
             ] else ...[
               if (order != null && order.status != 'collected')
                 ListTile(
-                  leading: const Icon(Icons.skip_next),
-                  title: Text(_advanceLabel(order.status)),
+                  leading: Icon(
+                    order.status == 'ready' ? Icons.shopping_bag : Icons.skip_next,
+                    color: order.status == 'ready' ? Colors.green : null,
+                  ),
+                  title: Text(
+                    _advanceLabel(order.status),
+                    style: TextStyle(
+                      color: order.status == 'ready' ? Colors.green : null,
+                      fontWeight: order.status == 'ready' ? FontWeight.bold : null,
+                    ),
+                  ),
                   onTap: () async {
                     Navigator.pop(context);
                     await _advance(order);
@@ -190,7 +199,7 @@ class _TablesGridScreenState extends State<TablesGridScreen> {
       case 'preparing':
         return 'Mark ready';
       case 'ready':
-        return 'Collect & take payment';
+        return 'Pickup & Pay';
       default:
         return 'Advance';
     }

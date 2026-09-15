@@ -24,6 +24,7 @@ class _VendorMessageScreenState extends State<VendorMessageScreen> {
   bool _loading = true;
   String? _error;
   final Map<String, int> _selected = {};
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -57,7 +58,6 @@ class _VendorMessageScreenState extends State<VendorMessageScreen> {
       if (_selected.containsKey(item.id)) {
         _selected.remove(item.id);
       } else {
-        // Default restock qty: bring up to 20 units above current
         final restockQty = item.quantity < 10 ? 20 - item.quantity : 10;
         _selected[item.id] = restockQty.clamp(1, 999);
       }
@@ -167,7 +167,14 @@ class _VendorMessageScreenState extends State<VendorMessageScreen> {
       ),
     );
 
-    _load(); // Refresh inventory list
+    _load();
+  }
+
+  List<InventoryItem> get _filteredItems {
+    if (_searchQuery.isEmpty) return _items;
+    return _items
+        .where((i) => i.name.toLowerCase().contains(_searchQuery.toLowerCase()))
+        .toList();
   }
 
   @override
@@ -188,19 +195,24 @@ class _VendorMessageScreenState extends State<VendorMessageScreen> {
       );
     }
 
-    final lowStock = _items.where((i) => i.quantity <= 10).toList();
-    final normalStock =
-        _items.where((i) => i.quantity > 10 && !_selected.containsKey(i.id)).toList();
+    final allItems = _filteredItems;
+    final lowStock = allItems.where((i) => i.quantity <= 10).toList();
+    final normalStock = allItems
+        .where((i) => i.quantity > 10 && !_selected.containsKey(i.id))
+        .toList();
     final selectedItems = _selected.entries
         .map((e) => _items.firstWhere((i) => i.id == e.key))
         .toList();
 
     return Column(
       children: [
-        // ── Vendor header ──
-        _VendorHeader(lowStockCount: lowStock.length),
+        // ── Header with search ──
+        _VendorHeader(
+          lowStockCount: lowStock.length,
+          onSearch: (q) => setState(() => _searchQuery = q),
+        ),
 
-        // ── Selected items summary + action buttons ──
+        // ── Selected items bar ──
         if (_selected.isNotEmpty)
           _SelectedBar(
             count: _selected.length,
@@ -215,11 +227,11 @@ class _VendorMessageScreenState extends State<VendorMessageScreen> {
           child: RefreshIndicator(
             onRefresh: _load,
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 100),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
               children: [
-                if (_selected.isNotEmpty) ...[
+                if (selectedItems.isNotEmpty) ...[
                   _SectionHeader(
-                    title: 'SELECTED FOR ORDER',
+                    title: 'SELECTED',
                     count: selectedItems.length,
                     color: Colors.green,
                   ),
@@ -230,7 +242,7 @@ class _VendorMessageScreenState extends State<VendorMessageScreen> {
                         onTap: () => _toggleItem(item),
                         onQtyChanged: (q) => _updateQty(item.id, q),
                       )),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                 ],
                 if (lowStock.isNotEmpty) ...[
                   _SectionHeader(
@@ -247,7 +259,7 @@ class _VendorMessageScreenState extends State<VendorMessageScreen> {
                             onTap: () => _toggleItem(item),
                             onQtyChanged: null,
                           )),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                 ],
                 if (normalStock.isNotEmpty) ...[
                   _SectionHeader(
@@ -276,60 +288,92 @@ class _VendorMessageScreenState extends State<VendorMessageScreen> {
 
 class _VendorHeader extends StatelessWidget {
   final int lowStockCount;
-  const _VendorHeader({required this.lowStockCount});
+  final ValueChanged<String> onSearch;
+
+  const _VendorHeader({
+    required this.lowStockCount,
+    required this.onSearch,
+  });
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: scheme.primaryContainer,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
       ),
-      child: Row(
+      child: Column(
         children: [
-          Icon(Icons.storefront_rounded, color: scheme.primary, size: 26),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Stock Vendor',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: scheme.onPrimaryContainer,
-                    fontSize: 15,
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: scheme.primary.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.storefront_rounded, color: scheme.primary, size: 24),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Stock Vendor',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: scheme.onPrimaryContainer,
+                        fontSize: 16,
+                      ),
+                    ),
+                    Text(
+                      AppConfig.vendorPhone,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: scheme.onPrimaryContainer.withOpacity(0.7),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (lowStockCount > 0)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.orange,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '$lowStockCount low',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
-                Text(
-                  AppConfig.vendorPhone,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: scheme.onPrimaryContainer.withValues(alpha: 0.7),
-                  ),
-                ),
-              ],
+            ],
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            onChanged: onSearch,
+            decoration: InputDecoration(
+              hintText: 'Search items...',
+              prefixIcon: const Icon(Icons.search, size: 20),
+              filled: true,
+              fillColor: Colors.white.withOpacity(0.7),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              isDense: true,
             ),
           ),
-          if (lowStockCount > 0)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: Colors.orange,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                '$lowStockCount low',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
         ],
       ),
     );
@@ -353,28 +397,26 @@ class _SelectedBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return Container(
-      margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: scheme.primaryContainer.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: scheme.primary.withValues(alpha: 0.3)),
+        color: Colors.green.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.green.shade200),
       ),
       child: Column(
         children: [
           Row(
             children: [
-              Icon(Icons.shopping_cart_rounded,
-                  color: scheme.primary, size: 20),
+              Icon(Icons.shopping_cart_rounded, color: Colors.green.shade700, size: 20),
               const SizedBox(width: 8),
               Text(
                 '$count items · $totalQty units',
                 style: TextStyle(
                   fontWeight: FontWeight.w600,
-                  color: scheme.onSurface,
-                  fontSize: 13,
+                  color: Colors.green.shade800,
+                  fontSize: 14,
                 ),
               ),
               const Spacer(),
@@ -384,32 +426,34 @@ class _SelectedBar extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 10),
                   minimumSize: Size.zero,
                 ),
-                child: Text('Clear', style: TextStyle(fontSize: 12)),
+                child: Text('Clear', style: TextStyle(fontSize: 12, color: Colors.red.shade400)),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Row(
             children: [
               Expanded(
                 child: FilledButton.icon(
                   onPressed: onSendWhatsApp,
                   icon: const Icon(Icons.chat_rounded, size: 18),
-                  label: const Text('Send Order'),
+                  label: const Text('Send via WhatsApp'),
                   style: FilledButton.styleFrom(
                     backgroundColor: Colors.green,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: onMarkReceived,
                   icon: const Icon(Icons.inventory_rounded, size: 18),
                   label: const Text('Mark Received'),
                   style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                   ),
                 ),
               ),
@@ -435,33 +479,41 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(top: 8, bottom: 6),
+      padding: const EdgeInsets.only(top: 8, bottom: 8),
       child: Row(
         children: [
           Container(
-            width: 3,
-            height: 14,
+            width: 4,
+            height: 16,
             decoration: BoxDecoration(
               color: color,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: 8),
           Text(
             title,
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              fontSize: 11,
+              fontSize: 12,
               color: color,
               letterSpacing: 0.5,
             ),
           ),
           const SizedBox(width: 6),
-          Text(
-            '($count)',
-            style: TextStyle(
-              fontSize: 11,
-              color: Colors.grey.shade500,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              '$count',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
             ),
           ),
         ],
@@ -490,90 +542,107 @@ class _ItemTile extends StatelessWidget {
     final isLow = item.quantity <= 10;
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 4),
-      elevation: selected ? 1 : 0,
-      color: selected ? Colors.green.shade50 : null,
+      margin: const EdgeInsets.only(bottom: 6),
+      elevation: selected ? 2 : 0,
+      color: selected ? Colors.green.shade50 : Colors.white,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: selected ? Colors.green.shade300 : Colors.grey.shade200,
+          color: selected ? Colors.green.shade400 : Colors.grey.shade200,
+          width: selected ? 2 : 1,
         ),
       ),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          child: Row(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          child: Column(
             children: [
-              // Checkbox
-              Icon(
-                selected ? Icons.check_circle : Icons.circle_outlined,
-                color: selected ? Colors.green : Colors.grey.shade400,
-                size: 22,
-              ),
-              const SizedBox(width: 10),
-              // Name + stock badge
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.name,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                      ),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: selected ? Colors.green : Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    const SizedBox(height: 2),
-                    Row(
+                    child: Icon(
+                      selected ? Icons.check : Icons.add,
+                      color: selected ? Colors.white : Colors.grey.shade500,
+                      size: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '${item.quantity} ${item.unit}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: isLow ? Colors.orange.shade700 : Colors.grey.shade600,
-                            fontWeight: isLow ? FontWeight.w600 : FontWeight.normal,
+                          item.name,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
                           ),
                         ),
-                        if (isLow) ...[
-                          const SizedBox(width: 4),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 4, vertical: 1),
-                            decoration: BoxDecoration(
-                              color: Colors.orange.shade100,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              'LOW',
-                              style: TextStyle(
-                                fontSize: 9,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.orange.shade800,
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: isLow ? Colors.orange.shade100 : Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                '${item.quantity} ${item.unit}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: isLow ? Colors.orange.shade800 : Colors.grey.shade700,
+                                  fontWeight: isLow ? FontWeight.w600 : FontWeight.normal,
+                                ),
                               ),
                             ),
-                          ),
-                        ],
-                        const SizedBox(width: 8),
-                        Text(
-                          '₹${item.costPrice}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade500,
-                          ),
+                            if (isLow) ...[
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.red.shade100,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  'LOW',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.red.shade700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                  Text(
+                    '₹${item.costPrice}',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                ],
               ),
-              // Quantity controls (only when selected)
-              if (selected && quantity != null && onQtyChanged != null)
+              if (selected && quantity != null && onQtyChanged != null) ...[
+                const SizedBox(height: 10),
                 _QtyControl(
                   qty: quantity!,
                   onChanged: onQtyChanged!,
                 ),
+              ],
             ],
           ),
         ),
@@ -591,26 +660,32 @@ class _QtyControl extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.green.shade50,
-        borderRadius: BorderRadius.circular(8),
+        color: Colors.green.shade100,
+        borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           _QtyButton(
             icon: Icons.remove,
             enabled: qty > 1,
             onTap: () => onChanged(qty - 1),
           ),
-          SizedBox(
-            width: 36,
+          Container(
+            width: 50,
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+            ),
             child: Text(
               '$qty',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
-                fontSize: 15,
+                fontSize: 16,
               ),
             ),
           ),
@@ -641,12 +716,16 @@ class _QtyButton extends StatelessWidget {
     return InkWell(
       onTap: enabled ? onTap : null,
       borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.all(6),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: enabled ? Colors.green : Colors.grey.shade200,
+          borderRadius: BorderRadius.circular(8),
+        ),
         child: Icon(
           icon,
-          size: 20,
-          color: enabled ? Colors.green : Colors.grey.shade300,
+          size: 18,
+          color: enabled ? Colors.white : Colors.grey.shade400,
         ),
       ),
     );

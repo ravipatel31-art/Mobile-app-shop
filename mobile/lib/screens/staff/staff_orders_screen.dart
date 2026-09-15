@@ -87,7 +87,7 @@ class _StaffOrdersScreenState extends State<StaffOrdersScreen> {
   static const _nextLabel = {
     'received': 'Start preparing',
     'preparing': 'Mark ready',
-    'ready': 'Collect & take payment',
+    'ready': 'Pickup & Pay',
   };
 
   /// Reopen a completed order so the customer can add more items. The already
@@ -295,34 +295,30 @@ class _StaffOrdersScreenState extends State<StaffOrdersScreen> {
                                     ),
                                   ],
                                   const Spacer(),
-                                  FittedBox(
-                                    fit: BoxFit.scaleDown,
-                                    child: Text(formatMoney(o.total),
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.bold)),
-                                  ),
+                                  Text(formatMoney(o.total),
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16)),
                                 ],
                               ),
                               const SizedBox(height: 8),
-                              FittedBox(
-                                fit: BoxFit.scaleDown,
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  o.customerName +
-                                      (o.takenBy != null &&
-                                              o.takenBy!.isNotEmpty
-                                          ? ' • served by ${o.takenBy}'
-                                          : ''),
-                                  maxLines: 1,
-                                  style: const TextStyle(
-                                      color: Colors.black54),
-                                ),
+                              Text(
+                                o.customerName +
+                                    (o.takenBy != null &&
+                                            o.takenBy!.isNotEmpty
+                                        ? ' • served by ${o.takenBy}'
+                                        : ''),
+                                style: const TextStyle(
+                                    color: Colors.black54),
                               ),
                               const SizedBox(height: 6),
-                              ...o.items.map((line) => Text(
-                                  '${line.qty}× ${line.name}'
-                                  '${line.options.isEmpty ? '' : ' (${line.options.join(', ')})'}',
-                                  style: const TextStyle(fontSize: 13))),
+                              ...o.items.map((line) => Padding(
+                                padding: const EdgeInsets.only(bottom: 2),
+                                child: Text(
+                                    '${line.qty}× ${line.name}'
+                                    '${line.options.isEmpty ? '' : ' (${line.options.join(', ')})'}',
+                                    style: const TextStyle(fontSize: 13)),
+                              )),
                               if (o.notes.isNotEmpty) ...[
                                 const SizedBox(height: 4),
                                 Container(
@@ -340,28 +336,36 @@ class _StaffOrdersScreenState extends State<StaffOrdersScreen> {
                                   ),
                                 ),
                               ],
-                              const SizedBox(height: 8),
-                              Align(
-                                alignment: Alignment.centerRight,
-                                child: Wrap(
-                                  spacing: 8,
-                                  runSpacing: 8,
-                                  alignment: WrapAlignment.end,
-                                  children: [
-                                    if (canEdit)
-                                      OutlinedButton.icon(
-                                        onPressed: () => _addItemsToOrder(o),
-                                        icon: const Icon(Icons.add),
-                                        label: const Text('Add item'),
-                                      ),
-                                    if (canAdvance)
-                                      FilledButton.tonal(
-                                        onPressed: () => _advance(o),
-                                        child: Text(_nextLabel[o.status]!),
-                                      )
-                                    else if (canEdit && o.status == 'collected')
-                                      FilledButton.tonal(
-                                        onPressed: () => _reopenAndAdd(o),
+                              const SizedBox(height: 12),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  if (canEdit)
+                                    OutlinedButton.icon(
+                                      onPressed: () => _addItemsToOrder(o),
+                                      icon: const Icon(Icons.add, size: 18),
+                                      label: const Text('Add item'),
+                                    ),
+                                  if (canEdit && canAdvance)
+                                    const SizedBox(width: 8),
+                                  if (canAdvance)
+                                    o.status == 'ready'
+                                        ? FilledButton.icon(
+                                            onPressed: () => _advance(o),
+                                            icon: const Icon(Icons.shopping_bag, size: 18),
+                                            label: Text(_nextLabel[o.status]!),
+                                            style: FilledButton.styleFrom(
+                                              backgroundColor: Colors.green,
+                                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                            ),
+                                          )
+                                        : FilledButton.tonal(
+                                            onPressed: () => _advance(o),
+                                            child: Text(_nextLabel[o.status]!),
+                                          )
+                                  else if (canEdit && o.status == 'collected')
+                                    FilledButton.tonal(
+                                      onPressed: () => _reopenAndAdd(o),
                                         child: const Text('Reopen & add items'),
                                       ),
                                   ],

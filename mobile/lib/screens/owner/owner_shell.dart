@@ -14,7 +14,8 @@ import 'staff_screen.dart';
 import 'tables_admin_screen.dart';
 import 'vendor_message_screen.dart';
 
-/// Owner container: Sales, Reports, Billing, Orders, Tables, Staff, Menu, Inventory, Vendors.
+/// Owner container: 5 main tabs (Sales, Orders, Tables, Billing, Vendors)
+/// plus a "More" menu for less-used screens (Reports, Staff, Menu, Inventory).
 class OwnerShell extends StatefulWidget {
   const OwnerShell({super.key});
 
@@ -26,19 +27,88 @@ class _OwnerShellState extends State<OwnerShell> {
   int _index = 0;
 
   static const _titles = [
-    'Sales', 'Reports', 'Billing', 'Orders', 'Tables', 'Staff', 'Menu', 'Inventory', 'Vendors',
+    'Sales',
+    'Orders',
+    'Tables',
+    'Billing',
+    'Vendors',
   ];
+
   final _pages = const [
     DashboardScreen(),
-    ReportsScreen(),
-    BillingScreen(),
     OrdersQueueScreen(),
     TablesAdminScreen(),
-    StaffScreen(),
-    MenuEditorScreen(),
-    InventoryScreen(),
+    BillingScreen(),
     VendorMessageScreen(),
   ];
+
+  void _openMoreMenu() {
+    showModalBottomSheet(
+      context: context,
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Text(
+                'More Options',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.assessment),
+              title: const Text('Reports'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ReportsScreen()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.people),
+              title: const Text('Staff'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const StaffScreen()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.restaurant_menu),
+              title: const Text('Menu Editor'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const MenuEditorScreen()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.inventory),
+              title: const Text('Inventory'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const InventoryScreen()),
+                );
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,44 +125,40 @@ class _OwnerShellState extends State<OwnerShell> {
       body: IndexedStack(index: _index, children: _pages),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
-        onDestinationSelected: (i) => setState(() => _index = i),
+        onDestinationSelected: (i) {
+          if (i == 4) {
+            // "More" button
+            _openMoreMenu();
+          } else {
+            setState(() => _index = i);
+          }
+        },
         destinations: const [
           NavigationDestination(
-              icon: Icon(Icons.bar_chart_outlined),
-              selectedIcon: Icon(Icons.bar_chart),
-              label: 'Sales'),
+            icon: Icon(Icons.bar_chart_outlined),
+            selectedIcon: Icon(Icons.bar_chart),
+            label: 'Sales',
+          ),
           NavigationDestination(
-              icon: Icon(Icons.assessment_outlined),
-              selectedIcon: Icon(Icons.assessment),
-              label: 'Reports'),
+            icon: Icon(Icons.receipt_long_outlined),
+            selectedIcon: Icon(Icons.receipt_long),
+            label: 'Orders',
+          ),
           NavigationDestination(
-              icon: Icon(Icons.point_of_sale_outlined),
-              selectedIcon: Icon(Icons.point_of_sale),
-              label: 'Billing'),
+            icon: Icon(Icons.table_restaurant_outlined),
+            selectedIcon: Icon(Icons.table_restaurant),
+            label: 'Tables',
+          ),
           NavigationDestination(
-              icon: Icon(Icons.receipt_long_outlined),
-              selectedIcon: Icon(Icons.receipt_long),
-              label: 'Orders'),
+            icon: Icon(Icons.point_of_sale_outlined),
+            selectedIcon: Icon(Icons.point_of_sale),
+            label: 'Billing',
+          ),
           NavigationDestination(
-              icon: Icon(Icons.table_restaurant_outlined),
-              selectedIcon: Icon(Icons.table_restaurant),
-              label: 'Tables'),
-          NavigationDestination(
-              icon: Icon(Icons.people_outline),
-              selectedIcon: Icon(Icons.people),
-              label: 'Staff'),
-          NavigationDestination(
-              icon: Icon(Icons.restaurant_menu_outlined),
-              selectedIcon: Icon(Icons.restaurant_menu),
-              label: 'Menu'),
-          NavigationDestination(
-              icon: Icon(Icons.inventory_outlined),
-              selectedIcon: Icon(Icons.inventory),
-              label: 'Inventory'),
-          NavigationDestination(
-              icon: Icon(Icons.storefront_outlined),
-              selectedIcon: Icon(Icons.storefront),
-              label: 'Vendors'),
+            icon: Icon(Icons.storefront_outlined),
+            selectedIcon: Icon(Icons.storefront),
+            label: 'Vendors',
+          ),
         ],
       ),
     );
