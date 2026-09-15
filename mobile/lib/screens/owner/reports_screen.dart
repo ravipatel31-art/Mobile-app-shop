@@ -144,29 +144,32 @@ class _ReportsScreenState extends State<ReportsScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        TabBar(
-          controller: _tabCtrl,
-          tabs: const [
-            Tab(text: 'Daily Report'),
-            Tab(text: 'Monthly P&L'),
-          ],
-          onTap: (i) {
-            if (i == 0 && _dailyData == null) _loadDaily();
-            if (i == 1 && _monthlyData == null) _loadMonthly();
-          },
-        ),
-        Expanded(
-          child: TabBarView(
+    return Scaffold(
+      appBar: AppBar(title: const Text('Reports')),
+      body: Column(
+        children: [
+          TabBar(
             controller: _tabCtrl,
-            children: [
-              _buildDailyTab(),
-              _buildMonthlyTab(),
+            tabs: const [
+              Tab(text: 'Daily Report'),
+              Tab(text: 'Monthly P&L'),
             ],
+            onTap: (i) {
+              if (i == 0 && _dailyData == null) _loadDaily();
+              if (i == 1 && _monthlyData == null) _loadMonthly();
+            },
           ),
-        ),
-      ],
+          Expanded(
+            child: TabBarView(
+              controller: _tabCtrl,
+              children: [
+                _buildDailyTab(),
+                _buildMonthlyTab(),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 

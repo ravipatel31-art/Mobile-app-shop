@@ -174,12 +174,24 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) return const Center(child: CircularProgressIndicator());
-    if (_error != null) return _ErrorView(message: _error!, onRetry: _load);
+    if (_loading) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Inventory')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (_error != null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Inventory')),
+        body: _ErrorView(message: _error!, onRetry: _load),
+      );
+    }
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-      child: Column(
+    return Scaffold(
+      appBar: AppBar(title: const Text('Inventory')),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -255,6 +267,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   formatDate: _formatDate,
                 )),
         ],
+      ),
       ),
     );
   }

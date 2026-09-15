@@ -108,6 +108,7 @@ class _MenuEditorScreenState extends State<MenuEditorScreen> {
       );
     }
     return Scaffold(
+      appBar: AppBar(title: const Text('Menu Editor')),
       body: RefreshIndicator(
         onRefresh: _load,
         child: ListView.separated(

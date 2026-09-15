@@ -154,6 +154,7 @@ class _StaffScreenState extends State<StaffScreen> {
     final pending = _staff.where((s) => s.isPending).toList();
     final active = _staff.where((s) => !s.isPending).toList();
     return Scaffold(
+      appBar: AppBar(title: const Text('Staff')),
       body: RefreshIndicator(
         onRefresh: _load,
         child: ListView(
