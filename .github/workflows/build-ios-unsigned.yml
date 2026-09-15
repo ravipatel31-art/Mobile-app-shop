@@ -4,8 +4,6 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths:
-      - 'mobile/**'
 
 jobs:
   build:
@@ -24,37 +22,70 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Build Flutter iOS (genkernel only)
+      - name: Build Flutter dart code only
         run: |
           flutter build ios --release --no-codesign \
             --dart-define=API_BASE_URL="https://mobileapp.unonomercysound.online"
 
-      - name: Build IPA with xcodebuild (no signing)
+      - name: Patch pbxproj to remove team requirement
+        run: |
+          PBX="ios/Runner.xcodeproj/project.pbxproj"
+          # Set all CODE_SIGN_STYLE to Manual
+          sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' "$PBX"
+          # Set ad-hoc signing identity
+          sed -i '' 's/"CODE_SIGN_IDENTITY\[sdk=iphoneos\*\]" = "iPhone Developer";/"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "-";/g' "$PBX"
+          # Remove any DEVELOPMENT_TEAM references
+          sed -i '' '/DEVELOPMENT_TEAM/d' "$PBX"
+          # Verify changes
+          echo "=== After patch ==="
+          grep -c "CODE_SIGN_STYLE = Manual" "$PBX" || true
+          grep -c "DEVELOPMENT_TEAM" "$PBX" || true
+
+      - name: Build with xcodebuild (full signing override)
         run: |
           cd ios
-          xcodebuild -workspace Runner.xcworkspace \
+          xcodebuild \
+            -workspace Runner.xcworkspace \
             -scheme Runner \
             -configuration Release \
             -destination "generic/platform=iOS" \
-            -derivedDataPath ../build/ios \
+            -derivedDataPath ../build/ios/Release-iphoneos \
+            ARCHS=arm64 \
+            ONLY_ACTIVE_ARCH=NO \
             CODE_SIGN_IDENTITY="-" \
+            CODE_SIGN_STYLE=Manual \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
             DEVELOPMENT_TEAM="" \
             PROVISIONING_PROFILE="" \
-            PRODUCT_BUNDLE_IDENTIFIER=com.ravi.cafeapp \
             ENABLE_BITCODE=NO \
-            archive \
-            ARCHIVE_PATH="../build/ios/archive/Runner.xcarchive"
+            ENABLE_USER_SCRIPT_SANDBOXING=NO \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            RUN_CLANG_STATIC_ANALYZER=NO \
+            SWIFT_COMPILATION_MODE=wholemodule \
+            | tail -20
 
-      - name: Export unsigned IPA
+      - name: Package IPA
         run: |
-          mkdir -p Payload
-          cp -r build/ios/archive/Runner.xcarchive/Products/Applications/Runner.app Payload/
+          # Find the built Runner.app
+          APP_PATH=$(find build/ios/Release-iphoneos -name "Runner.app" -type d | head -1)
+          if [ -z "$APP_PATH" ]; then
+            echo "::error::Runner.app not found"
+            find build/ios -name "Runner.app" -type d 2>/dev/null
+            exit 1
+          fi
+          echo "Found Runner.app at: $APP_PATH"
+          ls -la "$APP_PATH/Runner" 2>/dev/null || echo "Runner binary not found - checking structure"
+          ls "$APP_PATH/" | head -20
+          rm -rf Payload cafe-app-unsigned.ipa
+          mkdir Payload
+          cp -r "$APP_PATH" Payload/
           zip -r cafe-app-unsigned.ipa Payload
           rm -rf Payload
+          ls -lh cafe-app-unsigned.ipa
 
       - uses: actions/upload-artifact@v4
         with:
           name: cafe-ios-ipa-unsigned
           path: mobile/cafe-app-unsigned.ipa
+          retention-days: 30
