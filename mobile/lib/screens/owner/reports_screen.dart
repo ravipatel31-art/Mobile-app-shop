@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
-import '../../models/inventory_item.dart';
+
 import '../../services/api_client.dart';
 
 class ReportsScreen extends StatefulWidget {
