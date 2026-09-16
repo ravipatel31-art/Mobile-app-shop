@@ -324,12 +324,12 @@ class _KitchenOrderCard extends StatelessWidget {
                       color: Colors.grey.shade700,
                     ),
                   ),
-                  if (order.phone != null && order.phone!.isNotEmpty) ...[
+                  if (order.customerPhone != null && order.customerPhone!.isNotEmpty) ...[
                     const SizedBox(width: 12),
                     Icon(Icons.phone, size: 14, color: Colors.grey.shade500),
                     const SizedBox(width: 4),
                     Text(
-                      order.phone!,
+                      order.customerPhone!,
                       style: TextStyle(
                         fontSize: 13,
                         color: Colors.grey.shade700,
@@ -369,7 +369,7 @@ class _KitchenOrderCard extends StatelessWidget {
                             ),
                             child: Center(
                               child: Text(
-                                '${item.quantity}',
+                                '${item.qty}',
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700,
@@ -390,7 +390,7 @@ class _KitchenOrderCard extends StatelessWidget {
                           ),
                           if (item.options.isNotEmpty)
                             Text(
-                              item.options.map((o) => o.label).join(', '),
+                              item.options.join(', '),
                               style: TextStyle(
                                 fontSize: 11,
                                 color: Colors.grey.shade500,
