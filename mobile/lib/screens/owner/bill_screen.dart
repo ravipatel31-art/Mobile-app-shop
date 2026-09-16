@@ -31,71 +31,85 @@ class _BillScreenState extends State<BillScreen> {
 
   void _copyBill() {
     final items = _order.items.map((item) {
-      final opts = item.options.map((o) => '  $o').join('\n');
-      return '${item.name} x${item.qty}  ₹${item.lineTotal}'
-          '${opts.isNotEmpty ? '\n$opts' : ''}';
+      final opts = item.options.isNotEmpty
+          ? '\n   ${item.options.join(" | ")}'
+          : '';
+      return '  ${item.name} x${item.qty}  ₹${item.lineTotal}$opts';
     }).join('\n');
 
     final buffer = StringBuffer()
-      ..writeln('═══════════════════════════')
-      ..writeln('       CAFE POS BILL')
-      ..writeln('═══════════════════════════')
+      ..writeln('╭─────────────────────────╮')
+      ..writeln('│     CAFE POS     │')
+      ..writeln('╰─────────────────────────╯')
       ..writeln()
-      ..writeln('Bill #: ${_order.id}')
-      ..writeln('Date: ${DateFormat('dd MMM yyyy, hh:mm a').format(DateTime.tryParse(_order.createdAt) ?? DateTime.now())}')
-      ..writeln('Staff: ${_order.takenBy ?? 'N/A'}')
-      ..writeln()
-      ..writeln('─── ITEMS ───────────────')
-      ..writeln(items)
+      ..writeln('📋 Bill #${_order.id}')
+      ..writeln('📅 ${DateFormat('dd MMM yyyy, hh:mm a').format(DateTime.tryParse(_order.createdAt) ?? DateTime.now())}')
+      ..writeln('👤 ${_order.customerName}')
+      ..writeln('🪑 Table ${_order.tableNumber ?? "N/A"}')
+      ..writeln('👨‍🍳 Served by: ${_order.takenBy ?? 'N/A'}')
       ..writeln()
       ..writeln('─────────────────────────')
-      ..writeln('TOTAL: ${_formatMoney(_order.total)}')
+      ..writeln('  ITEM              QTY   AMT')
+      ..writeln('─────────────────────────')
+      ..writeln(items)
+      ..writeln('─────────────────────────')
       ..writeln()
-      ..writeln('Payment: ${_order.paymentMethod.toUpperCase()}')
-      ..writeln('Status: ${_order.paymentStatus.toUpperCase()}')
+      ..writeln('💰 TOTAL: ₹${_order.total}')
+      ..writeln('💳 Payment: ${_order.paymentMethod.toUpperCase()}')
+      ..writeln('✅ Status: ${_order.paymentStatus.toUpperCase()}')
       ..writeln()
-      ..writeln('═══════════════════════════')
-      ..writeln('  Thank you for your visit!')
-      ..writeln('═══════════════════════════');
+      ..writeln('─────────────────────────')
+      ..writeln('  Thank you for visiting!')
+      ..writeln('  Visit us again 🙏')
+      ..writeln('─────────────────────────');
 
     Clipboard.setData(ClipboardData(text: buffer.toString()));
   }
 
   String _buildBillText() {
     final items = _order.items.map((item) {
-      final opts = item.options.map((o) => '  $o').join('\n');
-      return '${item.name} x${item.qty}  ₹${item.lineTotal}'
-          '${opts.isNotEmpty ? '\n$opts' : ''}';
+      final opts = item.options.isNotEmpty
+          ? '\n   ${item.options.join(" | ")}'
+          : '';
+      return '  ${item.name} x${item.qty}  ₹${item.lineTotal}$opts';
     }).join('\n');
 
     final upiLink = 'upi://pay?pa=${AppConfig.upiId}&pn=${Uri.encodeComponent(AppConfig.merchantName)}&am=${_order.total}&cu=INR';
 
     final buffer = StringBuffer()
-      ..writeln('═══════════════════════════')
-      ..writeln('       ${AppConfig.merchantName}')
-      ..writeln('═══════════════════════════')
+      ..writeln('╭─────────────────────────╮')
+      ..writeln('│     ${AppConfig.merchantName}     │')
+      ..writeln('╰─────────────────────────╯')
       ..writeln()
-      ..writeln('Bill #: ${_order.id}')
-      ..writeln('Date: ${DateFormat('dd MMM yyyy, hh:mm a').format(DateTime.tryParse(_order.createdAt) ?? DateTime.now())}')
-      ..writeln('Customer: ${_order.customerName}')
-      ..writeln('Table: ${_order.tableNumber ?? "N/A"}')
-      ..writeln('Staff: ${_order.takenBy ?? 'N/A'}')
-      ..writeln()
-      ..writeln('─── ITEMS ───────────────')
-      ..writeln(items)
+      ..writeln('📋 Bill #${_order.id}')
+      ..writeln('📅 ${DateFormat('dd MMM yyyy, hh:mm a').format(DateTime.tryParse(_order.createdAt) ?? DateTime.now())}')
+      ..writeln('👤 ${_order.customerName}')
+      ..writeln('🪑 Table ${_order.tableNumber ?? "N/A"}')
+      ..writeln('👨‍🍳 Served by: ${_order.takenBy ?? 'N/A'}')
       ..writeln()
       ..writeln('─────────────────────────')
-      ..writeln('TOTAL: ₹${_order.total}')
+      ..writeln('  ITEM              QTY   AMT')
+      ..writeln('─────────────────────────')
+      ..writeln(items)
+      ..writeln('─────────────────────────')
       ..writeln()
-      ..writeln('Payment: ${_order.paymentMethod.toUpperCase()}')
-      ..writeln('Status: ${_order.paymentStatus.toUpperCase()}')
-      ..writeln()
-      ..writeln('UPI Payment Link:')
-      ..writeln(upiLink)
-      ..writeln()
-      ..writeln('═══════════════════════════')
-      ..writeln('  Thank you for your visit!')
-      ..writeln('═══════════════════════════');
+      ..writeln('💰 TOTAL: ₹${_order.total}')
+      ..writeln('💳 Payment: ${_order.paymentMethod.toUpperCase()}')
+      ..writeln('✅ Status: ${_order.paymentStatus.toUpperCase()}')
+      ..writeln();
+
+    if (_order.paymentStatus != 'paid') {
+      buffer
+        ..writeln(' pay using upi')
+        ..writeln(upiLink)
+        ..writeln();
+    }
+
+    buffer
+      ..writeln('─────────────────────────')
+      ..writeln('  Thank you for visiting!')
+      ..writeln('  Visit us again 🙏')
+      ..writeln('─────────────────────────');
     return buffer.toString();
   }
 
