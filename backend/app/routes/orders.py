@@ -1,7 +1,7 @@
-"""Order endpoints — staff/owner only (this is a POS app)."""
+"""Order endpoints — staff/owner/kitchen (this is a POS app)."""
 from flask import Blueprint, request, jsonify, g
 
-from ..auth import staff_required
+from ..auth import staff_required, kitchen_required, any_required
 from ..repositories import orders as orders_repo
 from ..util import ApiError
 
@@ -17,7 +17,7 @@ def create_order():
 
 
 @bp.get("/orders")
-@staff_required
+@any_required
 def list_orders():
     status = request.args.get("status")
     date = request.args.get("date")
@@ -27,7 +27,7 @@ def list_orders():
 
 
 @bp.get("/orders/<order_id>")
-@staff_required
+@any_required
 def get_order(order_id):
     order = orders_repo.get(order_id)
     if not order:
@@ -36,7 +36,7 @@ def get_order(order_id):
 
 
 @bp.patch("/orders/<order_id>/status")
-@staff_required
+@any_required
 def set_status(order_id):
     payload = request.get_json(silent=True) or {}
     status = payload.get("status")

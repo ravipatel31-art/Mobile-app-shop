@@ -8,6 +8,7 @@ import 'state/cart_state.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/owner/owner_shell.dart';
 import 'screens/staff/staff_shell.dart';
+import 'screens/kitchen/kitchen_shell.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -161,7 +162,7 @@ ThemeData buildAppTheme() {
   );
 }
 
-/// Login-first routing: logged out -> login; owner/staff -> their shell.
+/// Login-first routing: logged out -> login; owner/staff/kitchen -> their shell.
 class RootGate extends StatelessWidget {
   const RootGate({super.key});
 
@@ -172,6 +173,8 @@ class RootGate extends StatelessWidget {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     if (!auth.isLoggedIn) return const LoginScreen();
-    return auth.isOwner ? const OwnerShell() : const StaffShell();
+    if (auth.isOwner) return const OwnerShell();
+    if (auth.isKitchen) return const KitchenShell();
+    return const StaffShell();
   }
 }

@@ -1,10 +1,10 @@
-"""Staff/owner account data access (DynamoDB)."""
+"""Staff/owner/kitchen account data access (DynamoDB)."""
 from datetime import datetime, timezone
 
 from ..aws import staff_table
 from ..util import plain, ApiError
 
-# roles: "owner" (full access) | "staff" (take orders)
+# roles: "owner" (full access) | "staff" (take orders) | "kitchen" (order display)
 # status: "pending" (awaiting owner approval) | "approved"
 
 

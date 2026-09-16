@@ -89,6 +89,23 @@ def remove_staff(username):
     return jsonify(staff_repo.remove(username))
 
 
+# ---- Kitchen user management -----------------------------------------------
+
+@bp.post("/kitchen")
+@owner_required
+def create_kitchen_user():
+    """Owner adds a kitchen display user (auto-approved)."""
+    data = request.get_json(silent=True) or {}
+    member = staff_repo.register(
+        data.get("username", ""),
+        data.get("password", ""),
+        data.get("name", ""),
+        role="kitchen",
+        status="approved",
+    )
+    return jsonify(member), 201
+
+
 # ---- Menu management -------------------------------------------------------
 
 @bp.post("/menu")

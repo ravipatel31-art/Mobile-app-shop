@@ -1,4 +1,4 @@
-"""Authentication for owner + staff: password hashing + JWT + role guards."""
+"""Authentication for owner + staff + kitchen: password hashing + JWT + role guards."""
 import time
 from functools import wraps
 
@@ -47,7 +47,7 @@ def authenticate(username, password):
     member = staff_repo.get(username)
     if not member or not verify_password(password, member.get("password_hash", "")):
         raise ApiError("Invalid username or password", 401)
-    if member.get("role") != "owner" and member.get("status") != "approved":
+    if member.get("role") not in ("owner",) and member.get("status") != "approved":
         raise ApiError("Your account is awaiting owner approval", 403)
 
     staff_repo.record_login(username)
@@ -92,3 +92,5 @@ def _guard(allowed_roles):
 # Owner-only (management). Staff-or-owner (day-to-day operations).
 owner_required = _guard({"owner"})
 staff_required = _guard({"owner", "staff"})
+kitchen_required = _guard({"owner", "kitchen"})
+any_required = _guard({"owner", "staff", "kitchen"})

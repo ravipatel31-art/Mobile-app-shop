@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../models/order.dart';
 import '../../services/api_client.dart';
 import '../../util/money.dart';
+import '../owner/bill_screen.dart';
 
 /// Full order detail view: shows who took the order, when, items, status,
 /// and provides a "Serve to Customer" action when the order is ready.
@@ -20,6 +21,17 @@ class OrderDetailScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text('Order #${o.id}'),
         actions: [
+          // View Bill button
+          IconButton(
+            icon: const Icon(Icons.receipt_long),
+            tooltip: 'View Bill',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => BillScreen(order: o)),
+              );
+            },
+          ),
           if (o.status == 'ready')
             TextButton.icon(
               onPressed: () => _serveToCustomer(context, o),

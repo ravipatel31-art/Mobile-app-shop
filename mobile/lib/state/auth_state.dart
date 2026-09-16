@@ -15,7 +15,7 @@ class AuthState extends ChangeNotifier {
   static const _key = 'session';
 
   String? _token;
-  String? role; // "owner" | "staff"
+  String? role; // "owner" | "staff" | "kitchen"
   String? username;
   String? name;
   bool _loading = true;
@@ -24,6 +24,7 @@ class AuthState extends ChangeNotifier {
   bool get isLoggedIn => _token != null;
   bool get isOwner => role == 'owner';
   bool get isStaff => role == 'staff';
+  bool get isKitchen => role == 'kitchen';
 
   Future<void> load() async {
     final raw = await _storage.read(key: _key);

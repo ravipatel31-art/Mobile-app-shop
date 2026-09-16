@@ -7,15 +7,30 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../config.dart';
 import '../../models/order.dart';
 import '../../services/api_client.dart';
+import '../../util/money.dart';
 
-class BillScreen extends StatelessWidget {
+class BillScreen extends StatefulWidget {
   final CafeOrder order;
   const BillScreen({super.key, required this.order});
+
+  @override
+  State<BillScreen> createState() => _BillScreenState();
+}
+
+class _BillScreenState extends State<BillScreen> {
+  late CafeOrder _order;
+  bool _processing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _order = widget.order;
+  }
 
   String _formatMoney(int amount) => '₹$amount';
 
   void _copyBill() {
-    final items = order.items.map((item) {
+    final items = _order.items.map((item) {
       final opts = item.options.map((o) => '  $o').join('\n');
       return '${item.name} x${item.qty}  ₹${item.lineTotal}'
           '${opts.isNotEmpty ? '\n$opts' : ''}';
@@ -26,18 +41,18 @@ class BillScreen extends StatelessWidget {
       ..writeln('       CAFE POS BILL')
       ..writeln('═══════════════════════════')
       ..writeln()
-      ..writeln('Bill #: ${order.id}')
-      ..writeln('Date: ${DateFormat('dd MMM yyyy, hh:mm a').format(DateTime.tryParse(order.createdAt) ?? DateTime.now())}')
-      ..writeln('Staff: ${order.takenBy ?? 'N/A'}')
+      ..writeln('Bill #: ${_order.id}')
+      ..writeln('Date: ${DateFormat('dd MMM yyyy, hh:mm a').format(DateTime.tryParse(_order.createdAt) ?? DateTime.now())}')
+      ..writeln('Staff: ${_order.takenBy ?? 'N/A'}')
       ..writeln()
       ..writeln('─── ITEMS ───────────────')
       ..writeln(items)
       ..writeln()
       ..writeln('─────────────────────────')
-      ..writeln('TOTAL: ${_formatMoney(order.total)}')
+      ..writeln('TOTAL: ${_formatMoney(_order.total)}')
       ..writeln()
-      ..writeln('Payment: ${order.paymentMethod.toUpperCase()}')
-      ..writeln('Status: ${order.paymentStatus.toUpperCase()}')
+      ..writeln('Payment: ${_order.paymentMethod.toUpperCase()}')
+      ..writeln('Status: ${_order.paymentStatus.toUpperCase()}')
       ..writeln()
       ..writeln('═══════════════════════════')
       ..writeln('  Thank you for your visit!')
@@ -47,33 +62,33 @@ class BillScreen extends StatelessWidget {
   }
 
   String _buildBillText() {
-    final items = order.items.map((item) {
+    final items = _order.items.map((item) {
       final opts = item.options.map((o) => '  $o').join('\n');
       return '${item.name} x${item.qty}  ₹${item.lineTotal}'
           '${opts.isNotEmpty ? '\n$opts' : ''}';
     }).join('\n');
 
-    final upiLink = 'upi://pay?pa=${AppConfig.upiId}&pn=${Uri.encodeComponent(AppConfig.merchantName)}&am=${order.total}&cu=INR';
+    final upiLink = 'upi://pay?pa=${AppConfig.upiId}&pn=${Uri.encodeComponent(AppConfig.merchantName)}&am=${_order.total}&cu=INR';
 
     final buffer = StringBuffer()
       ..writeln('═══════════════════════════')
       ..writeln('       ${AppConfig.merchantName}')
       ..writeln('═══════════════════════════')
       ..writeln()
-      ..writeln('Bill #: ${order.id}')
-      ..writeln('Date: ${DateFormat('dd MMM yyyy, hh:mm a').format(DateTime.tryParse(order.createdAt) ?? DateTime.now())}')
-      ..writeln('Customer: ${order.customerName}')
-      ..writeln('Table: ${order.tableNumber ?? "N/A"}')
-      ..writeln('Staff: ${order.takenBy ?? 'N/A'}')
+      ..writeln('Bill #: ${_order.id}')
+      ..writeln('Date: ${DateFormat('dd MMM yyyy, hh:mm a').format(DateTime.tryParse(_order.createdAt) ?? DateTime.now())}')
+      ..writeln('Customer: ${_order.customerName}')
+      ..writeln('Table: ${_order.tableNumber ?? "N/A"}')
+      ..writeln('Staff: ${_order.takenBy ?? 'N/A'}')
       ..writeln()
       ..writeln('─── ITEMS ───────────────')
       ..writeln(items)
       ..writeln()
       ..writeln('─────────────────────────')
-      ..writeln('TOTAL: ₹${order.total}')
+      ..writeln('TOTAL: ₹${_order.total}')
       ..writeln()
-      ..writeln('Payment: ${order.paymentMethod.toUpperCase()}')
-      ..writeln('Status: ${order.paymentStatus.toUpperCase()}')
+      ..writeln('Payment: ${_order.paymentMethod.toUpperCase()}')
+      ..writeln('Status: ${_order.paymentStatus.toUpperCase()}')
       ..writeln()
       ..writeln('UPI Payment Link:')
       ..writeln(upiLink)
@@ -85,7 +100,7 @@ class BillScreen extends StatelessWidget {
   }
 
   String get _customerPhone {
-    final phone = order.customerPhone?.replaceAll(RegExp(r'[^0-9]'), '') ?? '';
+    final phone = _order.customerPhone?.replaceAll(RegExp(r'[^0-9]'), '') ?? '';
     if (phone.isEmpty) return '';
     if (phone.startsWith('91') && phone.length >= 12) return phone;
     if (phone.length == 10) return '91$phone';
@@ -115,13 +130,58 @@ class BillScreen extends StatelessWidget {
     }
   }
 
+  Future<void> _collectPayment(String method) async {
+    final due = _order.total - _order.paidAmount;
+    if (due <= 0) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Order already paid')),
+        );
+      }
+      return;
+    }
+
+    setState(() => _processing = true);
+    try {
+      await context.read<ApiClient>().updateOrderStatus(
+            _order.id,
+            'collected',
+            paid: true,
+            paymentMethod: method,
+          );
+      // Reload order
+      final updated = await context.read<ApiClient>().fetchOrder(_order.id);
+      setState(() {
+        _order = updated;
+        _processing = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Payment of ₹$due recorded via $method'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _processing = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Payment failed: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final due = _order.total - _order.paidAmount;
+    final isPaid = due <= 0;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Bill #${order.id}'),
+        title: Text('Bill #${_order.id}'),
         actions: [
           IconButton(
             icon: const Icon(Icons.copy),
@@ -135,230 +195,354 @@ class BillScreen extends StatelessWidget {
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-        child: Card(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header
-                Center(
-                  child: Column(
-                    children: [
-                      Text(
-                        'CAFE POS',
-                        style: Theme.of(context)
-                            .textTheme
-                            .headlineSmall
-                            ?.copyWith(fontWeight: FontWeight.w900),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Bill Receipt',
-                        style: TextStyle(color: scheme.onSurfaceVariant),
-                      ),
-                    ],
-                  ),
-                ),
-                const Divider(thickness: 2),
-                const SizedBox(height: 8),
-
-                // Order info
-                _InfoRow(label: 'Bill #', value: order.id),
-                _InfoRow(
-                  label: 'Date',
-                  value: DateFormat('dd MMM yyyy, hh:mm a').format(DateTime.tryParse(order.createdAt) ?? DateTime.now()),
-                ),
-                if (order.customerName.isNotEmpty)
-                  _InfoRow(label: 'Customer', value: order.customerName),
-                if (order.tableNumber != null)
-                  _InfoRow(label: 'Table', value: order.tableNumber!),
-                if (order.takenBy != null)
-                  _InfoRow(label: 'Served by', value: order.takenBy!),
-
-                const Divider(thickness: 2),
-                const SizedBox(height: 8),
-
-                // Items header
-                Row(
+        child: Column(
+          children: [
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Expanded(
-                      flex: 4,
-                      child: Text('ITEM',
-                          style: TextStyle(
-                              fontWeight: FontWeight.w700, fontSize: 12)),
+                    // Header
+                    Center(
+                      child: Column(
+                        children: [
+                          Text(
+                            'CAFE POS',
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineSmall
+                                ?.copyWith(fontWeight: FontWeight.w900),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Bill Receipt',
+                            style: TextStyle(color: scheme.onSurfaceVariant),
+                          ),
+                        ],
+                      ),
                     ),
-                    const Expanded(
-                      flex: 1,
-                      child: Text('QTY',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                              fontWeight: FontWeight.w700, fontSize: 12)),
-                    ),
-                    Expanded(
-                      flex: 2,
-                      child: Text('AMOUNT',
-                          textAlign: TextAlign.end,
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w700, fontSize: 12)),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
+                    const Divider(thickness: 2),
+                    const SizedBox(height: 8),
 
-                // Items
-                ...order.items.map((item) => Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    // Order info
+                    _InfoRow(label: 'Bill #', value: _order.id),
+                    _InfoRow(
+                      label: 'Date',
+                      value: DateFormat('dd MMM yyyy, hh:mm a').format(DateTime.tryParse(_order.createdAt) ?? DateTime.now()),
+                    ),
+                    if (_order.customerName.isNotEmpty)
+                      _InfoRow(label: 'Customer', value: _order.customerName),
+                    if (_order.tableNumber != null)
+                      _InfoRow(label: 'Table', value: _order.tableNumber!),
+                    if (_order.takenBy != null)
+                      _InfoRow(label: 'Served by', value: _order.takenBy!),
+
+                    const Divider(thickness: 2),
+                    const SizedBox(height: 8),
+
+                    // Items header
+                    Row(
                       children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              flex: 4,
-                              child: Text(
-                                item.name,
-                                style: const TextStyle(fontSize: 14),
-                              ),
-                            ),
-                            Expanded(
-                              flex: 1,
-                              child: Text(
-                                '${item.qty}',
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(fontSize: 14),
-                              ),
-                            ),
-                            Expanded(
-                              flex: 2,
-                              child: Text(
-                                _formatMoney(item.lineTotal),
-                                textAlign: TextAlign.end,
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.w600, fontSize: 14),
-                              ),
-                            ),
-                          ],
+                        const Expanded(
+                          flex: 4,
+                          child: Text('ITEM',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w700, fontSize: 12)),
                         ),
-                        ...item.options.map((opt) => Padding(
-                              padding: const EdgeInsets.only(left: 12),
-                              child: Text(
-                                '  $opt',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: scheme.onSurfaceVariant,
-                                ),
-                              ),
-                            )),
-                        const SizedBox(height: 6),
+                        const Expanded(
+                          flex: 1,
+                          child: Text('QTY',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w700, fontSize: 12)),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Text('AMOUNT',
+                              textAlign: TextAlign.end,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w700, fontSize: 12)),
+                        ),
                       ],
-                    )),
-
-                const Divider(thickness: 2),
-                const SizedBox(height: 8),
-
-                // Total
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('TOTAL',
-                        style: TextStyle(
-                            fontWeight: FontWeight.w900, fontSize: 18)),
-                    Text(
-                      _formatMoney(order.total),
-                      style: TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 22,
-                        color: scheme.primary,
-                      ),
                     ),
-                  ],
-                ),
+                    const SizedBox(height: 8),
 
-                const SizedBox(height: 12),
-
-                // Payment info
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: order.paymentStatus == 'paid'
-                        ? Colors.green.shade50
-                        : Colors.orange.shade50,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        order.paymentStatus == 'paid'
-                            ? Icons.check_circle
-                            : Icons.pending,
-                        color: order.paymentStatus == 'paid'
-                            ? Colors.green
-                            : Colors.orange,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
+                    // Items
+                    ..._order.items.map((item) => Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              'Payment: ${order.paymentMethod.toUpperCase()}',
-                              style: const TextStyle(fontWeight: FontWeight.w600),
+                            Row(
+                              children: [
+                                Expanded(
+                                  flex: 4,
+                                  child: Text(
+                                    item.name,
+                                    style: const TextStyle(fontSize: 14),
+                                  ),
+                                ),
+                                Expanded(
+                                  flex: 1,
+                                  child: Text(
+                                    '${item.qty}',
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(fontSize: 14),
+                                  ),
+                                ),
+                                Expanded(
+                                  flex: 2,
+                                  child: Text(
+                                    _formatMoney(item.lineTotal),
+                                    textAlign: TextAlign.end,
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w600, fontSize: 14),
+                                  ),
+                                ),
+                              ],
                             ),
-                            Text(
-                              'Status: ${order.paymentStatus.toUpperCase()}',
-                              style: TextStyle(
-                                color: order.paymentStatus == 'paid'
-                                    ? Colors.green.shade700
-                                    : Colors.orange.shade700,
-                                fontSize: 12,
-                              ),
-                            ),
+                            ...item.options.map((opt) => Padding(
+                                  padding: const EdgeInsets.only(left: 12),
+                                  child: Text(
+                                    '  $opt',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: scheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                )),
+                            const SizedBox(height: 6),
                           ],
+                        )),
+
+                    const Divider(thickness: 2),
+                    const SizedBox(height: 8),
+
+                    // Total
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('TOTAL',
+                            style: TextStyle(
+                                fontWeight: FontWeight.w900, fontSize: 18)),
+                        Text(
+                          _formatMoney(_order.total),
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 22,
+                            color: scheme.primary,
+                          ),
                         ),
+                      ],
+                    ),
+
+                    if (_order.paidAmount > 0) ...[
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('PAID',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.green.shade700)),
+                          Text(
+                            _formatMoney(_order.paidAmount),
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: Colors.green.shade700,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('DUE',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.red.shade700)),
+                          Text(
+                            _formatMoney(due),
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              color: Colors.red.shade700,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
-                  ),
-                ),
 
-                const SizedBox(height: 16),
+                    const SizedBox(height: 12),
 
-                // Buttons
-                Row(
-                  children: [
-                    Expanded(
-                      child: FilledButton.tonalIcon(
-                        onPressed: _copyBill,
-                        icon: const Icon(Icons.copy),
-                        label: const Text('Copy'),
+                    // Payment info
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isPaid
+                            ? Colors.green.shade50
+                            : Colors.orange.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            isPaid ? Icons.check_circle : Icons.pending,
+                            color: isPaid ? Colors.green : Colors.orange,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Payment: ${_order.paymentMethod.toUpperCase()}',
+                                  style: const TextStyle(fontWeight: FontWeight.w600),
+                                ),
+                                Text(
+                                  'Status: ${isPaid ? "PAID" : "UNPAID"}',
+                                  style: TextStyle(
+                                    color: isPaid
+                                        ? Colors.green.shade700
+                                        : Colors.orange.shade700,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: FilledButton.icon(
-                        onPressed: () => _sendWhatsApp(context),
-                        icon: const Icon(Icons.chat),
-                        label: const Text('WhatsApp'),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: Colors.green,
+
+                    const SizedBox(height: 16),
+
+                    // Copy & WhatsApp buttons
+                    Row(
+                      children: [
+                        Expanded(
+                          child: FilledButton.tonalIcon(
+                            onPressed: _copyBill,
+                            icon: const Icon(Icons.copy),
+                            label: const Text('Copy'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: FilledButton.icon(
+                            onPressed: () => _sendWhatsApp(context),
+                            icon: const Icon(Icons.chat),
+                            label: const Text('WhatsApp'),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: Colors.green,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    Center(
+                      child: Text(
+                        'Thank you for your visit!',
+                        style: TextStyle(
+                          color: scheme.onSurfaceVariant,
+                          fontStyle: FontStyle.italic,
                         ),
                       ),
                     ),
                   ],
                 ),
+              ),
+            ),
 
-                const SizedBox(height: 16),
-
-                Center(
-                  child: Text(
-                    'Thank you for your visit!',
-                    style: TextStyle(
-                      color: scheme.onSurfaceVariant,
-                      fontStyle: FontStyle.italic,
+            // ── Payment Collection Buttons (if unpaid) ──
+            if (!isPaid) ...[
+              const SizedBox(height: 20),
+              Text(
+                'Collect Payment',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: scheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _PaymentButton(
+                      icon: Icons.money,
+                      label: 'Cash',
+                      color: Colors.green,
+                      onTap: _processing ? null : () => _collectPayment('cash'),
                     ),
                   ),
-                ),
-              ],
-            ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _PaymentButton(
+                      icon: Icons.credit_card,
+                      label: 'Card',
+                      color: Colors.blue,
+                      onTap: _processing ? null : () => _collectPayment('card'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: _PaymentButton(
+                      icon: Icons.qr_code,
+                      label: 'UPI',
+                      color: Colors.purple,
+                      onTap: _processing ? null : () => _collectPayment('upi'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _PaymentButton(
+                      icon: Icons.account_balance_wallet,
+                      label: 'GPay',
+                      color: Colors.teal,
+                      onTap: _processing ? null : () => _collectPayment('gpay'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PaymentButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback? onTap;
+
+  const _PaymentButton({
+    required this.icon,
+    required this.label,
+    required this.color,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 56,
+      child: FilledButton.icon(
+        onPressed: onTap,
+        icon: Icon(icon, size: 20),
+        label: Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+        style: FilledButton.styleFrom(
+          backgroundColor: color,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
           ),
         ),
       ),
