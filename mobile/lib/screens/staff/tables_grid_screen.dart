@@ -455,10 +455,47 @@ class _TablesGridScreenState extends State<TablesGridScreen> {
       if (next == 'collected') {
         final updated = await collectOrderAndPay(context, order);
         if (updated == null || !mounted) return;
+        _load();
+        final hasPhone =
+            updated.customerPhone != null && updated.customerPhone!.isNotEmpty;
+        final sendBill = await showDialog<bool>(
+          context: context,
+          builder: (_) => AlertDialog(
+            icon: const Icon(Icons.check_circle, color: Colors.green, size: 40),
+            title: const Text('Payment collected'),
+            content: Text(
+              hasPhone
+                  ? 'Send bill to ${updated.customerName} via WhatsApp?'
+                  : 'No phone number on this order. Bill not sent.',
+            ),
+            actions: [
+              if (hasPhone)
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('Skip'),
+                ),
+              if (hasPhone)
+                FilledButton.icon(
+                  onPressed: () => Navigator.pop(context, true),
+                  icon: const Icon(Icons.chat, size: 18),
+                  label: const Text('Send Bill'),
+                  style: FilledButton.styleFrom(backgroundColor: Colors.green),
+                ),
+              if (!hasPhone)
+                FilledButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('OK'),
+                ),
+            ],
+          ),
+        );
+        if (sendBill == true && mounted) {
+          await _sendWhatsApp(updated);
+        }
       } else {
         await context.read<ApiClient>().updateOrderStatus(order.id, next);
+        _load();
       }
-      _load();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
