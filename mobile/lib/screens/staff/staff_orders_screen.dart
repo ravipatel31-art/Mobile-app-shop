@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import '../../models/cart.dart';
 import '../../models/order.dart';
 import '../../services/api_client.dart';
-import '../../services/notification_service.dart';
 import '../../state/auth_state.dart';
 import '../../state/cart_state.dart';
 import '../../util/money.dart';
@@ -78,15 +77,6 @@ class _StaffOrdersScreenState extends State<StaffOrdersScreen> {
         await context.read<ApiClient>().updateOrderStatus(order.id, next);
       }
 
-      // Notify when order is ready to serve
-      if (next == 'ready') {
-        await NotificationService.showOrderReady(
-          orderId: order.id,
-          customerName: order.customerName,
-          tableNumber: order.tableNumber,
-        );
-      }
-
       await _load();
     } catch (e) {
       if (!mounted) return;
@@ -96,9 +86,7 @@ class _StaffOrdersScreenState extends State<StaffOrdersScreen> {
   }
 
   static const _nextLabel = {
-    'received': 'Start preparing',
-    'preparing': 'Mark ready',
-    'ready': 'Pickup & Pay',
+    'ready': 'Serve to Customer',
   };
 
   Future<void> _reopenAndAdd(CafeOrder order) async {

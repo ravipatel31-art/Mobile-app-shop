@@ -22,6 +22,7 @@ class NotificationService {
     required String orderId,
     required String customerName,
     required String? tableNumber,
+    String? takenBy,
   }) async {
     if (!_initialized) return;
 
@@ -30,9 +31,10 @@ class NotificationService {
           ? 'Table $tableNumber - Order Ready!'
           : 'Order #$orderId Ready!';
 
+      final staffPart = takenBy != null ? ' for $takenBy' : '';
       final body = customerName.isNotEmpty
-          ? '$customerName\'s order is ready to serve.'
-          : 'Order #$orderId is ready.';
+          ? '${customerName}\'s order is ready$staffPart.'
+          : 'Order #$orderId is ready$staffPart.';
 
       const details = NotificationDetails(
         android: AndroidNotificationDetails(

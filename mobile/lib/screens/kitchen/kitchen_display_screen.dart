@@ -102,6 +102,7 @@ class _KitchenDisplayScreenState extends State<KitchenDisplayScreen> {
           orderId: order.id,
           customerName: order.customerName,
           tableNumber: order.tableNumber,
+          takenBy: order.takenBy,
         );
       }
 
