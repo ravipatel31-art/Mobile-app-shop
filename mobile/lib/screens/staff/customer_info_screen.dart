@@ -109,12 +109,22 @@ class _CustomerInfoScreenState extends State<CustomerInfoScreen> {
                     TextFormField(
                       controller: _phoneController,
                       decoration: const InputDecoration(
-                        labelText: 'Phone (optional)',
-                        hintText: 'e.g., +91 98765 43210',
+                        labelText: 'Mobile Number *',
+                        hintText: 'e.g., 98765 43210',
                         prefixIcon: Icon(Icons.phone_outlined),
                       ),
                       keyboardType: TextInputType.phone,
                       textInputAction: TextInputAction.done,
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) {
+                          return 'Mobile number is required for WhatsApp bill';
+                        }
+                        final digits = v.replaceAll(RegExp(r'[^0-9]'), '');
+                        if (digits.length < 10) {
+                          return 'Enter a valid 10-digit number';
+                        }
+                        return null;
+                      },
                       onFieldSubmitted: (_) => _proceed(),
                     ),
                   ],

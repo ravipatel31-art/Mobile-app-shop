@@ -264,24 +264,19 @@ class _TablesGridScreenState extends State<TablesGridScreen> {
                       )
                     : Row(
                         children: [
-                          if (order != null && order.status != 'collected')
+                          if (order != null && order.status == 'ready')
                             Expanded(
                               child: FilledButton.icon(
                                 onPressed: () async {
                                   Navigator.pop(context);
                                   await _advance(order);
                                 },
-                                icon: Icon(
-                                  order.status == 'ready'
-                                      ? Icons.shopping_bag
-                                      : Icons.skip_next,
-                                  size: 18,
-                                ),
-                                label: Text(_advanceLabel(order.status)),
+                                icon: const Icon(
+                                    Icons.shopping_bag,
+                                    size: 18),
+                                label: const Text('Serve to Customer'),
                                 style: FilledButton.styleFrom(
-                                  backgroundColor: order.status == 'ready'
-                                      ? Colors.green
-                                      : null,
+                                  backgroundColor: Colors.green,
                                   padding:
                                       const EdgeInsets.symmetric(vertical: 14),
                                 ),
@@ -340,12 +335,8 @@ class _TablesGridScreenState extends State<TablesGridScreen> {
 
   String _advanceLabel(String status) {
     switch (status) {
-      case 'received':
-        return 'Start preparing';
-      case 'preparing':
-        return 'Mark ready';
       case 'ready':
-        return 'Pickup & Pay';
+        return 'Serve to Customer';
       default:
         return 'Advance';
     }
@@ -426,6 +417,7 @@ class _TablesGridScreenState extends State<TablesGridScreen> {
                         crossAxisSpacing: 10,
                         children: _tables.map((t) => _TableCard(
                               table: t,
+                              order: _orderCache[t.number.toString()],
                               onTap: () => _openTable(t),
                             )).toList(),
                       );
@@ -442,9 +434,36 @@ class _TablesGridScreenState extends State<TablesGridScreen> {
 
 class _TableCard extends StatelessWidget {
   final CafeTable table;
+  final CafeOrder? order;
   final VoidCallback onTap;
 
-  const _TableCard({required this.table, required this.onTap});
+  const _TableCard({required this.table, this.order, required this.onTap});
+
+  Color _statusColor(String status) {
+    switch (status) {
+      case 'received':
+        return Colors.blue;
+      case 'preparing':
+        return Colors.orange;
+      case 'ready':
+        return Colors.green;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  String _statusLabel(String status) {
+    switch (status) {
+      case 'received':
+        return 'Order Placed';
+      case 'preparing':
+        return 'Preparing';
+      case 'ready':
+        return 'Ready to Serve';
+      default:
+        return status;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -470,37 +489,67 @@ class _TableCard extends StatelessWidget {
                     ? Colors.red.shade400
                     : Colors.green.shade600,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               Text(
                 'Table ${table.number}',
-                style: const TextStyle(fontWeight: FontWeight.bold),
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: isOccupied
-                      ? Colors.red.shade100
-                      : Colors.green.shade100,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  isOccupied ? 'Occupied' : 'Available',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: isOccupied
-                        ? Colors.red.shade700
-                        : Colors.green.shade700,
+              if (isOccupied && order != null) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: _statusColor(order!.status).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    _statusLabel(order!.status),
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: _statusColor(order!.status),
+                    ),
                   ),
                 ),
-              ),
+              ] else if (isOccupied) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade100,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    'Occupied',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.red.shade700,
+                    ),
+                  ),
+                ),
+              ] else ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade100,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    'Available',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.green.shade700,
+                    ),
+                  ),
+                ),
+              ],
               if (isOccupied && table.takenBy != null) ...[
-                const SizedBox(height: 4),
+                const SizedBox(height: 3),
                 Text(
                   table.takenBy!,
-                  style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+                  style: TextStyle(fontSize: 9, color: Colors.grey.shade600),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),

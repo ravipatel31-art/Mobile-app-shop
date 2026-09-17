@@ -57,7 +57,6 @@ class _OrderCartScreenState extends State<OrderCartScreen> {
         final order = await api.placeOrder(cart.buildOrderPayload(
           tableNumber: widget.tableNumber,
           notes: _notes.text.trim(),
-          paymentMethod: _paymentMethod,
         ));
         cart.clear();
         cart.tablesChanged(); // lets the tables grid refresh (table now occupied)
@@ -151,23 +150,7 @@ class _OrderCartScreenState extends State<OrderCartScreen> {
                 ),
                 if (!_isAddMode) ...[
                   const SizedBox(height: 16),
-                  Text('Payment method',
-                      style: Theme.of(context).textTheme.labelLarge),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      for (final m in paymentMethods)
-                        ChoiceChip(
-                          label: Text(m.label),
-                          avatar: Icon(m.icon, size: 18),
-                          selected: _paymentMethod == m.value,
-                          onSelected: (_) =>
-                              setState(() => _paymentMethod = m.value),
-                        ),
-                    ],
-                  ),
+                  // Payment collected at serve time
                 ],
               ],
             ),

@@ -224,6 +224,29 @@ class OrderDetailScreen extends StatelessWidget {
               ),
             ),
           ],
+
+          // ── Send Bill to WhatsApp ──
+          if (o.status == 'ready' && o.customerPhone != null && o.customerPhone!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => BillScreen(order: o)),
+                ),
+                icon: const Icon(Icons.receipt_long, color: Colors.green),
+                label: const Text(
+                  'View & Send Bill via WhatsApp',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Colors.green),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 24),
         ],
       ),
