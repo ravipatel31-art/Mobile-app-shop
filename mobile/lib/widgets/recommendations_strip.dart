@@ -30,6 +30,7 @@ class _RecommendationsStripState extends State<RecommendationsStrip> {
   int _generation = 0;
   String _fingerprint = '';
   List<Suggestion>? _suggestions; // null while fetching
+  String? _error;
 
   @override
   void dispose() {
@@ -43,6 +44,7 @@ class _RecommendationsStripState extends State<RecommendationsStrip> {
     final fingerprint = cart.lines.map((l) => l.item.id).join(',');
     if (fingerprint != _fingerprint) {
       _fingerprint = fingerprint;
+      _error = null;
       WidgetsBinding.instance.addPostFrameCallback((_) => _schedule());
     }
     if (cart.isEmpty) return const SizedBox.shrink();
@@ -63,7 +65,11 @@ class _RecommendationsStripState extends State<RecommendationsStrip> {
         const SizedBox(height: 8),
         SizedBox(
           height: 148,
-          child: suggestions == null ? _loadingCard() : _list(suggestions),
+          child: _error != null
+              ? _errorCard()
+              : suggestions == null
+                  ? _loadingCard()
+                  : _list(suggestions),
         ),
       ],
     );
@@ -78,15 +84,21 @@ class _RecommendationsStripState extends State<RecommendationsStrip> {
     final cart = context.read<CartState>();
     if (cart.isEmpty || !mounted) return;
     final gen = ++_generation;
-    setState(() => _suggestions = null);
+    setState(() {
+      _suggestions = null;
+      _error = null;
+    });
     try {
       final result =
           await context.read<ApiClient>().fetchRecommendations(cart.lines);
       if (!mounted || gen != _generation) return;
       setState(() => _suggestions = result);
-    } catch (_) {
+    } catch (e) {
       if (!mounted || gen != _generation) return;
-      setState(() => _suggestions = []); // hide silently on failure
+      setState(() {
+        _error = e.toString().replaceFirst('Exception: ', '');
+        _suggestions = [];
+      });
     }
   }
 
@@ -105,6 +117,39 @@ class _RecommendationsStripState extends State<RecommendationsStrip> {
             ),
             const SizedBox(height: 8),
             Text('Thinking…', style: Theme.of(context).textTheme.bodySmall),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _errorCard() {
+    return Card(
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.info_outline, size: 18,
+                color: Theme.of(context).colorScheme.error),
+            const SizedBox(height: 6),
+            Text(
+              _error ?? 'Suggestions unavailable',
+              style: Theme.of(context).textTheme.bodySmall,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 6),
+            TextButton.icon(
+              onPressed: () {
+                setState(() => _error = null);
+                _fetch();
+              },
+              icon: const Icon(Icons.refresh, size: 16),
+              label: const Text('Retry', style: TextStyle(fontSize: 12)),
+            ),
           ],
         ),
       ),
