@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../../config.dart';
 import '../../models/cafe_table.dart';
 import '../../models/order.dart';
 import '../../services/api_client.dart';
@@ -264,6 +267,26 @@ class _TablesGridScreenState extends State<TablesGridScreen> {
                       )
                     : Row(
                         children: [
+                          if (order != null &&
+                              (order.customerPhone?.isNotEmpty ?? false))
+                            Expanded(
+                              child: FilledButton.icon(
+                                onPressed: () async {
+                                  Navigator.pop(context);
+                                  await _sendWhatsApp(order);
+                                },
+                                icon: const Icon(Icons.chat, size: 18),
+                                label: const Text('Send Bill'),
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: Colors.green,
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 14),
+                                ),
+                              ),
+                            ),
+                          if (order != null &&
+                              (order.customerPhone?.isNotEmpty ?? false))
+                            const SizedBox(width: 10),
                           if (order != null && order.status == 'ready')
                             Expanded(
                               child: FilledButton.icon(
@@ -339,6 +362,88 @@ class _TablesGridScreenState extends State<TablesGridScreen> {
         return 'Serve to Customer';
       default:
         return 'Advance';
+    }
+  }
+
+  String _customerPhone(CafeOrder order) {
+    final phone = order.customerPhone?.replaceAll(RegExp(r'[^0-9]'), '') ?? '';
+    if (phone.isEmpty) return '';
+    if (phone.startsWith('91') && phone.length >= 12) return phone;
+    if (phone.length == 10) return '91$phone';
+    return phone;
+  }
+
+  String _buildBillText(CafeOrder order) {
+    final items = order.items.map((item) {
+      final opts = item.options.isNotEmpty
+          ? '\n   ${item.options.join(" | ")}'
+          : '';
+      return '  ${item.name} x${item.qty}  ₹${item.lineTotal}$opts';
+    }).join('\n');
+
+    final upiLink =
+        'upi://pay?pa=${AppConfig.upiId}&pn=${Uri.encodeComponent(AppConfig.merchantName)}&am=${order.total}&cu=INR';
+
+    final buffer = StringBuffer()
+      ..writeln('╭─────────────────────────╮')
+      ..writeln('│     ${AppConfig.merchantName}     │')
+      ..writeln('╰─────────────────────────╯')
+      ..writeln()
+      ..writeln('📋 Bill #${order.id}')
+      ..writeln(
+          '📅 ${DateFormat('dd MMM yyyy, hh:mm a').format(DateTime.tryParse(order.createdAt) ?? DateTime.now())}')
+      ..writeln('👤 ${order.customerName}')
+      ..writeln('🪑 Table ${order.tableNumber ?? "N/A"}')
+      ..writeln('👨‍🍳 Served by: ${order.takenBy ?? 'N/A'}')
+      ..writeln()
+      ..writeln('─────────────────────────')
+      ..writeln('  ITEM              QTY   AMT')
+      ..writeln('─────────────────────────')
+      ..writeln(items)
+      ..writeln('─────────────────────────')
+      ..writeln()
+      ..writeln('💰 TOTAL: ₹${order.total}')
+      ..writeln('💳 Payment: ${order.paymentMethod.toUpperCase()}')
+      ..writeln('✅ Status: ${order.paymentStatus.toUpperCase()}')
+      ..writeln();
+
+    if (order.paymentStatus != 'paid') {
+      buffer
+        ..writeln(' pay using upi')
+        ..writeln(upiLink)
+        ..writeln();
+    }
+
+    buffer
+      ..writeln('─────────────────────────')
+      ..writeln('  Thank you for visiting!')
+      ..writeln('  Visit us again 🙏')
+      ..writeln('─────────────────────────');
+    return buffer.toString();
+  }
+
+  Future<void> _sendWhatsApp(CafeOrder order) async {
+    final phone = _customerPhone(order);
+    if (phone.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('No customer phone number on this order')),
+        );
+      }
+      return;
+    }
+    final billText = _buildBillText(order);
+    final url =
+        Uri.parse('https://wa.me/$phone?text=${Uri.encodeComponent(billText)}');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open WhatsApp')),
+        );
+      }
     }
   }
 
