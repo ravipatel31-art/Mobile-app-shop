@@ -243,7 +243,9 @@ class _TablesGridScreenState extends State<TablesGridScreen> {
                                     Text(l.options.join(' • '),
                                         style: TextStyle(
                                             fontSize: 11,
-                                            color: Colors.grey.shade500)),
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurfaceVariant)),
                                 ],
                               ),
                             ),
@@ -507,9 +509,12 @@ class _TablesGridScreenState extends State<TablesGridScreen> {
     if (_error != null) {
       return Center(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Icon(Icons.error_outline, size: 40, color: Colors.grey),
+          Icon(Icons.error_outline,
+              size: 40, color: Theme.of(context).colorScheme.onSurfaceVariant),
           const SizedBox(height: 8),
-          Text(_error!, style: const TextStyle(color: Colors.grey)),
+          Text(_error!,
+              style:
+                  TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
           const SizedBox(height: 12),
           OutlinedButton(onPressed: _load, child: const Text('Retry')),
         ]),
@@ -773,7 +778,8 @@ class _TableCard extends StatelessWidget {
                             fontSize: 9,
                             letterSpacing: 1.2,
                             fontWeight: FontWeight.w700,
-                            color: Colors.grey.shade500),
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant),
                       ),
                     ),
                     Text(occupied ? '🧾' : '🍽️',
@@ -844,19 +850,21 @@ class _TableCard extends StatelessWidget {
                     ],
                   ),
                 if (locked)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 3),
+                  const Padding(
+                    padding: EdgeInsets.only(top: 3),
                     child: Row(
                       children: [
-                        const Icon(Icons.lock_outline,
+                        Icon(Icons.lock_outline,
                             size: 11, color: CafePalette.berry),
-                        const SizedBox(width: 3),
+                        SizedBox(width: 3),
                         Text(
                           'Locked',
                           style: TextStyle(
                               fontSize: 9,
                               fontWeight: FontWeight.w800,
-                              color: Colors.brown.shade400),
+                              // berry reads as "attention" and clears AA on
+                              // white; brown.shade400 was ~2.1:1.
+                              color: CafePalette.berry),
                         ),
                       ],
                     ),

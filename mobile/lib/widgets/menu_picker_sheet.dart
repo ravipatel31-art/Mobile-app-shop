@@ -6,6 +6,7 @@ import '../models/option_group.dart';
 import '../services/api_client.dart';
 import '../state/cart_state.dart';
 import '../util/money.dart';
+import '../widgets/haptics.dart';
 import '../widgets/menu_image.dart';
 
 /// Opens a bottom-sheet menu picker so staff can add more items to the cart
@@ -249,6 +250,7 @@ class _ItemDetailPaneState extends State<_ItemDetailPane> {
       }
     });
     context.read<CartState>().add(widget.item, options, _qty);
+    AppHaptics.light(context); // the "it's in the cart" moment
     // Close the whole sheet so the caller can commit the picked items.
     // (The back arrow still uses onBack to return to the list without adding.)
     Navigator.pop(context);
@@ -337,7 +339,9 @@ class _ItemDetailPaneState extends State<_ItemDetailPane> {
             Text(g.group, style: const TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(width: 8),
             Text(g.required ? 'Required' : 'Optional',
-                style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant)),
           ],
         ),
         const SizedBox(height: 4),
@@ -450,12 +454,22 @@ class _QtyStepper extends StatelessWidget {
     return Row(
       children: [
         IconButton(
-          onPressed: qty > 1 ? () => onChanged(qty - 1) : null,
+          tooltip: 'Decrement quantity, currently $qty',
+          onPressed: qty > 1
+              ? () {
+                  AppHaptics.tap(context);
+                  onChanged(qty - 1);
+                }
+              : null,
           icon: const Icon(Icons.remove_circle_outline),
         ),
         Text('$qty', style: const TextStyle(fontSize: 16)),
         IconButton(
-          onPressed: () => onChanged(qty + 1),
+          tooltip: 'Increment quantity, currently $qty',
+          onPressed: () {
+            AppHaptics.tap(context);
+            onChanged(qty + 1);
+          },
           icon: const Icon(Icons.add_circle_outline),
         ),
       ],

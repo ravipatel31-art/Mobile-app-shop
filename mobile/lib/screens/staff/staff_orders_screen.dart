@@ -13,6 +13,7 @@ import '../../state/cart_state.dart';
 import '../../util/money.dart';
 import '../../util/permissions.dart';
 import '../../widgets/collect_order_flow.dart';
+import '../../widgets/haptics.dart';
 import '../../widgets/menu_picker_sheet.dart';
 import 'order_detail_screen.dart';
 import 'take_order_screen.dart';
@@ -94,6 +95,9 @@ class _StaffOrdersScreenState extends State<StaffOrdersScreen> {
     final idx = CafeOrder.flow.indexOf(order.status);
     if (idx < 0 || idx >= CafeOrder.flow.length - 1) return;
     final next = CafeOrder.flow[idx + 1];
+    // On tap-accept, so the server feels responsive even before the network
+    // answers. (The 'collected' path additionally buzzes on success.)
+    AppHaptics.tap(context);
     try {
       if (next == 'collected') {
         final updated = await collectOrderAndPay(context, order);

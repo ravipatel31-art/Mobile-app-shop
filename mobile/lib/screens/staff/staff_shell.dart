@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../state/auth_state.dart';
 import '../../widgets/shell_app_bar.dart';
+import '../../widgets/ui_kit.dart';
 import 'ask_screen.dart';
 import 'shift_screen.dart';
 import 'staff_history_screen.dart';
@@ -44,6 +45,7 @@ class _StaffShellState extends State<StaffShell> {
       ),
       body: IndexedStack(index: _index, children: _pages),
       bottomNavigationBar: NavigationBar(
+        height: navBarMinHeight(context),
         selectedIndex: _index,
         onDestinationSelected: (i) => setState(() => _index = i),
         destinations: const [

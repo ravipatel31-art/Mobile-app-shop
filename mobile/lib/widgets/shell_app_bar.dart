@@ -193,10 +193,15 @@ class _ShellAppBarState extends State<ShellAppBar> {
     final scheme = Theme.of(context).colorScheme;
     final baseTitle = Theme.of(context).appBarTheme.titleTextStyle ??
         Theme.of(context).textTheme.titleLarge;
-    // Big and unmistakably readable — and we pin the scale so aggressive
-    // browser text scaling can't shrink it into a blur of "0"s on web.
+    // Big and unmistakably readable. We restore the user's OS text size
+    // (a system-wide accessibility setting that must never be switched
+    // off) but clamp it: aggressive browser scaling on web used to
+    // reflow these pinned glyphs into a blur of "0"s, so the scale is
+    // capped at 1.3 — legible for low-vision users, stable on web.
     // Tracking is re-derived for 26px rather than inherited from the 22px
     // AppBar title: letter-spacing is size-specific, never one fixed value.
+    final textScaler = MediaQuery.textScalerOf(context)
+        .clamp(minScaleFactor: 1.0, maxScaleFactor: 1.3);
     final titleStyle = baseTitle?.copyWith(
       fontSize: 26,
       fontWeight: FontWeight.w700,
@@ -288,7 +293,7 @@ class _ShellAppBarState extends State<ShellAppBar> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: titleStyle,
-                    textScaler: TextScaler.noScaling,
+                    textScaler: textScaler,
                   ),
                   if (subtitle.isNotEmpty)
                     Text(
@@ -296,7 +301,7 @@ class _ShellAppBarState extends State<ShellAppBar> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: subtitleStyle,
-                      textScaler: TextScaler.noScaling,
+                      textScaler: textScaler,
                     ),
                 ],
               ),
@@ -345,7 +350,7 @@ class _ShellAppBarState extends State<ShellAppBar> {
                     fontSize: 13,
                     color: Colors.white,
                   ),
-                  textScaler: TextScaler.noScaling,
+                  textScaler: textScaler,
                 ),
               ),
               const SizedBox(width: 7),

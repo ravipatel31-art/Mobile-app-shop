@@ -9,6 +9,7 @@ import '../../models/order.dart';
 import '../../services/api_client.dart';
 import '../../services/printer_models.dart';
 import '../../services/printing_service.dart';
+import '../../widgets/haptics.dart';
 
 class BillScreen extends StatefulWidget {
   final CafeOrder order;
@@ -215,6 +216,7 @@ class _BillScreenState extends State<BillScreen> {
         _processing = false;
       });
       if (mounted) {
+        AppHaptics.success(context); // money landed
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Payment of ₹$due recorded via $method'),
@@ -224,6 +226,7 @@ class _BillScreenState extends State<BillScreen> {
       }
     } catch (e) {
       if (mounted) {
+        AppHaptics.error(context); // distinct from the success thud
         setState(() => _processing = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Payment failed: $e')),
@@ -254,10 +257,14 @@ class _BillScreenState extends State<BillScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.copy),
+            // Icon-only action: name it for screen readers and pointer
+            // users alike.
+            tooltip: 'Copy bill as text',
             onPressed: _copyBill,
           ),
           IconButton(
             icon: const Icon(Icons.chat, color: Colors.green),
+            tooltip: 'Send bill on WhatsApp',
             onPressed: () => _sendWhatsApp(context),
           ),
         ],

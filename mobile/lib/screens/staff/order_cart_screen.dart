@@ -5,6 +5,7 @@ import '../../services/api_client.dart';
 import '../../services/offline/offline.dart';
 import '../../state/cart_state.dart';
 import '../../util/money.dart';
+import '../../widgets/haptics.dart';
 import '../../widgets/menu_picker_sheet.dart';
 import '../../widgets/recommendations_strip.dart';
 
@@ -64,6 +65,7 @@ class _OrderCartScreenState extends State<OrderCartScreen> {
         cart.clear();
         cart.tablesChanged(); // lets the tables grid refresh (table now occupied)
         if (!mounted) return;
+        AppHaptics.success(context); // order is live in the kitchen
         // Back to the table grid.
         Navigator.of(context).popUntil((r) => r.isFirst);
         messenger.showSnackBar(SnackBar(
@@ -93,6 +95,9 @@ class _OrderCartScreenState extends State<OrderCartScreen> {
     );
     cart.clear();
     if (!mounted) return;
+    // Softer bump than the online success: the order is safe, but it has
+    // not actually reached the kitchen yet.
+    AppHaptics.light(context);
     Navigator.of(context).popUntil((r) => r.isFirst);
     messenger.showSnackBar(SnackBar(
         content: Text('Offline — order saved as ${op.localId} for Table '

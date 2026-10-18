@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../state/auth_state.dart';
 import '../../widgets/shell_app_bar.dart';
+import '../../widgets/ui_kit.dart';
 import '../staff/ask_screen.dart';
 import 'kitchen_display_screen.dart';
 
@@ -42,6 +43,7 @@ class _KitchenShellState extends State<KitchenShell> {
       ),
       body: IndexedStack(index: _index, children: _pages),
       bottomNavigationBar: NavigationBar(
+        height: navBarMinHeight(context),
         selectedIndex: _index,
         onDestinationSelected: (i) => setState(() => _index = i),
         destinations: const [

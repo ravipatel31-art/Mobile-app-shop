@@ -238,9 +238,10 @@ class CustomerCartScreen extends StatelessWidget {
                           '${formatMoney(line.unitPrice)} each',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey,
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/menu_item.dart';
 import '../../models/option_group.dart';
 import '../../util/money.dart';
+import '../../widgets/haptics.dart';
 import '../../widgets/ui_kit.dart';
 import 'customer_cart.dart';
 import 'customer_ui.dart';
@@ -81,6 +82,7 @@ class _CustomerItemSheetState extends State<_CustomerItemSheet> {
       }
     });
     widget.cart.add(widget.item, options, _qty);
+    AppHaptics.light(context); // the "it's in the cart" moment
     Navigator.pop(context, true);
   }
 

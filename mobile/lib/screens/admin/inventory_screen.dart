@@ -260,14 +260,17 @@ class _InventoryScreenState extends State<InventoryScreen> {
             ),
             const SizedBox(height: 8),
             if (_inventory.isEmpty)
-              const Card(
+              Card(
                 child: Padding(
-                  padding: EdgeInsets.all(32),
+                  padding: const EdgeInsets.all(32),
                   child: Center(
                     child: Text(
                       'No inventory items yet.\nTap "Add Item" to get started.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey),
+                      style: TextStyle(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurfaceVariant),
                     ),
                   ),
                 ),

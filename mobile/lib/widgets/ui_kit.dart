@@ -133,6 +133,18 @@ double trackFor(double fontSize) {
   return 0;
 }
 
+/// Container height sized for 100% text scale but grown proportionally with
+/// the OS text size. For fixed-axis containers (horizontal strips, bottom
+/// bars) that would otherwise clip their labels at accessibility font sizes.
+double scaledMinHeight(BuildContext context, double base) =>
+    base * MediaQuery.textScalerOf(context).scale(1);
+
+/// Minimum `NavigationBar` height: the app's 68px footprint at 100% text
+/// scale, grown with the OS text size so destination labels are never
+/// clipped at accessibility font sizes.
+double navBarMinHeight(BuildContext context) =>
+    scaledMinHeight(context, 68);
+
 /// Emoji stand-ins for food/drink art — offline-safe "images" for items
 /// without photos.
 String categoryEmoji(String category) {
@@ -485,25 +497,37 @@ class EmojiArtTile extends StatelessWidget {
   final double size;
   final double fontSize;
 
+  /// Screen-reader name for the art ("Latte art"). When null the emoji is
+  /// treated as decoration — the card or list tile it sits in already
+  /// announces the item's name, so reading a second "coffee" adds noise.
+  final String? semanticLabel;
+
   const EmojiArtTile({
     super.key,
     required this.emoji,
     this.gradient,
     this.size = 84,
     this.fontSize = 38,
+    this.semanticLabel,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        gradient: gradient ?? CafeGradients.forSeed(emoji),
-        borderRadius: BorderRadius.circular(18),
+    return Semantics(
+      image: true,
+      label: semanticLabel,
+      // Decorative by default: skip the emoji glyph in the a11y tree.
+      excludeSemantics: semanticLabel == null,
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          gradient: gradient ?? CafeGradients.forSeed(emoji),
+          borderRadius: BorderRadius.circular(18),
+        ),
+        alignment: Alignment.center,
+        child: Text(emoji, style: TextStyle(fontSize: fontSize)),
       ),
-      alignment: Alignment.center,
-      child: Text(emoji, style: TextStyle(fontSize: fontSize)),
     );
   }
 }

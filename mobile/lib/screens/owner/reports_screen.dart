@@ -448,11 +448,12 @@ class _ReportsScreenState extends State<ReportsScreen>
             }),
           ],
           if (_dailyBreakdown.isEmpty && !_loadingMonthly)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 40),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 40),
               child: Center(
                 child: Text('No sales data for this month.',
-                    style: TextStyle(color: Colors.grey)),
+                    style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant)),
               ),
             ),
         ],
@@ -508,11 +509,12 @@ class _ReportsScreenState extends State<ReportsScreen>
           ),
           const SizedBox(height: 8),
           if (rows.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 40),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 40),
               child: Center(
                 child: Text('No orders on this date.',
-                    style: TextStyle(color: Colors.grey)),
+                    style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant)),
               ),
             ),
           for (final raw in rows)

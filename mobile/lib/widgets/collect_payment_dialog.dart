@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../models/order.dart';
 import '../services/api_client.dart';
 import '../util/money.dart';
+import 'haptics.dart';
 
 const paymentMethods = [
   (value: 'gpay', label: 'GPay', icon: Icons.account_balance_wallet_outlined),
@@ -259,12 +260,15 @@ class _CollectPaymentDialogState extends State<_CollectPaymentDialog> {
 
   void _confirm() {
     if (_entered != _due) {
+      // Firm buzz so a rejected amount is felt, not just read.
+      AppHaptics.impact(context);
       setState(() => _error = _entered < _due
           ? 'Amounts are ${formatMoney(_due - _entered)} short'
           : 'Amounts exceed the due amount — adjust the rows');
       return;
     }
     if (_rows.any((r) => _paise(r.controller.text) <= 0)) {
+      AppHaptics.impact(context);
       setState(() => _error = 'Every row needs a positive amount');
       return;
     }

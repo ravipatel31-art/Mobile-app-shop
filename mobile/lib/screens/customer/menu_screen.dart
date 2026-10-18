@@ -226,8 +226,11 @@ class _CustomerMenuScreenState extends State<CustomerMenuScreen> {
           _hero(),
           if (_categories.length > 1) ...[
             const SizedBox(height: 16),
+            // Horizontal strips need a bounded cross-axis, so use a
+            // minimum that grows with the OS text size instead of a hard
+            // 40px that clips the pills' labels.
             SizedBox(
-              height: 40,
+              height: scaledMinHeight(context, 40),
               child: ListView(
                 scrollDirection: Axis.horizontal,
                 children: [

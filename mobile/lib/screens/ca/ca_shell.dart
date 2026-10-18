@@ -7,6 +7,7 @@ import '../../services/api_client.dart';
 import '../../state/auth_state.dart';
 import '../../util/money.dart';
 import '../../widgets/shell_app_bar.dart';
+import '../../widgets/ui_kit.dart';
 import 'exports_panel.dart';
 
 /// Read-only shell for the cafe_ca (chartered accountant) login: daily
@@ -43,6 +44,7 @@ class _CaShellState extends State<CaShell> {
       ),
       body: IndexedStack(index: _index, children: _pages),
       bottomNavigationBar: NavigationBar(
+        height: navBarMinHeight(context),
         selectedIndex: _index,
         onDestinationSelected: (i) => setState(() => _index = i),
         destinations: const [

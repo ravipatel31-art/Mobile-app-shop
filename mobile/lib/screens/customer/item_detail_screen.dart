@@ -5,6 +5,7 @@ import '../../models/menu_item.dart';
 import '../../models/option_group.dart';
 import '../../state/cart_state.dart';
 import '../../util/money.dart';
+import '../../widgets/haptics.dart';
 import '../../widgets/menu_image.dart';
 
 class ItemDetailScreen extends StatefulWidget {
@@ -70,6 +71,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
     });
     final messenger = ScaffoldMessenger.of(context);
     context.read<CartState>().add(widget.item, options, _qty);
+    AppHaptics.light(context); // the "it's in the cart" moment
     Navigator.pop(context);
     messenger.showSnackBar(
       SnackBar(content: Text('${widget.item.name} added to cart')),
@@ -140,7 +142,9 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
             Text(g.group, style: const TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(width: 8),
             Text(g.required ? 'Required' : 'Optional',
-                style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant)),
           ],
         ),
         const SizedBox(height: 6),
@@ -172,12 +176,23 @@ class _QtyStepper extends StatelessWidget {
     return Row(
       children: [
         IconButton(
-          onPressed: qty > 1 ? () => onChanged(qty - 1) : null,
+          // Screen-reader label + value, and a light tick on each tap.
+          tooltip: 'Decrement quantity, currently $qty',
+          onPressed: qty > 1
+              ? () {
+                  AppHaptics.tap(context);
+                  onChanged(qty - 1);
+                }
+              : null,
           icon: const Icon(Icons.remove_circle_outline),
         ),
         Text('$qty', style: const TextStyle(fontSize: 16)),
         IconButton(
-          onPressed: () => onChanged(qty + 1),
+          tooltip: 'Increment quantity, currently $qty',
+          onPressed: () {
+            AppHaptics.tap(context);
+            onChanged(qty + 1);
+          },
           icon: const Icon(Icons.add_circle_outline),
         ),
       ],

@@ -289,6 +289,7 @@ class _OwnerShellState extends State<OwnerShell> {
         ],
       ),
       bottomNavigationBar: NavigationBar(
+        height: navBarMinHeight(context),
         selectedIndex: _index,
         onDestinationSelected: (i) => setState(() => _index = i),
         destinations: const [
