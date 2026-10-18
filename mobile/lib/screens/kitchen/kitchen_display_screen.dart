@@ -9,6 +9,7 @@ import '../../services/notification_service.dart';
 import '../../services/printer_models.dart';
 import '../../services/printing_service.dart';
 import '../../util/money.dart';
+import '../../widgets/swipe_to_advance.dart';
 import '../../widgets/ui_kit.dart';
 
 /// Kitchen display: incoming orders grouped by stage, colour-coded by age
@@ -26,6 +27,11 @@ class _KitchenDisplayScreenState extends State<KitchenDisplayScreen> {
   bool _loading = true;
   String? _error;
   Timer? _refreshTimer;
+
+  /// Orders with an advance currently in flight — blocks double-taps (a
+  /// second status update on a slow network would skip a stage) and shields
+  /// the optimistic copy from the 5s poll until the server has answered.
+  final Set<String> _advancing = {};
 
   @override
   void initState() {
@@ -46,7 +52,7 @@ class _KitchenDisplayScreenState extends State<KitchenDisplayScreen> {
       final all = await api.fetchOrders();
       if (!mounted) return;
       setState(() {
-        _orders = all;
+        _orders = [for (final o in all) _keepOptimistic(o)];
         _loading = false;
       });
     } catch (e) {
@@ -56,6 +62,16 @@ class _KitchenDisplayScreenState extends State<KitchenDisplayScreen> {
         _loading = false;
       });
     }
+  }
+
+  /// While an advance is still in flight, the poll may return the old
+  /// status — keep the optimistic copy so the card doesn't flicker back.
+  CafeOrder _keepOptimistic(CafeOrder server) {
+    if (!_advancing.contains(server.id)) return server;
+    for (final o in _orders) {
+      if (o.id == server.id) return o;
+    }
+    return server;
   }
 
   List<CafeOrder> get _visible {
@@ -123,11 +139,24 @@ class _KitchenDisplayScreenState extends State<KitchenDisplayScreen> {
   }
 
   Future<void> _advance(CafeOrder order) async {
+    // Double-tap guard: one stage change per ticket at a time.
+    if (_advancing.contains(order.id)) return;
     final idx = CafeOrder.flow.indexOf(order.status);
     if (idx < 0 || idx >= CafeOrder.flow.length - 1) return;
     final next = CafeOrder.flow[idx + 1];
+    final messenger = ScaffoldMessenger.of(context);
+    final api = context.read<ApiClient>();
+
+    // Optimistic: paint the new stage now (the card jumps to its section),
+    // then reconcile quietly — and roll back with a snackbar on failure.
+    _advancing.add(order.id);
+    setState(() {
+      _orders = [
+        for (final o in _orders) o.id == order.id ? o.withStatus(next) : o
+      ];
+    });
     try {
-      await context.read<ApiClient>().updateOrderStatus(order.id, next);
+      await api.updateOrderStatus(order.id, next);
 
       // Notify staff when order is ready
       if (next == 'ready') {
@@ -141,8 +170,17 @@ class _KitchenDisplayScreenState extends State<KitchenDisplayScreen> {
 
       await _load();
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+      if (mounted) {
+        setState(() {
+          _orders = [
+            for (final o in _orders)
+              o.id == order.id ? o.withStatus(order.status) : o
+          ];
+        });
+      }
+      messenger.showSnackBar(SnackBar(content: Text('$e')));
+    } finally {
+      _advancing.remove(order.id);
     }
   }
 
@@ -238,9 +276,11 @@ class _KitchenDisplayScreenState extends State<KitchenDisplayScreen> {
               ),
               for (final order in groups[status]!) ...[
                 _KitchenOrderCard(
+                  key: ValueKey(order.id),
                   order: order,
                   ageColor: ageColor(order),
                   statusLabel: _statusLabel(order.status),
+                  advancing: _advancing.contains(order.id),
                   onAdvance: () => _advance(order),
                   onPrintKot: () => _printKot(order),
                 ),
@@ -257,13 +297,16 @@ class _KitchenOrderCard extends StatelessWidget {
   final CafeOrder order;
   final Color ageColor;
   final String statusLabel;
+  final bool advancing;
   final VoidCallback onAdvance;
   final VoidCallback onPrintKot;
 
   const _KitchenOrderCard({
+    super.key,
     required this.order,
     required this.ageColor,
     required this.statusLabel,
+    this.advancing = false,
     required this.onAdvance,
     required this.onPrintKot,
   });
@@ -314,7 +357,7 @@ class _KitchenOrderCard extends StatelessWidget {
     final nextLabel = _nextAction(order.status);
     final elapsed = _timeAgo(order.createdAt);
 
-    return Container(
+    final card = Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: Colors.white,
@@ -569,7 +612,7 @@ class _KitchenOrderCard extends StatelessWidget {
                     child: SizedBox(
                       height: 48,
                       child: FilledButton.icon(
-                        onPressed: onAdvance,
+                        onPressed: advancing ? null : onAdvance,
                         icon: Icon(_nextIcon(order.status), size: 20),
                         label: Text(
                           nextLabel,
@@ -609,6 +652,21 @@ class _KitchenOrderCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+
+    // Flick-to-advance: drag right to move the ticket to its next stage.
+    // The buttons above stay the accessible path — this is an addition.
+    if (nextLabel.isEmpty) return card;
+    return SwipeToAdvance(
+      enabled: !advancing,
+      onCommit: onAdvance,
+      panel: SwipeAdvancePanel(
+        icon: _nextIcon(order.status),
+        label: nextLabel,
+        color: ageColor,
+        foreground: _onAge,
+      ),
+      child: card,
     );
   }
 }

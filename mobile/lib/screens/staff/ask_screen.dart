@@ -153,7 +153,9 @@ class _AskScreenState extends State<AskScreen> {
                   Expanded(
                     child: TextField(
                       controller: _question,
-                      enabled: !_busy,
+                      // Stay enabled during a request: the next question can
+                      // be typed while the agent thinks; only the send button
+                      // is disabled, and _send ignores repeats while busy.
                       textInputAction: TextInputAction.send,
                       onSubmitted: (_) => _send(),
                       decoration: const InputDecoration(

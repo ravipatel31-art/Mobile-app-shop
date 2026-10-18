@@ -91,6 +91,10 @@ class _OwnerShellState extends State<OwnerShell> {
         minChildSize: 0.3,
         maxChildSize: 0.8,
         expand: false,
+        // Detents: the sheet settles at a peek, half or full height instead
+        // of stopping wherever the drag ended.
+        snap: true,
+        snapSizes: const [0.3, 0.5, 0.8],
         builder: (context, scrollController) => Column(
           children: [
             // NB: no drag handle drawn here — the theme's bottom-sheet
