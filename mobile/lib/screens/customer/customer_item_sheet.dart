@@ -88,6 +88,7 @@ class _CustomerItemSheetState extends State<_CustomerItemSheet> {
   Widget build(BuildContext context) {
     final item = widget.item;
     final text = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
     return Padding(
       // Lift the sheet above the keyboard for the quantity stepper.
       padding:
@@ -112,9 +113,9 @@ class _CustomerItemSheetState extends State<_CustomerItemSheet> {
                         const SizedBox(height: 12),
                         Text(
                           item.description,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13.5,
-                            color: Colors.black54,
+                            color: scheme.onSurfaceVariant,
                             height: 1.4,
                           ),
                         ),
@@ -153,6 +154,7 @@ class _CustomerItemSheetState extends State<_CustomerItemSheet> {
 
   Widget _header(TextTheme text) {
     final item = widget.item;
+    final scheme = Theme.of(context).colorScheme;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -181,10 +183,10 @@ class _CustomerItemSheetState extends State<_CustomerItemSheet> {
                       alignment: Alignment.centerLeft,
                       child: Text(
                         formatMoney(item.basePrice),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
-                          color: CafePalette.coffee,
+                          color: scheme.coffee,
                         ),
                       ),
                     ),
@@ -201,12 +203,20 @@ class _CustomerItemSheetState extends State<_CustomerItemSheet> {
   }
 
   Widget _stickyFooter(TextTheme text) {
+    final scheme = Theme.of(context).colorScheme;
+    final dark = scheme.brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        // White footer on the white sheet in light; in dark the footer is
+        // one step *above* the sheet, so it still reads as the raised bar
+        // that carries the primary action.
+        color: dark ? scheme.surfaceContainerHighest : Colors.white,
         border: Border(
-            top: BorderSide(color: Colors.black.withValues(alpha: 0.05))),
+            top: BorderSide(
+                color: dark
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : Colors.black.withValues(alpha: 0.05))),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -217,7 +227,7 @@ class _CustomerItemSheetState extends State<_CustomerItemSheet> {
               child: Text(
                 'Choose a required option to continue',
                 style: text.bodySmall?.copyWith(
-                  color: CafePalette.berry,
+                  color: scheme.berry,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -228,15 +238,15 @@ class _CustomerItemSheetState extends State<_CustomerItemSheet> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
-                  color: CafePalette.latte,
+                  color: scheme.latte,
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
                   '$_qty ${_qty == 1 ? 'item' : 'items'}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: CafePalette.espresso,
+                    color: scheme.espressoInk,
                   ),
                 ),
               ),
@@ -282,7 +292,13 @@ class _CustomerItemSheetState extends State<_CustomerItemSheet> {
                 padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                 decoration: BoxDecoration(
                   color: g.required
-                      ? CafePalette.berry.withValues(alpha: 0.12)
+                      // Berry wash: same 12% on cream, twice that on
+                      // espresso, where a 12% tint of a *light* berry is
+                      // invisible.
+                      ? scheme.berry.withValues(
+                          alpha: scheme.brightness == Brightness.dark
+                              ? 0.22
+                              : 0.12)
                       : scheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(999),
                 ),
@@ -292,7 +308,7 @@ class _CustomerItemSheetState extends State<_CustomerItemSheet> {
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
                     color: g.required
-                        ? CafePalette.berry
+                        ? scheme.berry
                         : scheme.onSurfaceVariant,
                   ),
                 ),
@@ -313,6 +329,8 @@ class _CustomerItemSheetState extends State<_CustomerItemSheet> {
   Widget _choiceChip(OptionGroup g, OptionChoice c) {
     final chosen = _selected[g.group]?.contains(c.label) ?? false;
     final delta = c.priceDelta == 0 ? null : '+${formatMoney(c.priceDelta)}';
+    final scheme = Theme.of(context).colorScheme;
+    final dark = scheme.brightness == Brightness.dark;
     const radius = BorderRadius.all(Radius.circular(999));
     return Material(
       color: Colors.transparent,
@@ -325,11 +343,17 @@ class _CustomerItemSheetState extends State<_CustomerItemSheet> {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
             gradient: chosen ? CafeGradients.coffee : null,
-            color: chosen ? null : Colors.white,
+            // Unchosen rests a shade *above* the sheet — white on cream,
+            // the top of the espresso ladder in dark, same hairline either
+            // way.
+            color: chosen ? null : scheme.surfaceContainerHighest,
             borderRadius: radius,
             border: chosen
                 ? null
-                : Border.all(color: Colors.black.withValues(alpha: 0.09)),
+                : Border.all(
+                    color: dark
+                        ? Colors.white.withValues(alpha: 0.10)
+                        : Colors.black.withValues(alpha: 0.09)),
             boxShadow: chosen
                 ? [
                     BoxShadow(
@@ -354,7 +378,7 @@ class _CustomerItemSheetState extends State<_CustomerItemSheet> {
                 style: TextStyle(
                   fontSize: 13.5,
                   fontWeight: FontWeight.w600,
-                  color: chosen ? Colors.white : CafePalette.espresso,
+                  color: chosen ? Colors.white : scheme.espressoInk,
                 ),
               ),
               if (delta != null) ...[
@@ -366,7 +390,7 @@ class _CustomerItemSheetState extends State<_CustomerItemSheet> {
                     fontWeight: FontWeight.w800,
                     color: chosen
                         ? Colors.white.withValues(alpha: 0.85)
-                        : CafePalette.mint,
+                        : scheme.mint,
                   ),
                 ),
               ],

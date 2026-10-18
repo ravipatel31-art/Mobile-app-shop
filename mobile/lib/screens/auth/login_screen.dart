@@ -63,6 +63,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final dark = scheme.brightness == Brightness.dark;
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -70,7 +71,10 @@ class _LoginScreenState extends State<LoginScreen> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              const Color(0xFFF1E8DE), // warm latte wash
+              // Warm latte wash at the top fading into the sign-in surface.
+              // Dark gets the same move with dark tones — a light slab here
+              // would glow across the top third of the screen.
+              dark ? scheme.surfaceContainerLow : const Color(0xFFF1E8DE),
               scheme.surface,
               scheme.surface,
             ],
@@ -282,11 +286,13 @@ class _LoginScreenState extends State<LoginScreen> {
             FilledButton.icon(
               onPressed: _busy ? null : _login,
               icon: _busy
-                  ? const SizedBox(
+                  ? SizedBox(
                       height: 20,
                       width: 20,
+                      // onPrimary, not white: the fill is a *light* latte
+                      // in dark mode, and white-on-latte disappears.
                       child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white))
+                          strokeWidth: 2, color: scheme.onPrimary))
                   : const Icon(Icons.arrow_forward),
               label: Text(_busy ? 'Signing in…' : 'Sign in'),
             ),
@@ -308,11 +314,14 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget _demoHint(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
+    final dark = scheme.brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.88),
+        // Translucent white card over the cream body in light; in dark the
+        // equivalent is simply the card surface.
+        color: dark ? scheme.surface : Colors.white.withValues(alpha: 0.88),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: CafePalette.latte),
+        border: Border.all(color: dark ? scheme.outlineVariant : CafePalette.latte),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -380,7 +389,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     decoration: BoxDecoration(
                       border: Border(
                         top: BorderSide(
-                          color: Colors.black.withValues(alpha: 0.06),
+                          color: dark
+                              ? Colors.white.withValues(alpha: 0.08)
+                              : Colors.black.withValues(alpha: 0.06),
                         ),
                       ),
                     ),
@@ -399,6 +410,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Widget _demoRow(String user, String pass, String role) {
     final text = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
     return InkWell(
       borderRadius: BorderRadius.circular(12),
       onTap: () => _fillDemo(user, pass),
@@ -416,7 +428,7 @@ class _LoginScreenState extends State<LoginScreen> {
               pass,
               style: text.bodySmall?.copyWith(
                 fontWeight: FontWeight.w600,
-                color: CafePalette.coffee,
+                color: scheme.coffee,
               ),
             ),
             const SizedBox(width: 8),
@@ -424,7 +436,7 @@ class _LoginScreenState extends State<LoginScreen> {
               role,
               style: text.bodySmall?.copyWith(
                 fontSize: 11,
-                color: const Color(0xFF8A6A52),
+                color: scheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(width: 4),

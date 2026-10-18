@@ -117,7 +117,8 @@ class _CustomerMenuScreenState extends State<CustomerMenuScreen> {
     if (!added || !mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       behavior: SnackBarBehavior.floating,
-      backgroundColor: CafePalette.espresso,
+      // Background comes from `snackBarTheme` (espresso in light, a lifted
+      // espresso in dark) — no per-snackbar colour to drift.
       duration: const Duration(milliseconds: 1400),
       content: Text('${item.name} added to your order'),
     ));
@@ -190,14 +191,16 @@ class _CustomerMenuScreenState extends State<CustomerMenuScreen> {
 
   Widget _buildBody() {
     if (_loading) {
-      return const Center(
+      // The secondary text role instead of `Colors.black54` — one token
+      // that reads as "quiet hint" on cream and on espresso alike.
+      final hint = Theme.of(context).colorScheme.onSurfaceVariant;
+      return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 14),
-            Text('Warming up the menu…',
-                style: TextStyle(color: Colors.black54)),
+            const CircularProgressIndicator(),
+            const SizedBox(height: 14),
+            Text('Warming up the menu…', style: TextStyle(color: hint)),
           ],
         ),
       );
@@ -326,83 +329,86 @@ class _CustomerMenuScreenState extends State<CustomerMenuScreen> {
   }
 
   Widget _itemCard(MenuItem item) {
+    final scheme = Theme.of(context).colorScheme;
+    // Unavailable items are *marked*, not faded: a quiet raised container
+    // plus secondary ink. (The old 55%-opacity wash went to grey mud over
+    // espresso, and left the card's text unreadable at any brightness.)
+    final muted = !item.available;
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       clipBehavior: Clip.antiAlias,
+      color: muted ? scheme.surfaceContainerHighest : null,
       child: InkWell(
         onTap: () => _openItem(item),
         child: Padding(
           padding: const EdgeInsets.all(12),
-          child: Opacity(
-            opacity: item.available ? 1 : 0.55,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ItemArt(item: item, size: 84, fontSize: 36),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ItemArt(item: item, size: 84, fontSize: 36),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 15.5,
+                            fontWeight: FontWeight.w700,
+                            color: muted ? scheme.onSurfaceVariant : null,
+                          ),
+                        ),
+                        if (item.description.isNotEmpty) ...[
+                          const SizedBox(height: 3),
                           Text(
-                            item.name,
+                            item.description,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 15.5,
-                              fontWeight: FontWeight.w700,
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              color: scheme.onSurfaceVariant,
                             ),
                           ),
-                          if (item.description.isNotEmpty) ...[
-                            const SizedBox(height: 3),
-                            Text(
-                              item.description,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 12.5,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant,
-                              ),
-                            ),
-                          ],
                         ],
-                      ),
+                      ],
                     ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    GstChip(rate: item.gstRate),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          formatMoney(item.basePrice),
-                          style: const TextStyle(
-                            fontSize: 16.5,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.2,
-                          ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  GstChip(rate: item.gstRate),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        formatMoney(item.basePrice),
+                        style: TextStyle(
+                          fontSize: 16.5,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.2,
+                          color: muted ? scheme.onSurfaceVariant : null,
                         ),
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    ItemAddButton(
-                      label: item.options.isEmpty ? 'Add' : 'Choose',
-                      onTap: item.available ? () => _openItem(item) : null,
-                    ),
-                  ],
-                ),
-              ],
-            ),
+                  ),
+                  const SizedBox(width: 10),
+                  ItemAddButton(
+                    label: item.options.isEmpty ? 'Add' : 'Choose',
+                    onTap: item.available ? () => _openItem(item) : null,
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),

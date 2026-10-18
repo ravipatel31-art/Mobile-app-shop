@@ -45,7 +45,9 @@ class CustomerCartScreen extends StatelessWidget {
                               '${cart.count} ${cart.count == 1 ? 'item' : 'items'} • GST incl.',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.grey.shade600,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
                               ),
                             ),
                             const SizedBox(height: 2),
@@ -238,9 +240,9 @@ class CustomerCartScreen extends StatelessWidget {
                           '${formatMoney(line.unitPrice)} each',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey,
+                            color: theme.colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ),

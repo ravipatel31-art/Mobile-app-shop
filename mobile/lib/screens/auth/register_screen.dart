@@ -52,6 +52,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final dark = scheme.brightness == Brightness.dark;
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -59,7 +60,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              const Color(0xFFF1E8DE), // warm latte wash — matches login
+              // Warm latte wash — matches login; dark uses the espresso
+              // ladder, since a light slab would glow across the top.
+              dark ? scheme.surfaceContainerLow : const Color(0xFFF1E8DE),
               scheme.surface,
               scheme.surface,
             ],
@@ -223,11 +226,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
               FilledButton(
                 onPressed: _busy ? null : _submit,
                 child: _busy
-                    ? const SizedBox(
+                    ? SizedBox(
                         height: 22,
                         width: 22,
+                        // onPrimary, not white — the fill is a light latte
+                        // in dark mode.
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white))
+                            strokeWidth: 2, color: scheme.onPrimary))
                     : const Text('Request account'),
               ),
             ],

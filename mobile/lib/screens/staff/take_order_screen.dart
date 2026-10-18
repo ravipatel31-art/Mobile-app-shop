@@ -133,29 +133,35 @@ class _Tile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final disabled = !item.available;
-    return Opacity(
-      opacity: disabled ? 0.5 : 1,
-      child: Card(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
-        clipBehavior: Clip.antiAlias,
-        child: ListTile(
-          leading: ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: MenuImage(url: item.imageUrl, width: 56, height: 56),
-          ),
-          title: Text(item.name),
-          subtitle: Text(disabled ? 'Sold out' : item.description,
-              maxLines: 1, overflow: TextOverflow.ellipsis),
-          trailing: Text(formatMoney(item.basePrice),
-              style: const TextStyle(fontWeight: FontWeight.w600)),
-          onTap: disabled
-              ? null
-              : () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => ItemDetailScreen(item: item)),
-                  ),
+    final scheme = Theme.of(context).colorScheme;
+    // Unavailable tiles are marked with a quiet raised container and
+    // secondary ink instead of a 50%-opacity wash, which went to grey mud
+    // over espresso.
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+      clipBehavior: Clip.antiAlias,
+      color: disabled ? scheme.surfaceContainerHighest : null,
+      child: ListTile(
+        leading: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: MenuImage(url: item.imageUrl, width: 56, height: 56),
         ),
+        title: Text(item.name,
+            style: TextStyle(
+                color: disabled ? scheme.onSurfaceVariant : null)),
+        subtitle: Text(disabled ? 'Sold out' : item.description,
+            maxLines: 1, overflow: TextOverflow.ellipsis),
+        trailing: Text(formatMoney(item.basePrice),
+            style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: disabled ? scheme.onSurfaceVariant : null)),
+        onTap: disabled
+            ? null
+            : () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => ItemDetailScreen(item: item)),
+                ),
       ),
     );
   }

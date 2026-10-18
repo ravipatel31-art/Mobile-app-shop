@@ -142,6 +142,7 @@ class _CustomerCheckoutScreenState extends State<CustomerCheckoutScreen> {
   Widget build(BuildContext context) {
     final cart = widget.cart;
     final text = Theme.of(context).textTheme;
+    final status = AppStatus.of(context);
     return Scaffold(
       appBar: AppBar(title: const Text('Checkout')),
       body: ListView(
@@ -222,7 +223,7 @@ class _CustomerCheckoutScreenState extends State<CustomerCheckoutScreen> {
           if (_error != null) ...[
             const SizedBox(height: 8),
             Text(_error!,
-                style: TextStyle(color: Colors.red.shade700, fontSize: 13)),
+                style: TextStyle(color: status.danger, fontSize: 13)),
           ],
         ],
       ),
@@ -238,7 +239,7 @@ class _CustomerCheckoutScreenState extends State<CustomerCheckoutScreen> {
                     'Total (GST incl.)',
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.grey.shade600,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -287,6 +288,7 @@ class _CustomerCheckoutScreenState extends State<CustomerCheckoutScreen> {
   }
 
   Widget _summaryCard(TextTheme text) {
+    final scheme = Theme.of(context).colorScheme;
     final cart = widget.cart;
     return Card(
       child: Padding(
@@ -317,15 +319,15 @@ class _CustomerCheckoutScreenState extends State<CustomerCheckoutScreen> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: CafePalette.latte,
+                    color: scheme.latte,
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
                     '${cart.count} ${cart.count == 1 ? 'item' : 'items'}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11.5,
                       fontWeight: FontWeight.w700,
-                      color: CafePalette.coffee,
+                      color: scheme.coffee,
                     ),
                   ),
                 ),
@@ -344,15 +346,15 @@ class _CustomerCheckoutScreenState extends State<CustomerCheckoutScreen> {
                       alignment: Alignment.center,
                       padding: const EdgeInsets.symmetric(vertical: 3),
                       decoration: BoxDecoration(
-                        color: CafePalette.latte,
+                        color: scheme.latte,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
                         '${line.qty}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12.5,
                           fontWeight: FontWeight.w800,
-                          color: CafePalette.espresso,
+                          color: scheme.espressoInk,
                         ),
                       ),
                     ),
@@ -377,7 +379,7 @@ class _CustomerCheckoutScreenState extends State<CustomerCheckoutScreen> {
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 fontSize: 11.5,
-                                color: Colors.grey.shade600,
+                                color: scheme.onSurfaceVariant,
                               ),
                             ),
                         ],

@@ -191,6 +191,9 @@ class _ShellAppBarState extends State<ShellAppBar> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final dark = scheme.brightness == Brightness.dark;
+    // The page colour the bar melts into (light: cream, dark: espresso).
+    final page = Theme.of(context).scaffoldBackgroundColor;
     final baseTitle = Theme.of(context).appBarTheme.titleTextStyle ??
         Theme.of(context).textTheme.titleLarge;
     // Big and unmistakably readable — and we pin the scale so aggressive
@@ -207,7 +210,9 @@ class _ShellAppBarState extends State<ShellAppBar> {
           height: 1.15,
           fontWeight: FontWeight.w600,
           letterSpacing: 0.1,
-          color: CafePalette.coffee.withValues(alpha: 0.9),
+          // Coffee ink on cream; the muted latte primary on espresso, where
+          // the coffee brown itself would sink into the background.
+          color: scheme.coffee.withValues(alpha: 0.9),
         );
     // Cafe name + date, or just the date when no branding is loaded yet.
     final subtitle = shellSubtitle(context, widget.subtitle);
@@ -219,16 +224,24 @@ class _ShellAppBarState extends State<ShellAppBar> {
       // towards `Colors.transparent` (transparent *black*) would tint the
       // bottom of the bar grey.
       flexibleSpace: Container(
-        decoration: const BoxDecoration(
+        // Soft warm wash that fades down into the background colour.
+        // NB: the fade-out stop must be *the bar's own colour* at alpha 0 —
+        // interpolating towards `Colors.transparent` (transparent *black*)
+        // would tint the bottom of the bar grey. Light keeps the latte →
+        // cream wash; dark uses the same idea with the espresso ladder: a
+        // lifted surface tone melting into the page colour.
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFFF0E7DC), // warm latte
-              Color(0xFFF6F4F1), // cream
-              Color(0x00F6F4F1), // cream, fully transparent
+              dark
+                  ? scheme.surfaceContainerHigh // warm, lifted top stop
+                  : const Color(0xFFF0E7DC), // warm latte
+              page,
+              page.withValues(alpha: 0), // fully transparent
             ],
-            stops: [0, 0.62, 1],
+            stops: const [0, 0.62, 1],
           ),
         ),
       ),
@@ -240,7 +253,11 @@ class _ShellAppBarState extends State<ShellAppBar> {
             ? _banner(context, scheme)
             : Container(
                 height: 1,
-                color: Colors.black.withValues(alpha: 0.06),
+                // Black at 6% reads on cream and vanishes on espresso —
+                // dark gets the same line as white at low alpha.
+                color: dark
+                    ? Colors.white.withValues(alpha: 0.10)
+                    : Colors.black.withValues(alpha: 0.06),
               ),
       ),
       titleSpacing: 16,
@@ -312,9 +329,14 @@ class _ShellAppBarState extends State<ShellAppBar> {
           height: 36,
           padding: const EdgeInsets.only(left: 4, right: 10),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.9),
+            // A white pill reads as "raised" on cream; on espresso the
+            // equivalent is the top of the surface ladder.
+            color: dark
+                ? scheme.surfaceContainerHighest
+                : Colors.white.withValues(alpha: 0.9),
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: CafePalette.latte),
+            border: Border.all(
+                color: dark ? scheme.outlineVariant : CafePalette.latte),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.05),

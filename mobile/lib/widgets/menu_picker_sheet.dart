@@ -295,7 +295,7 @@ class _ItemDetailPaneState extends State<_ItemDetailPane> {
               if (item.description.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Text(item.description,
-                    style: const TextStyle(color: Colors.black54)),
+                    style: TextStyle(color: scheme.onSurfaceVariant)),
               ],
               for (final g in item.options) _buildGroup(g),
               const SizedBox(height: 8),
@@ -328,6 +328,7 @@ class _ItemDetailPaneState extends State<_ItemDetailPane> {
   }
 
   Widget _buildGroup(OptionGroup g) {
+    final scheme = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -337,7 +338,8 @@ class _ItemDetailPaneState extends State<_ItemDetailPane> {
             Text(g.group, style: const TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(width: 8),
             Text(g.required ? 'Required' : 'Optional',
-                style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                style: TextStyle(
+                    fontSize: 12, color: scheme.onSurfaceVariant)),
           ],
         ),
         const SizedBox(height: 4),
@@ -418,23 +420,28 @@ class _ItemRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final disabled = !item.available;
-    return Opacity(
-      opacity: disabled ? 0.5 : 1,
-      child: Card(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
-        clipBehavior: Clip.antiAlias,
-        child: ListTile(
-          leading: ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: MenuImage(url: item.imageUrl, width: 56, height: 56),
-          ),
-          title: Text(item.name),
-          subtitle: Text(disabled ? 'Sold out' : item.description,
-              maxLines: 1, overflow: TextOverflow.ellipsis),
-          trailing: Text(formatMoney(item.basePrice),
-              style: const TextStyle(fontWeight: FontWeight.w600)),
-          onTap: disabled ? null : onTap,
+    final scheme = Theme.of(context).colorScheme;
+    // Unavailable rows are *marked*, not faded: the 50%-opacity wash read as
+    // grey mud against the dark surface.
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+      clipBehavior: Clip.antiAlias,
+      color: disabled ? scheme.surfaceContainerHighest : null,
+      child: ListTile(
+        leading: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: MenuImage(url: item.imageUrl, width: 56, height: 56),
         ),
+        title: Text(item.name,
+            style: TextStyle(
+                color: disabled ? scheme.onSurfaceVariant : null)),
+        subtitle: Text(disabled ? 'Sold out' : item.description,
+            maxLines: 1, overflow: TextOverflow.ellipsis),
+        trailing: Text(formatMoney(item.basePrice),
+            style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: disabled ? scheme.onSurfaceVariant : null)),
+        onTap: disabled ? null : onTap,
       ),
     );
   }

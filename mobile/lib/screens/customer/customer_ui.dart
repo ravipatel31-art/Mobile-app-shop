@@ -45,18 +45,21 @@ class GstChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: CafePalette.latte,
+        // Pale latte chip on cream; the raised surface tone in dark, so it
+        // reads as a chip instead of a bright sticker.
+        color: scheme.latte,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
         'GST $rate%',
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w700,
-          color: CafePalette.coffee,
+          color: scheme.coffee,
           letterSpacing: 0.2,
         ),
       ),
@@ -139,6 +142,8 @@ class CategoryPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final dark = scheme.brightness == Brightness.dark;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -150,11 +155,16 @@ class CategoryPill extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
           decoration: BoxDecoration(
             gradient: selected ? CafeGradients.coffee : null,
-            color: selected ? null : Colors.white,
+            // Unselected rests on the page: white on cream, card surface
+            // on espresso (a white pill would glare there).
+            color: selected ? null : scheme.surface,
             borderRadius: BorderRadius.circular(999),
             border: selected
                 ? null
-                : Border.all(color: Colors.black.withValues(alpha: 0.07)),
+                : Border.all(
+                    color: dark
+                        ? Colors.white.withValues(alpha: 0.10)
+                        : Colors.black.withValues(alpha: 0.07)),
             boxShadow: selected
                 ? [
                     BoxShadow(
@@ -175,7 +185,7 @@ class CategoryPill extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 13.5,
                   fontWeight: FontWeight.w700,
-                  color: selected ? Colors.white : CafePalette.espresso,
+                  color: selected ? Colors.white : scheme.espressoInk,
                 ),
               ),
             ],
@@ -206,11 +216,15 @@ class GradientPillButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final enabled = onPressed != null;
+    final scheme = Theme.of(context).colorScheme;
+    final dark = scheme.brightness == Brightness.dark;
     final radius = BorderRadius.circular(999);
     return DecoratedBox(
       decoration: BoxDecoration(
         gradient: enabled ? gradient : null,
-        color: enabled ? null : const Color(0xFFE8E2DB),
+        // Disabled drops the gradient for a flat, inert tone: greyed cream
+        // on light, the top of the espresso ladder in dark.
+        color: enabled ? null : scheme.surfaceContainerHighest,
         borderRadius: radius,
         boxShadow: enabled
             ? [
@@ -235,7 +249,12 @@ class GradientPillButton extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
-                  color: enabled ? Colors.white : Colors.black38,
+                  // White over the gradient; a muted on-surface wash over
+                  // the inert fill (black at 26–38% on light, warm white
+                  // at the same strength in dark).
+                  color: enabled
+                      ? Colors.white
+                      : scheme.onSurface.withValues(alpha: dark ? 0.45 : 0.38),
                 ),
                 child: Center(child: child),
               ),
@@ -257,18 +276,22 @@ class ItemAddButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (onTap == null) {
+      final scheme = Theme.of(context).colorScheme;
+      final dark = scheme.brightness == Brightness.dark;
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
         decoration: BoxDecoration(
-          color: CafePalette.latte,
+          color: scheme.latte,
           borderRadius: BorderRadius.circular(999),
         ),
-        child: const Text(
+        child: Text(
           'Sold out',
           style: TextStyle(
             fontSize: 12.5,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF9C8A78),
+            // Muted coffee-grey on latte; the muted secondary text role
+            // carries the same "inert" reading on the dark surface.
+            color: dark ? scheme.onSurfaceVariant : const Color(0xFF9C8A78),
           ),
         ),
       );
@@ -300,12 +323,17 @@ class QtyStepper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final dark = scheme.brightness == Brightness.dark;
     return Container(
       height: 40,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.black.withValues(alpha: 0.07)),
+        border: Border.all(
+            color: dark
+                ? Colors.white.withValues(alpha: 0.10)
+                : Colors.black.withValues(alpha: 0.07)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -347,6 +375,8 @@ class _RoundStepButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final dark = scheme.brightness == Brightness.dark;
     return InkResponse(
       radius: 18,
       onTap: onTap,
@@ -356,7 +386,11 @@ class _RoundStepButton extends StatelessWidget {
         child: Icon(
           icon,
           size: 20,
-          color: enabled ? CafePalette.espresso : Colors.black26,
+          // Espresso ink when live; black@26% (light) / warm white@38%
+          // (dark) when the step is out of range.
+          color: enabled
+              ? scheme.espressoInk
+              : scheme.onSurface.withValues(alpha: dark ? 0.38 : 0.26),
         ),
       ),
     );
@@ -467,13 +501,20 @@ class BottomDock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final dark = scheme.brightness == Brightness.dark;
     return SafeArea(
       child: Container(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          // A white dock reads as "laid over" the cream page; in dark the
+          // same move is a *lighter* surface, one step up the ladder.
+          color: dark ? scheme.surfaceContainerHigh : Colors.white,
           border: Border(
-              top: BorderSide(color: Colors.black.withValues(alpha: 0.05))),
+              top: BorderSide(
+                  color: dark
+                      ? Colors.white.withValues(alpha: 0.08)
+                      : Colors.black.withValues(alpha: 0.05))),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.05),

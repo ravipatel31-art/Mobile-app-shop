@@ -226,6 +226,7 @@ class _CustomerOrderStatusScreenState extends State<CustomerOrderStatusScreen> {
   }
 
   Widget _itemsCard(List items, int total, Object? table) {
+    final scheme = Theme.of(context).colorScheme;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -253,15 +254,15 @@ class _CustomerOrderStatusScreenState extends State<CustomerOrderStatusScreen> {
                         alignment: Alignment.center,
                         padding: const EdgeInsets.symmetric(vertical: 3),
                         decoration: BoxDecoration(
-                          color: CafePalette.latte,
+                          color: scheme.latte,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
                           '${line['qty']}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12.5,
                             fontWeight: FontWeight.w800,
-                            color: CafePalette.espresso,
+                            color: scheme.espressoInk,
                           ),
                         ),
                       ),
@@ -277,8 +278,9 @@ class _CustomerOrderStatusScreenState extends State<CustomerOrderStatusScreen> {
                             ),
                             if (opts.isNotEmpty)
                               Text(opts,
-                                  style: const TextStyle(
-                                      fontSize: 12, color: Colors.black54)),
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      color: scheme.onSurfaceVariant)),
                           ],
                         ),
                       ),
@@ -310,109 +312,115 @@ class _CustomerOrderStatusScreenState extends State<CustomerOrderStatusScreen> {
 
   Widget _stepTile(int index, (String, String, IconData) step, int activeIndex,
       String status) {
+    final scheme = Theme.of(context).colorScheme;
+    final dark = scheme.brightness == Brightness.dark;
     final done = activeIndex > index ||
         (activeIndex >= 0 && index == activeIndex && status == 'collected');
     final current = index == activeIndex && status != 'collected';
     final isLast = index == _steps.length - 1;
+    // Step markers carry their own *roles* — completed mint, current
+    // coffee, upcoming a quiet raised dot with secondary ink. (The old
+    // 55%-opacity wash over future steps was grey mud on espresso; it is
+    // gone: an upcoming step is simply styled as upcoming.)
     final circleColor = done
         ? CafePalette.mint
         : current
             ? CafePalette.coffee
-            : CafePalette.latte;
+            : scheme.surfaceContainerHighest;
     final iconColor = done || current
         ? Colors.white
         : CafePalette.caramel.withValues(alpha: 0.8);
 
-    return Opacity(
-      opacity: activeIndex < 0 || index <= activeIndex ? 1 : 0.55,
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Column(
-              children: [
-                Container(
-                  width: 34,
-                  height: 34,
-                  decoration: BoxDecoration(
-                    gradient: done
-                        ? null
-                        : current
-                            ? CafeGradients.coffee
-                            : null,
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Column(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  gradient:
+                      done ? null : (current ? CafeGradients.coffee : null),
+                  color: done
+                      ? CafePalette.mint
+                      : (current ? null : circleColor),
+                  shape: BoxShape.circle,
+                  boxShadow: done || current
+                      ? [
+                          BoxShadow(
+                            color: (done
+                                    ? CafePalette.mint
+                                    : CafePalette.coffee)
+                                .withValues(alpha: 0.35),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Icon(
+                  done ? Icons.check_rounded : step.$3,
+                  size: 17,
+                  color: iconColor,
+                ),
+              ),
+              if (!isLast)
+                Expanded(
+                  child: Container(
+                    width: 2,
+                    margin: const EdgeInsets.symmetric(vertical: 3),
                     color: done
-                        ? CafePalette.mint
-                        : (current ? null : circleColor),
-                    shape: BoxShape.circle,
-                    boxShadow: done || current
-                        ? [
-                            BoxShadow(
-                              color:
-                                  (done ? CafePalette.mint : CafePalette.coffee)
-                                      .withValues(alpha: 0.35),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ]
-                        : null,
-                  ),
-                  child: Icon(
-                    done ? Icons.check_rounded : step.$3,
-                    size: 17,
-                    color: iconColor,
+                        ? CafePalette.mint.withValues(alpha: 0.7)
+                        // Latte rail on cream; the shared white hairline in
+                        // dark, where a pale solid line would glare and a
+                        // dark one would vanish.
+                        : (dark
+                            ? Colors.white.withValues(alpha: 0.18)
+                            : CafePalette.latte),
                   ),
                 ),
-                if (!isLast)
-                  Expanded(
-                    child: Container(
-                      width: 2,
-                      margin: const EdgeInsets.symmetric(vertical: 3),
-                      color: done
-                          ? CafePalette.mint.withValues(alpha: 0.7)
-                          : CafePalette.latte,
+            ],
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(bottom: isLast ? 0 : 18, top: 5),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    step.$2,
+                    style: TextStyle(
+                      fontWeight:
+                          current || done ? FontWeight.w700 : FontWeight.w500,
+                      fontSize: 14.5,
+                      color: current || done ? null : scheme.onSurfaceVariant,
                     ),
                   ),
-              ],
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Padding(
-                padding: EdgeInsets.only(bottom: isLast ? 0 : 18, top: 5),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+                  if (current) ...[
+                    const SizedBox(height: 2),
                     Text(
-                      step.$2,
+                      'Hang tight — we are on it',
                       style: TextStyle(
-                        fontWeight:
-                            current || done ? FontWeight.w700 : FontWeight.w500,
-                        fontSize: 14.5,
-                        color: current || done ? null : Colors.black54,
-                      ),
+                          fontSize: 12, color: scheme.coffee),
                     ),
-                    if (current) ...[
-                      const SizedBox(height: 2),
-                      const Text(
-                        'Hang tight — we are on it',
-                        style:
-                            TextStyle(fontSize: 12, color: CafePalette.coffee),
-                      ),
-                    ],
                   ],
-                ),
+                ],
               ),
             ),
-            if (current)
-              const Padding(
-                padding: EdgeInsets.only(top: 9),
-                child: SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
+          ),
+          if (current)
+            const Padding(
+              padding: EdgeInsets.only(top: 9),
+              child: SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }
