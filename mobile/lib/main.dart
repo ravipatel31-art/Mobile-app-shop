@@ -9,6 +9,7 @@ import 'services/notification_service.dart';
 import 'state/auth_state.dart';
 import 'state/cart_state.dart';
 import 'state/tenant_state.dart';
+import 'widgets/ui_kit.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/ca/ca_shell.dart';
 import 'screens/customer/menu_screen.dart';
@@ -77,41 +78,68 @@ class _CafeAppState extends State<CafeApp> {
 }
 
 ThemeData buildAppTheme() {
-  const seed = Color(0xFF6F4E37); // coffee brown
+  const seed = CafePalette.coffee; // coffee brown
   final scheme = ColorScheme.fromSeed(
     seedColor: seed,
     brightness: Brightness.light,
   );
   final base = ThemeData(colorScheme: scheme, useMaterial3: true);
-  final softBorder = BorderSide(
-    color: Colors.black.withValues(alpha: 0.05),
+  // One hairline token for every soft edge (borders, dividers) so the app
+  // stops shipping three near-identical 5–6% black line colors.
+  const hairline = Color(0x0F000000); // black @ 6%
+  const softBorder = BorderSide(color: hairline);
+
+  // Size-specific tracking on every text role (WWDC typography): display
+  // sizes tighten, small labels gain legibility, body stays neutral. Styles
+  // derived from `textTheme` (`.copyWith`) inherit this automatically.
+  TextStyle? track(TextStyle? s) =>
+      s?.fontSize == null ? s : s!.copyWith(letterSpacing: trackFor(s.fontSize!));
+  final tt = base.textTheme;
+  final ramp = tt.copyWith(
+    displayLarge: track(tt.displayLarge),
+    displayMedium: track(tt.displayMedium),
+    displaySmall: track(tt.displaySmall),
+    headlineLarge: track(tt.headlineLarge),
+    headlineMedium: track(tt.headlineMedium),
+    headlineSmall: track(tt.headlineSmall),
+    titleLarge: track(tt.titleLarge),
+    titleMedium: track(tt.titleMedium),
+    titleSmall: track(tt.titleSmall),
+    bodyLarge: track(tt.bodyLarge),
+    bodyMedium: track(tt.bodyMedium),
+    bodySmall: track(tt.bodySmall),
+    labelLarge: track(tt.labelLarge),
+    labelMedium: track(tt.labelMedium),
+    labelSmall: track(tt.labelSmall),
   );
 
   return base.copyWith(
-    scaffoldBackgroundColor: const Color(0xFFF6F4F1),
+    textTheme: ramp,
+    scaffoldBackgroundColor: CafePalette.cream,
     // Warm coffee hover/focus tint so cards and tiles feel alive on
     // pointer devices instead of the default neutral grey wash.
     hoverColor: const Color(0x146F4E37),
     focusColor: const Color(0x1F6F4E37),
     highlightColor: const Color(0x0F6F4E37),
     appBarTheme: AppBarTheme(
-      backgroundColor: const Color(0xFFF6F4F1),
+      backgroundColor: CafePalette.cream,
       foregroundColor: scheme.onSurface,
       elevation: 0,
       scrolledUnderElevation: 1,
       surfaceTintColor: Colors.transparent,
-      titleTextStyle: base.textTheme.titleLarge?.copyWith(
+      titleTextStyle: track(base.textTheme.titleLarge)?.copyWith(
         fontWeight: FontWeight.w700,
-        letterSpacing: -0.3,
       ),
     ),
     cardTheme: CardThemeData(
       elevation: 0,
-      color: Colors.white,
+      color: scheme.surface,
       surfaceTintColor: Colors.transparent,
-      shadowColor: Colors.black.withValues(alpha: 0.06),
+      // Clip once at the theme level: 129 Card sites, only 9 of which
+      // remembered to clip — ink/highlight now stays inside rounded corners.
+      clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(AppRadius.xl),
         side: softBorder,
       ),
     ),
@@ -158,22 +186,23 @@ ThemeData buildAppTheme() {
     navigationBarTheme: NavigationBarThemeData(
       height: 68,
       elevation: 0,
-      backgroundColor: Colors.white,
+      backgroundColor: scheme.surface,
       surfaceTintColor: Colors.transparent,
       indicatorColor: scheme.primaryContainer,
       labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
     ),
     dialogTheme: DialogThemeData(
-      backgroundColor: Colors.white,
+      backgroundColor: scheme.surface,
       surfaceTintColor: Colors.transparent,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.xxl)),
     ),
-    bottomSheetTheme: const BottomSheetThemeData(
-      backgroundColor: Colors.white,
+    bottomSheetTheme: BottomSheetThemeData(
+      backgroundColor: scheme.surface,
       surfaceTintColor: Colors.transparent,
       showDragHandle: true,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xxl)),
       ),
     ),
     chipTheme: base.chipTheme.copyWith(
@@ -191,8 +220,8 @@ ThemeData buildAppTheme() {
             : Colors.black.withValues(alpha: 0.1),
       ),
     ),
-    dividerTheme: DividerThemeData(
-      color: Colors.black.withValues(alpha: 0.06),
+    dividerTheme: const DividerThemeData(
+      color: hairline,
       space: 1,
     ),
     listTileTheme: ListTileThemeData(
@@ -208,7 +237,9 @@ ThemeData buildAppTheme() {
       ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
     ),
-    splashFactory: InkSparkle.splashFactory,
+    // Quiet ink ripple instead of M3 sparkle: Apple-style feedback is a
+    // calm highlight, not a burst of particles.
+    splashFactory: InkRipple.splashFactory,
   );
 }
 

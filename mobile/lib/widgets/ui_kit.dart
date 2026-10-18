@@ -65,6 +65,74 @@ class CafeGradients {
   }
 }
 
+/// 4pt spacing scale. Use these instead of raw [EdgeInsets] literals so
+/// spacing stays on-grid across screens (Apple-style: everything relates).
+class AppSpacing {
+  static const double xs = 4;
+  static const double sm = 8;
+  static const double md = 12;
+  static const double lg = 16;
+  static const double xl = 20;
+  static const double xxl = 24;
+  static const double xxxl = 32;
+}
+
+/// Corner-radius scale. Bigger surfaces read as thicker/rounder; small
+/// controls stay tighter. Mirrors the theme (cards 18, inputs 14, dialogs 24).
+class AppRadius {
+  static const double sm = 8;
+  static const double md = 12;
+  static const double lg = 14;
+  static const double xl = 18;
+  static const double xxl = 24;
+  static const double pill = 999;
+}
+
+/// Three-level elevation scale: **bigger surface = thicker shadow**.
+/// Replaces the ~28 ad-hoc `BoxShadow`s scattered through the app.
+class AppShadow {
+  /// Chips, pills, small controls resting on a surface.
+  static const low = [
+    BoxShadow(
+      color: Color(0x0F000000), // black @ 6%
+      blurRadius: 8,
+      offset: Offset(0, 2),
+    ),
+  ];
+
+  /// Cards and tiles — the default for content surfaces.
+  static const medium = [
+    BoxShadow(
+      color: Color(0x1A000000), // black @ 10%
+      blurRadius: 12,
+      offset: Offset(0, 4),
+    ),
+  ];
+
+  /// Floating/dominant surfaces: banners, docks, sheets.
+  static const high = [
+    BoxShadow(
+      color: Color(0x24000000), // black @ 14%
+      blurRadius: 18,
+      offset: Offset(0, 8),
+    ),
+  ];
+}
+
+/// Size-specific tracking (WWDC "The Details of UI Typography").
+///
+/// Letter-spacing must never be one fixed value for all sizes:
+/// - display text (≥20px) tightens as it grows (`-0.025em`),
+/// - small text (≤13px) gets a slight positive bump for legibility,
+/// - body sizes stay neutral.
+///
+/// Returns the `letterSpacing` to pair with [fontSize].
+double trackFor(double fontSize) {
+  if (fontSize >= 20) return -(fontSize * 0.025);
+  if (fontSize <= 13) return fontSize * 0.02;
+  return 0;
+}
+
 /// Emoji stand-ins for food/drink art — offline-safe "images" for items
 /// without photos.
 String categoryEmoji(String category) {
@@ -350,20 +418,14 @@ class HeroBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final r = borderRadius ?? BorderRadius.circular(24);
+    final r = borderRadius ?? BorderRadius.circular(AppRadius.xxl);
     return Container(
       height: height,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         gradient: gradient,
         borderRadius: r,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.12),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        boxShadow: AppShadow.high, // banners are the biggest surface → thickest
       ),
       child: Stack(
         children: [
@@ -395,6 +457,11 @@ class IconChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Icon contrast must follow its backdrop: white over the saturated
+    // gradient, espresso over a light solid (e.g. latte).
+    final bg = color ?? CafePalette.latte;
+    final onColor =
+        bg.computeLuminance() > 0.5 ? CafePalette.espresso : Colors.white;
     return Container(
       width: size,
       height: size,
@@ -402,17 +469,11 @@ class IconChip extends StatelessWidget {
         gradient: gradient,
         color: color ?? CafePalette.latte,
         borderRadius: BorderRadius.circular(size * 0.32),
-        boxShadow: gradient != null
-            ? [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.10),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ]
-            : null,
+        boxShadow: gradient != null ? AppShadow.medium : null,
       ),
-      child: Icon(icon, size: iconSize, color: Colors.white),
+      child: Icon(icon,
+          size: iconSize,
+          color: gradient != null ? Colors.white : onColor),
     );
   }
 }
@@ -472,8 +533,10 @@ class SectionHeader extends StatelessWidget {
               children: [
                 Text(
                   title,
+                  // w700, not w800: hierarchy from weight + size as a set,
+                  // without inflating every section header.
                   style:
-                      text.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                      text.titleMedium?.copyWith(fontWeight: FontWeight.w700),
                 ),
                 if (subtitle != null)
                   Text(
@@ -511,12 +574,14 @@ class StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
+        // Scheme roles, not hard-coded white — survives theming/dark mode.
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        border: Border.all(color: scheme.outlineVariant),
       ),
       child: Row(
         children: [
@@ -537,7 +602,7 @@ class StatCard extends StatelessWidget {
                   alignment: Alignment.centerLeft,
                   child: Text(value,
                       style: text.titleMedium
-                          ?.copyWith(fontWeight: FontWeight.w800)),
+                          ?.copyWith(fontWeight: FontWeight.w700)),
                 ),
                 if (caption != null)
                   Text(caption!,
@@ -545,8 +610,8 @@ class StatCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: text.bodySmall?.copyWith(
                           fontSize: 11,
-                          color:
-                              Theme.of(context).colorScheme.onSurfaceVariant)),
+                          letterSpacing: trackFor(11),
+                          color: scheme.onSurfaceVariant)),
               ],
             ),
           ),
@@ -659,7 +724,7 @@ class EmptyStateArt extends StatelessWidget {
             const SizedBox(height: 14),
             Text(title,
                 textAlign: TextAlign.center,
-                style: text.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+                style: text.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
             if (message != null) ...[
               const SizedBox(height: 6),
               Text(message!,

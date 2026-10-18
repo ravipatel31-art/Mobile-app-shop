@@ -195,8 +195,13 @@ class _ShellAppBarState extends State<ShellAppBar> {
         Theme.of(context).textTheme.titleLarge;
     // Big and unmistakably readable — and we pin the scale so aggressive
     // browser text scaling can't shrink it into a blur of "0"s on web.
-    final titleStyle =
-        baseTitle?.copyWith(fontSize: 26, fontWeight: FontWeight.w800);
+    // Tracking is re-derived for 26px rather than inherited from the 22px
+    // AppBar title: letter-spacing is size-specific, never one fixed value.
+    final titleStyle = baseTitle?.copyWith(
+      fontSize: 26,
+      fontWeight: FontWeight.w700,
+      letterSpacing: trackFor(26),
+    );
     final subtitleStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
           fontSize: 12.5,
           height: 1.15,
