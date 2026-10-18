@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
@@ -63,6 +64,13 @@ class CafeGradients {
     const all = [coffee, sunrise, peach, mint, berry, sky];
     return all[seed.toString().hashCode.abs() % all.length];
   }
+}
+
+/// The one hairline colour for every soft edge in the app (borders,
+/// dividers, scroll edges) so nothing ships three near-identical 5–6% black
+/// line colours again.
+class AppColors {
+  static const hairline = Color(0x0F000000); // black @ 6%
 }
 
 /// 4pt spacing scale. Use these instead of raw [EdgeInsets] literals so
@@ -131,6 +139,91 @@ double trackFor(double fontSize) {
   if (fontSize >= 20) return -(fontSize * 0.025);
   if (fontSize <= 13) return fontSize * 0.02;
   return 0;
+}
+
+/// Frosted-glass chrome material — the app's one translucent surface.
+///
+/// Blurs whatever scrolls underneath (blur 20, the iOS "regular blur"
+/// width), sits on a light semi-transparent tint, and catches the light
+/// along its top edge with a bright hairline. Use it for app chrome that
+/// content scrolls *under* (role-shell app bar, bottom navigation) instead
+/// of stacking opaque surfaces on opaque ones.
+///
+/// NB: iOS pairs the blur with a 180% saturation boost; Flutter's backdrop
+/// API only exposes geometric `ImageFilter.matrix` (no colour matrix), so
+/// the saturation stage is approximated by the blur + light glass tint.
+class TranslucentBar extends StatelessWidget {
+  const TranslucentBar({super.key, this.child});
+
+  /// The bar's content. Defaults to expanding so the material fills the
+  /// area it is given (e.g. an app bar's `flexibleSpace`).
+  final Widget? child;
+
+  /// The frost itself: blur of the backdrop, clipped to the bar.
+  static final ui.ImageFilter _frost =
+      ui.ImageFilter.blur(sigmaX: 20, sigmaY: 20);
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRect(
+      // Clip so the blur stays inside the bar instead of the whole scene.
+      child: BackdropFilter(
+        filter: _frost,
+        child: DecoratedBox(
+          decoration: const BoxDecoration(
+            color: Color(0xB3FFFFFF), // white @ 70% — the light glass tint
+            border: Border(
+              top: BorderSide(
+                color: Color(0x99FFFFFF), // light catching the top edge
+                width: 0.5,
+              ),
+            ),
+          ),
+          child: child ?? const SizedBox.expand(),
+        ),
+      ),
+    );
+  }
+}
+
+/// The one bottom-dock surface for every screen bottom: a single
+/// [ColorScheme.surface] material with a single hairline edge — no shadow.
+/// A dock is anchored to the screen edge, so separation comes from the edge
+/// itself, not from stacked depth; floating bars *on* a dock (e.g.
+/// [FloatingCartBar]) own their [AppShadow] instead.
+class BottomSurface extends StatelessWidget {
+  const BottomSurface({
+    super.key,
+    required this.child,
+    this.padding = const EdgeInsets.fromLTRB(
+      AppSpacing.lg,
+      AppSpacing.md,
+      AppSpacing.lg,
+      AppSpacing.lg,
+    ),
+    this.safeArea = true,
+  });
+
+  final Widget child;
+
+  /// Padding inside the dock (defaults to the grid: 16 / 12 / 16 / 16).
+  final EdgeInsetsGeometry padding;
+
+  /// Whether the dock pads itself around the home-indicator area.
+  final bool safeArea;
+
+  @override
+  Widget build(BuildContext context) {
+    final dock = Container(
+      padding: padding,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        border: const Border(top: BorderSide(color: AppColors.hairline)),
+      ),
+      child: child,
+    );
+    return safeArea ? SafeArea(child: dock) : dock;
+  }
 }
 
 /// Emoji stand-ins for food/drink art — offline-safe "images" for items

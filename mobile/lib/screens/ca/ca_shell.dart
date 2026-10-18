@@ -7,6 +7,7 @@ import '../../services/api_client.dart';
 import '../../state/auth_state.dart';
 import '../../util/money.dart';
 import '../../widgets/shell_app_bar.dart';
+import '../../widgets/ui_kit.dart';
 import 'exports_panel.dart';
 
 /// Read-only shell for the cafe_ca (chartered accountant) login: daily
@@ -22,6 +23,7 @@ class CaShell extends StatefulWidget {
 
 class _CaShellState extends State<CaShell> {
   int _index = 0;
+  bool _scrolledUnder = false;
   static const _titles = ['Daily Sales', 'Z-Report', 'Exports'];
 
   final _pages = const [
@@ -39,29 +41,37 @@ class _CaShellState extends State<CaShell> {
         title: _titles[_index],
         subtitle: shellDateLabel(),
         userName: name,
+        scrolledUnder: _scrolledUnder,
         onLogout: () => context.read<AuthState>().logout(),
       ),
-      body: IndexedStack(index: _index, children: _pages),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: (i) => setState(() => _index = i),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.today_outlined),
-            selectedIcon: Icon(Icons.today),
-            label: 'Daily',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.point_of_sale_outlined),
-            selectedIcon: Icon(Icons.point_of_sale),
-            label: 'Z-Report',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.file_upload_outlined),
-            selectedIcon: Icon(Icons.file_upload),
-            label: 'Exports',
-          ),
-        ],
+      body: ScrollEdgeScope(
+        onChanged: (scrolled) => setState(() => _scrolledUnder = scrolled),
+        child: IndexedStack(index: _index, children: _pages),
+      ),
+      // Frosted chrome: the NavigationBar itself is transparent (theme) and
+      // this wrapper blurs + tints the content sliding underneath it.
+      bottomNavigationBar: TranslucentBar(
+        child: NavigationBar(
+          selectedIndex: _index,
+          onDestinationSelected: (i) => setState(() => _index = i),
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.today_outlined),
+              selectedIcon: Icon(Icons.today),
+              label: 'Daily',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.point_of_sale_outlined),
+              selectedIcon: Icon(Icons.point_of_sale),
+              label: 'Z-Report',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.file_upload_outlined),
+              selectedIcon: Icon(Icons.file_upload),
+              label: 'Exports',
+            ),
+          ],
+        ),
       ),
     );
   }

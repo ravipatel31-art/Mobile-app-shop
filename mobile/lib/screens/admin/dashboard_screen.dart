@@ -629,13 +629,7 @@ class _Card extends StatelessWidget {
             color: Colors.white,
             borderRadius: BorderRadius.circular(18),
             border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
-            boxShadow: [
-              BoxShadow(
-                color: CafePalette.coffee.withValues(alpha: 0.06),
-                blurRadius: 14,
-                offset: const Offset(0, 6),
-              ),
-            ],
+            boxShadow: AppShadow.medium,
           ),
           child: child,
         ),
@@ -867,13 +861,7 @@ class _TopSellerRow extends StatelessWidget {
             decoration: BoxDecoration(
               gradient: art,
               borderRadius: BorderRadius.circular(13),
-              boxShadow: [
-                BoxShadow(
-                  color: art.colors.first.withValues(alpha: 0.30),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+              boxShadow: AppShadow.low,
             ),
             alignment: Alignment.center,
             child: Text(dishEmoji(item.name),

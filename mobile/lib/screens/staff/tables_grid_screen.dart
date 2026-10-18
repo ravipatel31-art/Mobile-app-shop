@@ -745,13 +745,9 @@ class _TableCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: accent.withValues(alpha: 0.55), width: 1.2),
-        boxShadow: [
-          BoxShadow(
-            color: accent.withValues(alpha: 0.16),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        // Neutral tile shadow from the scale — the peach/mint accent stays
+        // in the border, no coloured glow on the floor grid.
+        boxShadow: AppShadow.medium,
       ),
       child: Material(
         type: MaterialType.transparency,
@@ -939,13 +935,7 @@ class _FloorTile extends StatelessWidget {
         borderRadius: table.isRound ? null : borderRadius,
         shape: table.isRound ? BoxShape.circle : BoxShape.rectangle,
         border: Border.all(color: accent.withValues(alpha: 0.6), width: 1.4),
-        boxShadow: [
-          BoxShadow(
-            color: accent.withValues(alpha: 0.18),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
+        boxShadow: AppShadow.low,
       ),
       child: Material(
         type: MaterialType.transparency,

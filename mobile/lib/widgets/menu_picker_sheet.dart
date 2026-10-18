@@ -7,6 +7,7 @@ import '../services/api_client.dart';
 import '../state/cart_state.dart';
 import '../util/money.dart';
 import '../widgets/menu_image.dart';
+import 'ui_kit.dart';
 
 /// Opens a bottom-sheet menu picker so staff can add more items to the cart
 /// straight from the order review / order-queue screen, without leaving it.
@@ -31,29 +32,21 @@ class _MenuPickerSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return SizedBox(
       width: MediaQuery.of(context).size.width,
       height: MediaQuery.of(context).size.height * 0.92,
       child: Container(
         decoration: BoxDecoration(
           color: Theme.of(context).scaffoldBackgroundColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+          // Same top radius as every other sheet (theme = AppRadius.xxl).
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(AppRadius.xxl),
+          ),
         ),
         child: Column(
           children: [
-            const SizedBox(height: 10),
-            Center(
-              child: Container(
-                width: 40,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: scheme.onSurfaceVariant.withValues(alpha: 0.4),
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
+            // NB: no drag handle drawn here — the theme's bottom-sheet
+            // `showDragHandle` already renders the one and only handle.
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Row(
@@ -366,21 +359,13 @@ class _CartFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final cart = context.watch<CartState>();
     if (cart.isEmpty) return const SizedBox.shrink();
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
-      decoration: BoxDecoration(
-        color: scheme.surface,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 8,
-            offset: const Offset(0, -3),
-          ),
-        ],
-      ),
+    // One dock material for every sheet/screen bottom (see [BottomSurface]):
+    // the cart footer is pinned inside the sheet, so it gets the edge — not
+    // a floating shadow of its own.
+    return BottomSurface(
+      safeArea: false,
       child: Row(
         children: [
           Expanded(

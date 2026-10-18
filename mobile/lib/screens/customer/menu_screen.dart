@@ -155,34 +155,40 @@ class _CustomerMenuScreenState extends State<CustomerMenuScreen> {
             ],
           ),
           body: _buildBody(),
-          bottomNavigationBar: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 260),
-                switchInCurve: Curves.easeOutCubic,
-                switchOutCurve: Curves.easeInCubic,
-                transitionBuilder: (child, animation) => FadeTransition(
-                  opacity: animation,
-                  child: SlideTransition(
-                    position: Tween<Offset>(
-                      begin: const Offset(0, 0.5),
-                      end: Offset.zero,
-                    ).animate(animation),
-                    child: child,
+          // One dock material for every screen bottom (see [BottomSurface]);
+          // no dock at all while the cart is empty, so the menu keeps its
+          // clean bottom edge.
+          bottomNavigationBar: _cart.isEmpty
+              ? null
+              : BottomSurface(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.lg,
+                    AppSpacing.sm,
+                    AppSpacing.lg,
+                    AppSpacing.lg,
+                  ),
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 260),
+                    switchInCurve: Curves.easeOutCubic,
+                    switchOutCurve: Curves.easeInCubic,
+                    transitionBuilder: (child, animation) => FadeTransition(
+                      opacity: animation,
+                      child: SlideTransition(
+                        position: Tween<Offset>(
+                          begin: const Offset(0, 0.5),
+                          end: Offset.zero,
+                        ).animate(animation),
+                        child: child,
+                      ),
+                    ),
+                    child: FloatingCartBar(
+                      key: const ValueKey('cart-bar'),
+                      count: _cart.count,
+                      total: _cart.total,
+                      onTap: _openCart,
+                    ),
                   ),
                 ),
-                child: _cart.isEmpty
-                    ? const SizedBox.shrink(key: ValueKey('cart-empty'))
-                    : FloatingCartBar(
-                        key: const ValueKey('cart-bar'),
-                        count: _cart.count,
-                        total: _cart.total,
-                        onTap: _openCart,
-                      ),
-              ),
-            ),
-          ),
         );
       },
     );

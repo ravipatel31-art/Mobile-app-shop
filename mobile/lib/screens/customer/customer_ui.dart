@@ -155,15 +155,9 @@ class CategoryPill extends StatelessWidget {
             border: selected
                 ? null
                 : Border.all(color: Colors.black.withValues(alpha: 0.07)),
-            boxShadow: selected
-                ? [
-                    BoxShadow(
-                      color: CafePalette.coffee.withValues(alpha: 0.30),
-                      blurRadius: 12,
-                      offset: const Offset(0, 5),
-                    ),
-                  ]
-                : null,
+            // Chips lift on the low rung of the shadow scale — no coloured
+            // glow; the gradient alone carries the selection colour.
+            boxShadow: selected ? AppShadow.low : null,
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -212,15 +206,7 @@ class GradientPillButton extends StatelessWidget {
         gradient: enabled ? gradient : null,
         color: enabled ? null : const Color(0xFFE8E2DB),
         borderRadius: radius,
-        boxShadow: enabled
-            ? [
-                BoxShadow(
-                  color: gradient.colors.last.withValues(alpha: 0.38),
-                  blurRadius: 16,
-                  offset: const Offset(0, 7),
-                ),
-              ]
-            : null,
+        boxShadow: enabled ? AppShadow.low : null,
       ),
       child: Material(
         color: Colors.transparent,
@@ -380,16 +366,11 @@ class FloatingCartBar extends StatelessWidget {
   Widget build(BuildContext context) {
     const radius = BorderRadius.all(Radius.circular(999));
     return DecoratedBox(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         gradient: CafeGradients.espresso,
         borderRadius: radius,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.22),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        // Floating pill over the menu → top rung of the shadow scale.
+        boxShadow: AppShadow.high,
       ),
       child: Material(
         color: Colors.transparent,
@@ -460,6 +441,8 @@ class FloatingCartBar extends StatelessWidget {
 }
 
 /// Soft white dock used at the bottom of the cart / checkout screens.
+/// Delegates to the one [BottomSurface] material (single surface colour,
+/// single hairline edge) — the floating elements on top own their shadows.
 class BottomDock extends StatelessWidget {
   final Widget child;
 
@@ -467,23 +450,14 @@ class BottomDock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border(
-              top: BorderSide(color: Colors.black.withValues(alpha: 0.05))),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 14,
-              offset: const Offset(0, -4),
-            ),
-          ],
-        ),
-        child: child,
+    return BottomSurface(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.md,
+        AppSpacing.lg,
+        AppSpacing.lg,
       ),
+      child: child,
     );
   }
 }

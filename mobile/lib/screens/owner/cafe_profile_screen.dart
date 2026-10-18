@@ -148,8 +148,14 @@ class _CafeProfileScreenState extends State<CafeProfileScreen> {
                 ),
               ],
             ),
-      bottomNavigationBar: SafeArea(
-        minimum: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+      // One dock material for every screen bottom (see [BottomSurface]).
+      bottomNavigationBar: BottomSurface(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg,
+          AppSpacing.sm,
+          AppSpacing.lg,
+          AppSpacing.md,
+        ),
         child: FilledButton(
           onPressed: _saving ? null : _save,
           child: Text(_saving ? 'Saving…' : 'Save Profile'),
@@ -330,8 +336,14 @@ class _CafeSetupWizardState extends State<CafeSetupWizard> {
           ],
         ),
       ),
-      bottomNavigationBar: SafeArea(
-        minimum: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+      // One dock material for every screen bottom (see [BottomSurface]).
+      bottomNavigationBar: BottomSurface(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg,
+          AppSpacing.sm,
+          AppSpacing.lg,
+          AppSpacing.md,
+        ),
         child: Row(
           children: [
             if (_step > 0)

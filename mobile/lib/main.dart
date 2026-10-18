@@ -86,7 +86,7 @@ ThemeData buildAppTheme() {
   final base = ThemeData(colorScheme: scheme, useMaterial3: true);
   // One hairline token for every soft edge (borders, dividers) so the app
   // stops shipping three near-identical 5–6% black line colors.
-  const hairline = Color(0x0F000000); // black @ 6%
+  const hairline = AppColors.hairline;
   const softBorder = BorderSide(color: hairline);
 
   // Size-specific tracking on every text role (WWDC typography): display
@@ -125,7 +125,13 @@ ThemeData buildAppTheme() {
       backgroundColor: CafePalette.cream,
       foregroundColor: scheme.onSurface,
       elevation: 0,
-      scrolledUnderElevation: 1,
+      // Scroll-edge feedback for every plain AppBar, theme-wide: a soft
+      // shadow (same weight as the card-scale [AppShadow.medium]) fades in
+      // when content scrolls under the bar. M3 tracks the primary
+      // scrollable; the role shells drive their own hairline because their
+      // bars are translucent chrome.
+      scrolledUnderElevation: 2,
+      shadowColor: AppShadow.medium.first.color,
       surfaceTintColor: Colors.transparent,
       titleTextStyle: track(base.textTheme.titleLarge)?.copyWith(
         fontWeight: FontWeight.w700,
@@ -186,7 +192,11 @@ ThemeData buildAppTheme() {
     navigationBarTheme: NavigationBarThemeData(
       height: 68,
       elevation: 0,
-      backgroundColor: scheme.surface,
+      // Frosted chrome: the four role shells wrap their NavigationBar in a
+      // [TranslucentBar] (blur + light glass tint + bright top edge), so the
+      // bar's own background stays transparent and content slides under a
+      // light glass surface instead of hitting an opaque wall.
+      backgroundColor: Colors.transparent,
       surfaceTintColor: Colors.transparent,
       indicatorColor: scheme.primaryContainer,
       labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,

@@ -201,12 +201,16 @@ class _CustomerItemSheetState extends State<_CustomerItemSheet> {
   }
 
   Widget _stickyFooter(TextTheme text) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(
-            top: BorderSide(color: Colors.black.withValues(alpha: 0.05))),
+    // One dock material for every screen bottom: the sheet footer is already
+    // inside the sheet's SafeArea, and a footer pinned inside a sheet isn't
+    // floating, so it gets the edge — not a shadow.
+    return BottomSurface(
+      safeArea: false,
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.xl,
+        AppSpacing.md,
+        AppSpacing.xl,
+        AppSpacing.lg,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -330,15 +334,7 @@ class _CustomerItemSheetState extends State<_CustomerItemSheet> {
             border: chosen
                 ? null
                 : Border.all(color: Colors.black.withValues(alpha: 0.09)),
-            boxShadow: chosen
-                ? [
-                    BoxShadow(
-                      color: CafePalette.coffee.withValues(alpha: 0.28),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ]
-                : null,
+            boxShadow: chosen ? AppShadow.low : null,
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,

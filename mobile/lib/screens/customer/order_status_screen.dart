@@ -344,17 +344,9 @@ class _CustomerOrderStatusScreenState extends State<CustomerOrderStatusScreen> {
                         ? CafePalette.mint
                         : (current ? null : circleColor),
                     shape: BoxShape.circle,
-                    boxShadow: done || current
-                        ? [
-                            BoxShadow(
-                              color:
-                                  (done ? CafePalette.mint : CafePalette.coffee)
-                                      .withValues(alpha: 0.35),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ]
-                        : null,
+                    // Low shadow, not a status-coloured glow: the mint/coffee
+                    // meaning lives in the circle's fill and icon.
+                    boxShadow: done || current ? AppShadow.low : null,
                   ),
                   child: Icon(
                     done ? Icons.check_rounded : step.$3,

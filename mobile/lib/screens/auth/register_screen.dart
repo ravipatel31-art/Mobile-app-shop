@@ -273,13 +273,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: Colors.white.withValues(alpha: 0.9),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.1),
-                            blurRadius: 12,
-                            offset: const Offset(0, 5),
-                          ),
-                        ],
+                        boxShadow: AppShadow.medium,
                       ),
                       child: const Icon(Icons.hourglass_top_rounded,
                           size: 30, color: Color(0xFF2C6B51)),

@@ -135,13 +135,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   color: Colors.white.withValues(alpha: 0.16),
                   border:
                       Border.all(color: Colors.white.withValues(alpha: 0.35)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.14),
-                      blurRadius: 12,
-                      offset: const Offset(0, 5),
-                    ),
-                  ],
+                  boxShadow: AppShadow.medium,
                 ),
                 child: const Icon(Icons.local_cafe_rounded,
                     size: 26, color: Colors.white),
@@ -313,13 +307,7 @@ class _LoginScreenState extends State<LoginScreen> {
         color: Colors.white.withValues(alpha: 0.88),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: CafePalette.latte),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        boxShadow: AppShadow.low,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

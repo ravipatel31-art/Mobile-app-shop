@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../state/auth_state.dart';
 import '../../widgets/shell_app_bar.dart';
+import '../../widgets/ui_kit.dart';
 import 'ask_screen.dart';
 import 'shift_screen.dart';
 import 'staff_history_screen.dart';
@@ -21,6 +22,7 @@ class StaffShell extends StatefulWidget {
 
 class _StaffShellState extends State<StaffShell> {
   int _index = 0;
+  bool _scrolledUnder = false;
   static const _titles = ['Tables', 'Order Queue', 'History', 'Shift'];
   final _pages = const [
     TablesGridScreen(),
@@ -38,32 +40,40 @@ class _StaffShellState extends State<StaffShell> {
         title: _titles[_index],
         subtitle: shellDateLabel(),
         userName: name,
+        scrolledUnder: _scrolledUnder,
         onLogout: () => context.read<AuthState>().logout(),
         onAsk: () => Navigator.of(context)
             .push(MaterialPageRoute(builder: (_) => const AskScreen())),
       ),
-      body: IndexedStack(index: _index, children: _pages),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: (i) => setState(() => _index = i),
-        destinations: const [
-          NavigationDestination(
-              icon: Icon(Icons.table_restaurant_outlined),
-              selectedIcon: Icon(Icons.table_restaurant),
-              label: 'Tables'),
-          NavigationDestination(
-              icon: Icon(Icons.receipt_long_outlined),
-              selectedIcon: Icon(Icons.receipt_long),
-              label: 'Orders'),
-          NavigationDestination(
-              icon: Icon(Icons.history_outlined),
-              selectedIcon: Icon(Icons.history),
-              label: 'History'),
-          NavigationDestination(
-              icon: Icon(Icons.access_time_outlined),
-              selectedIcon: Icon(Icons.access_time),
-              label: 'Shift'),
-        ],
+      body: ScrollEdgeScope(
+        onChanged: (scrolled) => setState(() => _scrolledUnder = scrolled),
+        child: IndexedStack(index: _index, children: _pages),
+      ),
+      // Frosted chrome: the NavigationBar itself is transparent (theme) and
+      // this wrapper blurs + tints the content sliding underneath it.
+      bottomNavigationBar: TranslucentBar(
+        child: NavigationBar(
+          selectedIndex: _index,
+          onDestinationSelected: (i) => setState(() => _index = i),
+          destinations: const [
+            NavigationDestination(
+                icon: Icon(Icons.table_restaurant_outlined),
+                selectedIcon: Icon(Icons.table_restaurant),
+                label: 'Tables'),
+            NavigationDestination(
+                icon: Icon(Icons.receipt_long_outlined),
+                selectedIcon: Icon(Icons.receipt_long),
+                label: 'Orders'),
+            NavigationDestination(
+                icon: Icon(Icons.history_outlined),
+                selectedIcon: Icon(Icons.history),
+                label: 'History'),
+            NavigationDestination(
+                icon: Icon(Icons.access_time_outlined),
+                selectedIcon: Icon(Icons.access_time),
+                label: 'Shift'),
+          ],
+        ),
       ),
     );
   }

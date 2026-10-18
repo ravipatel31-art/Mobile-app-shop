@@ -747,14 +747,7 @@ class _TablesAdminScreenState extends State<TablesAdminScreen> {
                             borderRadius: BorderRadius.circular(18),
                             border: Border.all(
                                 color: Colors.black.withValues(alpha: 0.05)),
-                            boxShadow: [
-                              BoxShadow(
-                                color:
-                                    CafePalette.coffee.withValues(alpha: 0.06),
-                                blurRadius: 14,
-                                offset: const Offset(0, 6),
-                              ),
-                            ],
+                            boxShadow: AppShadow.medium,
                           ),
                           child: Row(
                             children: [
@@ -838,13 +831,8 @@ class _TableCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: accent.withValues(alpha: 0.55), width: 1.2),
-        boxShadow: [
-          BoxShadow(
-            color: accent.withValues(alpha: 0.16),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        // Neutral tile shadow from the scale — the accent stays in the border.
+        boxShadow: AppShadow.medium,
       ),
       child: Material(
         type: MaterialType.transparency,
@@ -952,14 +940,7 @@ class _FloorEditorTile extends StatelessWidget {
           color: editMode ? CafePalette.coffee : accent.withValues(alpha: 0.6),
           width: editMode ? 2.2 : 1.4,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: (editMode ? CafePalette.coffee : accent)
-                .withValues(alpha: editMode ? 0.25 : 0.18),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
+        boxShadow: AppShadow.low,
       ),
       alignment: Alignment.center,
       child: FittedBox(

@@ -6,6 +6,7 @@ import '../../models/option_group.dart';
 import '../../state/cart_state.dart';
 import '../../util/money.dart';
 import '../../widgets/menu_image.dart';
+import '../../widgets/ui_kit.dart';
 
 class ItemDetailScreen extends StatefulWidget {
   final MenuItem item;
@@ -118,13 +119,12 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: FilledButton(
-            onPressed: _valid ? _addToCart : null,
-            child: Text('Add to cart  •  ${formatMoney(_unitPrice * _qty)}'),
-          ),
+      // One dock material for every screen bottom (see [BottomSurface]).
+      bottomNavigationBar: BottomSurface(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: FilledButton(
+          onPressed: _valid ? _addToCart : null,
+          child: Text('Add to cart  •  ${formatMoney(_unitPrice * _qty)}'),
         ),
       ),
     );

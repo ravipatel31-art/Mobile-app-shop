@@ -31,6 +31,7 @@ class OwnerShell extends StatefulWidget {
 
 class _OwnerShellState extends State<OwnerShell> {
   int _index = 0;
+  bool _scrolledUnder = false;
 
   // Show the first-time setup wizard at most once per app session, and only
   // when the cafe has no business details yet (no GST/PAN/licence/owner set).
@@ -92,15 +93,8 @@ class _OwnerShellState extends State<OwnerShell> {
         expand: false,
         builder: (context, scrollController) => Column(
           children: [
-            Container(
-              margin: const EdgeInsets.only(top: 12),
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: const Color(0xFFEDE4DA),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
+            // NB: no drag handle drawn here — the theme's bottom-sheet
+            // `showDragHandle` already renders the one and only handle.
             const Padding(
               padding: EdgeInsets.fromLTRB(20, 16, 20, 8),
               child: Row(
@@ -269,6 +263,7 @@ class _OwnerShellState extends State<OwnerShell> {
         title: _titles[_index],
         subtitle: shellDateLabel(),
         userName: name,
+        scrolledUnder: _scrolledUnder,
         onLogout: () => context.read<AuthState>().logout(),
         onAsk: () => Navigator.of(context)
             .push(MaterialPageRoute(builder: (_) => const AskScreen())),
@@ -280,44 +275,51 @@ class _OwnerShellState extends State<OwnerShell> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          if (auth.isActingAsOwner) _ImpersonationBanner(auth: auth),
-          Expanded(
-            child: IndexedStack(index: _index, children: _pages),
-          ),
-        ],
+      body: ScrollEdgeScope(
+        onChanged: (scrolled) => setState(() => _scrolledUnder = scrolled),
+        child: Column(
+          children: [
+            if (auth.isActingAsOwner) _ImpersonationBanner(auth: auth),
+            Expanded(
+              child: IndexedStack(index: _index, children: _pages),
+            ),
+          ],
+        ),
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: (i) => setState(() => _index = i),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.dashboard_outlined),
-            selectedIcon: Icon(Icons.dashboard),
-            label: 'Sales',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.receipt_long_outlined),
-            selectedIcon: Icon(Icons.receipt_long),
-            label: 'Orders',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.table_restaurant_outlined),
-            selectedIcon: Icon(Icons.table_restaurant),
-            label: 'Tables',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.point_of_sale_outlined),
-            selectedIcon: Icon(Icons.point_of_sale),
-            label: 'Billing',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.storefront_outlined),
-            selectedIcon: Icon(Icons.storefront),
-            label: 'Vendors',
-          ),
-        ],
+      // Frosted chrome: the NavigationBar itself is transparent (theme) and
+      // this wrapper blurs + tints the content sliding underneath it.
+      bottomNavigationBar: TranslucentBar(
+        child: NavigationBar(
+          selectedIndex: _index,
+          onDestinationSelected: (i) => setState(() => _index = i),
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.dashboard_outlined),
+              selectedIcon: Icon(Icons.dashboard),
+              label: 'Sales',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.receipt_long_outlined),
+              selectedIcon: Icon(Icons.receipt_long),
+              label: 'Orders',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.table_restaurant_outlined),
+              selectedIcon: Icon(Icons.table_restaurant),
+              label: 'Tables',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.point_of_sale_outlined),
+              selectedIcon: Icon(Icons.point_of_sale),
+              label: 'Billing',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.storefront_outlined),
+              selectedIcon: Icon(Icons.storefront),
+              label: 'Vendors',
+            ),
+          ],
+        ),
       ),
     );
   }

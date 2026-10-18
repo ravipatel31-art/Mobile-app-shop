@@ -320,13 +320,9 @@ class _KitchenOrderCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
-        boxShadow: [
-          BoxShadow(
-            color: ageColor.withValues(alpha: 0.22),
-            blurRadius: 12,
-            offset: const Offset(0, 5),
-          ),
-        ],
+        // Neutral low shadow: the accent stays in the card's left edge and
+        // header — no status-coloured glow bleeding onto the board.
+        boxShadow: AppShadow.low,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

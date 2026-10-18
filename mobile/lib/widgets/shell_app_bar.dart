@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
@@ -43,6 +44,7 @@ class ShellAppBar extends StatefulWidget implements PreferredSizeWidget {
     this.subtitle,
     this.onAsk,
     this.actions,
+    this.scrolledUnder = false,
   });
 
   /// Total height (toolbar + 1px hairline below it) when no banner shows.
@@ -63,6 +65,10 @@ class ShellAppBar extends StatefulWidget implements PreferredSizeWidget {
 
   /// Additional action widgets to show in the app bar.
   final List<Widget>? actions;
+
+  /// True when a vertical scrollable under the bar has scrolled away from
+  /// its top: fades the scroll-edge hairline in (see [ScrollEdgeScope]).
+  final bool scrolledUnder;
 
   /// Reserves room for the banner: the strip only *renders* when there is
   /// something to say, but the space is always budgeted so the Scaffold
@@ -214,33 +220,32 @@ class _ShellAppBarState extends State<ShellAppBar> {
 
     return AppBar(
       toolbarHeight: ShellAppBar.kHeight - 1,
-      // Soft warm wash that fades down into the surface colour.
-      // NB: the fade-out stop must be cream-at-alpha-0 — interpolating
-      // towards `Colors.transparent` (transparent *black*) would tint the
-      // bottom of the bar grey.
-      flexibleSpace: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFF0E7DC), // warm latte
-              Color(0xFFF6F4F1), // cream
-              Color(0x00F6F4F1), // cream, fully transparent
-            ],
-            stops: [0, 0.62, 1],
-          ),
-        ),
-      ),
-      // Hairline (or the offline / pending-sync banner) under the toolbar.
+      // Frosted chrome material: a 20px backdrop blur behind a light glass
+      // tint, with a bright hairline catching the light along the top edge.
+      // The old opaque latte→cream gradient is gone: list content now meets
+      // a translucent bar instead of a painted wall.
+      backgroundColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      // Our own hairline handles scroll-edge feedback (see `bottom` below).
+      scrolledUnderElevation: 0,
+      // A transparent background would otherwise be estimated as "dark" and
+      // flip the status-bar icons to white; the bar is light, keep them dark.
+      systemOverlayStyle: SystemUiOverlayStyle.dark,
+      flexibleSpace: const TranslucentBar(),
+      // Hairline (or the offline / pending-sync banner) under the toolbar:
+      // the line only fades in once content has actually scrolled under the
+      // bar — at rest (and with the banner showing) there is no line.
       bottom: PreferredSize(
         preferredSize:
             Size.fromHeight(_showBanner ? ShellAppBar.kBannerHeight : 1),
         child: _showBanner
             ? _banner(context, scheme)
-            : Container(
-                height: 1,
-                color: Colors.black.withValues(alpha: 0.06),
+            : AnimatedOpacity(
+                opacity: widget.scrolledUnder ? 1 : 0,
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOut,
+                child: const ColoredBox(color: AppColors.hairline),
               ),
       ),
       titleSpacing: 16,
@@ -251,15 +256,9 @@ class _ShellAppBarState extends State<ShellAppBar> {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppRadius.md),
               gradient: CafeGradients.coffee,
-              boxShadow: [
-                BoxShadow(
-                  color: CafePalette.espresso.withValues(alpha: 0.35),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+              boxShadow: AppShadow.low,
             ),
             child: const Icon(Icons.local_cafe_rounded,
                 size: 19, color: Colors.white),
@@ -308,20 +307,16 @@ class _ShellAppBarState extends State<ShellAppBar> {
         if (widget.actions != null) ...widget.actions!,
         // Signed-in identity: gradient initial + full name, so the avatar's
         // single letter is always in context (no lone "O" read as "0").
+        // Deliberately opaque with a hairline: over the frosted bar a
+        // translucent chip would read as "translucent on translucent", and
+        // a shadow would only muddy the glass — the crisp edge is enough.
         Container(
           height: 36,
           padding: const EdgeInsets.only(left: 4, right: 10),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.9),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: CafePalette.latte),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
-              ),
-            ],
+            color: scheme.surface,
+            borderRadius: BorderRadius.circular(AppRadius.pill),
+            border: Border.all(color: AppColors.hairline),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -374,6 +369,49 @@ class _ShellAppBarState extends State<ShellAppBar> {
         ),
         const SizedBox(width: 4),
       ],
+    );
+  }
+}
+
+/// Feeds [ShellAppBar.scrolledUnder]: wraps a shell body and reports whether
+/// its nearest vertical scrollable has scrolled content up under the
+/// translucent chrome (which then fades in the scroll-edge hairline).
+///
+/// Lives here so all four role shells share exactly one scroll-edge rule;
+/// horizontal strips (category pills, date pickers, …) never count.
+class ScrollEdgeScope extends StatefulWidget {
+  const ScrollEdgeScope({
+    super.key,
+    required this.onChanged,
+    required this.child,
+  });
+
+  final ValueChanged<bool> onChanged;
+  final Widget child;
+
+  @override
+  State<ScrollEdgeScope> createState() => _ScrollEdgeScopeState();
+}
+
+class _ScrollEdgeScopeState extends State<ScrollEdgeScope> {
+  bool _scrolledUnder = false;
+
+  bool _onScroll(ScrollNotification notification) {
+    final scrolled =
+        notification.metrics.axis == Axis.vertical &&
+        notification.metrics.pixels > 0;
+    if (scrolled != _scrolledUnder) {
+      _scrolledUnder = scrolled;
+      widget.onChanged(scrolled);
+    }
+    return false; // Let the notification keep bubbling to the scaffold.
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return NotificationListener<ScrollNotification>(
+      onNotification: _onScroll,
+      child: widget.child,
     );
   }
 }
