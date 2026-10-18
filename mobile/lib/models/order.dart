@@ -125,6 +125,29 @@ class CafeOrder {
     );
   }
 
+  /// Copy with an overridden status — used for optimistic UI updates that
+  /// paint the next stage before the server confirms (rolled back on error).
+  CafeOrder withStatus(String status) => CafeOrder(
+        id: id,
+        items: items,
+        total: total,
+        customerName: customerName,
+        customerPhone: customerPhone,
+        pickupType: pickupType,
+        tableNumber: tableNumber,
+        status: status,
+        createdAt: createdAt,
+        notes: notes,
+        takenBy: takenBy,
+        paymentMethod: paymentMethod,
+        paymentStatus: paymentStatus,
+        paidAmount: paidAmount,
+        paymentToken: paymentToken,
+        subTotal: subTotal,
+        taxTotal: taxTotal,
+        payments: payments,
+      );
+
   static const List<String> flow = [
     'received',
     'preparing',

@@ -176,6 +176,10 @@ class _CafeSetupWizardState extends State<CafeSetupWizard> {
   int _step = 0;
   bool _saving = false;
 
+  /// True while a page animation is running — Next/Back taps during the
+  /// animation are ignored so a double-tap can't skip a step.
+  bool _transitioning = false;
+
   static const _steps = ['Cafe', 'Tax & licence', 'Contact'];
 
   @override
@@ -198,15 +202,27 @@ class _CafeSetupWizardState extends State<CafeSetupWizard> {
     super.dispose();
   }
 
+  void _goTo(int step) {
+    if (_transitioning || _saving) return;
+    setState(() {
+      _step = step;
+      _transitioning = true;
+    });
+    _pageController
+        .animateToPage(
+          step,
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOut,
+        )
+        .whenComplete(() {
+      if (mounted) setState(() => _transitioning = false);
+    });
+  }
+
   void _next() {
     // Validate only the visible step's fields before advancing.
     if (_step < _steps.length - 1) {
-      setState(() => _step++);
-      _pageController.animateToPage(
-        _step,
-        duration: const Duration(milliseconds: 220),
-        curve: Curves.easeOut,
-      );
+      _goTo(_step + 1);
     } else {
       _finish();
     }
@@ -214,15 +230,12 @@ class _CafeSetupWizardState extends State<CafeSetupWizard> {
 
   void _back() {
     if (_step == 0) return;
-    setState(() => _step--);
-    _pageController.animateToPage(
-      _step,
-      duration: const Duration(milliseconds: 220),
-      curve: Curves.easeOut,
-    );
+    _goTo(_step - 1);
   }
 
   Future<void> _finish() async {
+    // Double-tap guard: the first tap flips _saving before any await.
+    if (_saving) return;
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
     try {
@@ -282,7 +295,12 @@ class _CafeSetupWizardState extends State<CafeSetupWizard> {
             Expanded(
               child: PageView(
                 controller: _pageController,
-                physics: const NeverScrollableScrollPhysics(),
+                // Swipeable like any wizard — [_step] follows the visible
+                // page via onPageChanged, and Next/Back share the same
+                // race-guarded path.
+                onPageChanged: (i) {
+                  if (_step != i) setState(() => _step = i);
+                },
                 children: [
                   Padding(
                     padding: const EdgeInsets.all(16),
@@ -337,14 +355,14 @@ class _CafeSetupWizardState extends State<CafeSetupWizard> {
             if (_step > 0)
               Expanded(
                 child: OutlinedButton(
-                  onPressed: _saving ? null : _back,
+                  onPressed: (_saving || _transitioning) ? null : _back,
                   child: const Text('Back'),
                 ),
               ),
             if (_step > 0) const SizedBox(width: 12),
             Expanded(
               child: FilledButton(
-                onPressed: _saving ? null : _next,
+                onPressed: (_saving || _transitioning) ? null : _next,
                 child: Text(_saving
                     ? 'Saving…'
                     : _step == _steps.length - 1

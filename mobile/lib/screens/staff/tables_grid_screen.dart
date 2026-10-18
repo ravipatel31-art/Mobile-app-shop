@@ -34,6 +34,11 @@ class _TablesGridScreenState extends State<TablesGridScreen> {
   int _lastTablesTick = 0;
   CartState? _cart;
 
+  /// In-flight guards: orders advancing and tables being freed. A double-tap
+  /// on a slow network would otherwise fire the status/free call twice.
+  final Set<String> _advancing = {};
+  final Set<String> _freeing = {};
+
   @override
   void initState() {
     super.initState();
@@ -95,6 +100,52 @@ class _TablesGridScreenState extends State<TablesGridScreen> {
     }
   }
 
+  /// Re-fetch without the full-screen loading state — used to quietly
+  /// reconcile after an optimistic update has already painted.
+  Future<void> _refreshQuiet() async {
+    if (!mounted) return;
+    final api = context.read<ApiClient>();
+    try {
+      final tables = await api.fetchTables();
+      _orderCache.clear();
+      final orders = await api.fetchOrders();
+      for (final order in orders) {
+        if (order.id.isNotEmpty) {
+          _orderCache[order.id] = order;
+        }
+      }
+      if (!mounted) return;
+      setState(() => _tables = tables);
+    } catch (_) {
+      // Quiet reconcile — keep the optimistic state; the next explicit
+      // load/poll will correct any drift.
+    }
+  }
+
+  /// Freeing a table is optimistic: the tile flips to free immediately and
+  /// rolls back with a snackbar if the server call fails.
+  Future<void> _freeTable(String number) async {
+    if (_freeing.contains(number)) return;
+    _freeing.add(number);
+    final messenger = ScaffoldMessenger.of(context);
+    final api = context.read<ApiClient>();
+    final previous = List<CafeTable>.from(_tables);
+    setState(() {
+      _tables = [
+        for (final t in _tables) t.number == number ? t.asFree : t
+      ];
+    });
+    try {
+      await api.freeTable(number);
+      await _refreshQuiet();
+    } catch (e) {
+      if (mounted) setState(() => _tables = previous);
+      messenger.showSnackBar(SnackBar(content: Text('$e')));
+    } finally {
+      _freeing.remove(number);
+    }
+  }
+
   /// The staff member currently serving [t] (from the live order when known).
   String? _serverOf(CafeTable t) {
     final order = t.orderId != null ? _orderCache[t.orderId] : null;
@@ -138,6 +189,10 @@ class _TablesGridScreenState extends State<TablesGridScreen> {
         minChildSize: 0.3,
         maxChildSize: 0.85,
         expand: false,
+        // Detents: the sheet settles at a peek, half or near-full height
+        // instead of stopping wherever the drag ended.
+        snap: true,
+        snapSizes: const [0.3, 0.5, 0.85],
         builder: (context, scrollController) => Column(
           children: [
             Container(
@@ -321,10 +376,7 @@ class _TablesGridScreenState extends State<TablesGridScreen> {
                               child: OutlinedButton.icon(
                                 onPressed: () async {
                                   Navigator.pop(context);
-                                  await context
-                                      .read<ApiClient>()
-                                      .freeTable(t.number);
-                                  _load();
+                                  await _freeTable(t.number);
                                 },
                                 icon: const Icon(Icons.check_circle_outline,
                                     size: 18),
@@ -341,10 +393,7 @@ class _TablesGridScreenState extends State<TablesGridScreen> {
                               child: OutlinedButton.icon(
                                 onPressed: () async {
                                   Navigator.pop(context);
-                                  await context
-                                      .read<ApiClient>()
-                                      .freeTable(t.number);
-                                  _load();
+                                  await _freeTable(t.number);
                                 },
                                 icon: const Icon(Icons.check_circle_outline,
                                     size: 18),
@@ -447,11 +496,18 @@ class _TablesGridScreenState extends State<TablesGridScreen> {
   }
 
   Future<void> _advance(CafeOrder order) async {
+    // Double-tap guard: one stage change per order at a time.
+    if (_advancing.contains(order.id)) return;
     final idx = CafeOrder.flow.indexOf(order.status);
     if (idx < 0 || idx >= CafeOrder.flow.length - 1) return;
     final next = CafeOrder.flow[idx + 1];
+    final messenger = ScaffoldMessenger.of(context);
+    final api = context.read<ApiClient>();
+    _advancing.add(order.id);
     try {
       if (next == 'collected') {
+        // Payment flow — never optimistic: the collect dialog is the source
+        // of truth and returns only after the server confirms the payment.
         final updated = await collectOrderAndPay(context, order);
         if (updated == null || !mounted) return;
         _load();
@@ -492,12 +548,22 @@ class _TablesGridScreenState extends State<TablesGridScreen> {
           await _sendWhatsApp(updated);
         }
       } else {
-        await context.read<ApiClient>().updateOrderStatus(order.id, next);
-        _load();
+        // Optimistic: paint the new status on the cached order now (the
+        // tile updates instantly), reconcile quietly once the server confirms.
+        if (mounted) {
+          setState(() => _orderCache[order.id] = order.withStatus(next));
+        }
+        await api.updateOrderStatus(order.id, next);
+        await _refreshQuiet();
       }
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+      if (mounted) {
+        // Roll the cached order back to its real status and say why.
+        setState(() => _orderCache[order.id] = order);
+      }
+      messenger.showSnackBar(SnackBar(content: Text('$e')));
+    } finally {
+      _advancing.remove(order.id);
     }
   }
 

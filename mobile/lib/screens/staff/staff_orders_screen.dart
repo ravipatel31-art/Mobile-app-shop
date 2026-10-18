@@ -14,6 +14,7 @@ import '../../util/money.dart';
 import '../../util/permissions.dart';
 import '../../widgets/collect_order_flow.dart';
 import '../../widgets/menu_picker_sheet.dart';
+import '../../widgets/swipe_to_advance.dart';
 import 'order_detail_screen.dart';
 import 'take_order_screen.dart';
 
@@ -31,6 +32,11 @@ class _StaffOrdersScreenState extends State<StaffOrdersScreen> {
   String? _error;
   bool _activeOnly = true;
   Timer? _refreshTimer;
+
+  /// Orders with an advance currently in flight — blocks double-taps (a
+  /// second status update on a slow network would skip a stage) and shields
+  /// the optimistic copy from the 3s poll until the server has answered.
+  final Set<String> _advancing = {};
 
   @override
   void initState() {
@@ -76,7 +82,7 @@ class _StaffOrdersScreenState extends State<StaffOrdersScreen> {
       final orders = await api.fetchOrders();
       if (!mounted) return;
       setState(() {
-        _orders = orders;
+        _orders = [for (final o in orders) _keepOptimistic(o)];
         _loading = false;
       });
     } catch (e) {
@@ -90,22 +96,57 @@ class _StaffOrdersScreenState extends State<StaffOrdersScreen> {
     }
   }
 
+  /// While an advance is still in flight, the poll may return the old
+  /// status — keep the optimistic copy so the card doesn't flicker back.
+  CafeOrder _keepOptimistic(CafeOrder server) {
+    if (!_advancing.contains(server.id)) return server;
+    for (final o in _orders) {
+      if (o.id == server.id) return o;
+    }
+    return server;
+  }
+
   Future<void> _advance(CafeOrder order) async {
+    // Double-tap guard: one stage change per order at a time.
+    if (_advancing.contains(order.id)) return;
     final idx = CafeOrder.flow.indexOf(order.status);
     if (idx < 0 || idx >= CafeOrder.flow.length - 1) return;
     final next = CafeOrder.flow[idx + 1];
+    final messenger = ScaffoldMessenger.of(context);
+    final api = context.read<ApiClient>();
+    _advancing.add(order.id);
+    if (mounted) setState(() {});
     try {
       if (next == 'collected') {
+        // Payment flow — never optimistic: the collect dialog is the source
+        // of truth and returns only after the server confirms the payment.
         final updated = await collectOrderAndPay(context, order);
         if (updated == null || !mounted) return;
       } else {
-        await context.read<ApiClient>().updateOrderStatus(order.id, next);
+        // Optimistic: paint the new stage now, reconcile quietly after.
+        setState(() {
+          _orders = [
+            for (final o in _orders) o.id == order.id ? o.withStatus(next) : o
+          ];
+        });
+        await api.updateOrderStatus(order.id, next);
       }
 
       await _load();
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+      if (mounted) {
+        // Roll the card back to its real status and say why.
+        setState(() {
+          _orders = [
+            for (final o in _orders)
+              o.id == order.id ? o.withStatus(order.status) : o
+          ];
+        });
+      }
+      messenger.showSnackBar(SnackBar(content: Text('$e')));
+    } finally {
+      _advancing.remove(order.id);
+      if (mounted) setState(() {});
     }
   }
 
@@ -350,10 +391,12 @@ class _StaffOrdersScreenState extends State<StaffOrdersScreen> {
                       final canAdvance = _nextLabel.containsKey(o.status);
                       final canEdit = canEditOrder(auth, o);
                       return _OrderCard(
+                        key: ValueKey(o.id),
                         order: o,
                         statusColor: _statusColor(o.status),
                         canAdvance: canAdvance,
                         canEdit: canEdit,
+                        advancing: _advancing.contains(o.id),
                         nextLabel: _nextLabel[o.status],
                         onAdvance: () => _advance(o),
                         onAddItem: () => _addItemsToOrder(o),
@@ -376,6 +419,7 @@ class _OrderCard extends StatelessWidget {
   final Color statusColor;
   final bool canAdvance;
   final bool canEdit;
+  final bool advancing;
   final String? nextLabel;
   final VoidCallback onAdvance;
   final VoidCallback onAddItem;
@@ -383,10 +427,12 @@ class _OrderCard extends StatelessWidget {
   final VoidCallback onPrintKot;
 
   const _OrderCard({
+    super.key,
     required this.order,
     required this.statusColor,
     required this.canAdvance,
     required this.canEdit,
+    this.advancing = false,
     this.nextLabel,
     required this.onAdvance,
     required this.onAddItem,
@@ -399,7 +445,7 @@ class _OrderCard extends StatelessWidget {
     final o = order;
     final scheme = Theme.of(context).colorScheme;
 
-    return Card(
+    final card = Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () async {
@@ -557,7 +603,7 @@ class _OrderCard extends StatelessWidget {
                   if (canAdvance)
                     o.status == 'ready'
                         ? FilledButton.icon(
-                            onPressed: onAdvance,
+                            onPressed: advancing ? null : onAdvance,
                             icon: const Icon(Icons.shopping_bag, size: 16),
                             label: Text(nextLabel!),
                             style: FilledButton.styleFrom(
@@ -566,7 +612,7 @@ class _OrderCard extends StatelessWidget {
                             ),
                           )
                         : FilledButton.tonal(
-                            onPressed: onAdvance,
+                            onPressed: advancing ? null : onAdvance,
                             child: Text(nextLabel!),
                           )
                   else if (canEdit && o.status == 'collected')
@@ -580,6 +626,21 @@ class _OrderCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+
+    // Flick-to-advance: drag right to run the card's next action (serving).
+    // The buttons stay the accessible path — this is an addition.
+    if (nextLabel == null) return card;
+    return SwipeToAdvance(
+      enabled: !advancing,
+      onCommit: onAdvance,
+      panel: SwipeAdvancePanel(
+        icon: o.status == 'ready' ? Icons.shopping_bag : Icons.chevron_right,
+        label: nextLabel!,
+        color: statusColor,
+        foreground: Colors.white,
+      ),
+      child: card,
     );
   }
 }

@@ -15,75 +15,89 @@ import '../widgets/menu_image.dart';
 /// sheet* (not by pushing a route over it) — pushing a route over a modal
 /// bottom sheet corrupts its dismiss state and leaves the sheet stuck open.
 /// The live cart count/total in the sheet footer updates as items are added.
+///
+/// The sheet is draggable (detents at half / 0.92 height): dragging the list
+/// itself — or the header once the list is at its top — resizes the sheet
+/// 1:1 with the finger, with the framework's momentum on release.
 Future<void> showMenuPickerSheet(BuildContext context) {
   return showModalBottomSheet(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
     backgroundColor: Colors.transparent,
-    builder: (_) => const _MenuPickerSheet(),
+    builder: (_) => DraggableScrollableSheet(
+      initialChildSize: 0.92,
+      minChildSize: 0.5,
+      maxChildSize: 0.92,
+      expand: true,
+      snap: true,
+      snapSizes: const [0.5, 0.92],
+      builder: (context, scrollController) =>
+          _MenuPickerSheet(scrollController: scrollController),
+    ),
   );
 }
 
-/// Fixed-height sheet so the inner [Column] always gets bounded width/height.
+/// Sheet body: pinned handle + title, scrolling contents (the sheet's
+/// drag/scroll controller), and the pinned cart footer.
 class _MenuPickerSheet extends StatelessWidget {
-  const _MenuPickerSheet();
+  final ScrollController scrollController;
+  const _MenuPickerSheet({required this.scrollController});
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return SizedBox(
-      width: MediaQuery.of(context).size.width,
-      height: MediaQuery.of(context).size.height * 0.92,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
-        ),
-        child: Column(
-          children: [
-            const SizedBox(height: 10),
-            Center(
-              child: Container(
-                width: 40,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: scheme.onSurfaceVariant.withValues(alpha: 0.4),
-                  borderRadius: BorderRadius.circular(3),
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      child: Column(
+        children: [
+          const SizedBox(height: 10),
+          Center(
+            child: Container(
+              width: 40,
+              height: 5,
+              decoration: BoxDecoration(
+                color: scheme.onSurfaceVariant.withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text('Add items',
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleLarge
+                          ?.copyWith(fontWeight: FontWeight.w800)),
                 ),
-              ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  tooltip: 'Close',
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
             ),
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text('Add items',
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleLarge
-                            ?.copyWith(fontWeight: FontWeight.w800)),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    tooltip: 'Close',
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-            ),
-            const Expanded(child: _MenuPickerContents()),
-            const _CartFooter(),
-          ],
-        ),
+          ),
+          Expanded(
+              child:
+                  _MenuPickerContents(scrollController: scrollController)),
+          const _CartFooter(),
+        ],
       ),
     );
   }
 }
 
 class _MenuPickerContents extends StatefulWidget {
-  const _MenuPickerContents();
+  final ScrollController scrollController;
+  const _MenuPickerContents({required this.scrollController});
 
   @override
   State<_MenuPickerContents> createState() => _MenuPickerContentsState();
@@ -111,6 +125,7 @@ class _MenuPickerContentsState extends State<_MenuPickerContents> {
     if (_selected != null) {
       return _ItemDetailPane(
         item: _selected!,
+        scrollController: widget.scrollController,
         onBack: () => setState(() => _selected = null),
       );
     }
@@ -159,6 +174,7 @@ class _MenuPickerContentsState extends State<_MenuPickerContents> {
                 }
               }
               return ListView(
+                controller: widget.scrollController,
                 padding: const EdgeInsets.only(bottom: 12),
                 children: [
                   for (final cat in categories) ...[
@@ -191,7 +207,15 @@ class _MenuPickerContentsState extends State<_MenuPickerContents> {
 class _ItemDetailPane extends StatefulWidget {
   final MenuItem item;
   final VoidCallback onBack;
-  const _ItemDetailPane({required this.item, required this.onBack});
+
+  /// The sheet's controller — attached to this pane's list too, so the sheet
+  /// still resizes by dragging while the detail pane is showing.
+  final ScrollController scrollController;
+  const _ItemDetailPane({
+    required this.item,
+    required this.scrollController,
+    required this.onBack,
+  });
 
   @override
   State<_ItemDetailPane> createState() => _ItemDetailPaneState();
@@ -281,6 +305,7 @@ class _ItemDetailPaneState extends State<_ItemDetailPane> {
         ),
         Expanded(
           child: ListView(
+            controller: widget.scrollController,
             padding: const EdgeInsets.all(16),
             children: [
               MenuImage(url: item.imageUrl, height: 160),

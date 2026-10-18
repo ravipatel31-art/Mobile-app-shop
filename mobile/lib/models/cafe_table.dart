@@ -32,6 +32,21 @@ class CafeTable {
 
   bool get isOccupied => status == 'occupied';
 
+  /// The same table as free — used for optimistic "free table" updates that
+  /// paint instantly and roll back if the server call fails.
+  CafeTable get asFree => CafeTable(
+        number: number,
+        status: 'empty',
+        orderId: null,
+        takenBy: null,
+        zone: zone,
+        x: x,
+        y: y,
+        w: w,
+        h: h,
+        shape: shape,
+      );
+
   bool get isRound => shape == 'round';
 
   /// True when the owner has saved explicit floor coordinates.
