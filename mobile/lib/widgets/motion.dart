@@ -2,7 +2,6 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
-import 'package:flutter/services.dart';
 
 /// The app's motion system — Apple's spring model ("Designing Fluid
 /// Interfaces"), not scripted fixed durations.
@@ -83,28 +82,4 @@ class AppMotion {
   }
 }
 
-/// Haptic feedback that respects the reduced-motion setting: no taps or
-/// impacts when the OS says animations are disabled (which also gates
-/// haptics for motion-sensitive users).
-class AppHaptics {
-  AppHaptics._();
-
-  static bool get _muted =>
-      WidgetsBinding.instance.platformDispatcher.accessibilityFeatures
-          .disableAnimations;
-
-  /// Light selection tick — chips, toggles, stepper taps.
-  static void tap() {
-    if (!_muted) HapticFeedback.selectionClick();
-  }
-
-  /// Soft confirmation thump — cart add, primary action.
-  static void impact() {
-    if (!_muted) HapticFeedback.lightImpact();
-  }
-
-  /// Success feedback — order placed, payment captured.
-  static void success() {
-    if (!_muted) HapticFeedback.mediumImpact();
-  }
-}
+// AppHaptics lives in haptics.dart — import that file for haptic calls.

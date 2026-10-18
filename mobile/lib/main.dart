@@ -190,7 +190,9 @@ ThemeData buildAppTheme() {
       ),
     ),
     navigationBarTheme: NavigationBarThemeData(
-      height: 68,
+      // No fixed height here: the shells pass a scale-aware minimum
+      // (navBarMinHeight) so destination labels grow with the OS text size
+      // instead of being clipped inside a 68px box.
       elevation: 0,
       // Frosted chrome: the four role shells wrap their NavigationBar in a
       // [TranslucentBar] (blur + light glass tint + bright top edge), so the

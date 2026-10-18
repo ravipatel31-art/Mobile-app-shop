@@ -51,6 +51,7 @@ class _KitchenShellState extends State<KitchenShell> {
       // this wrapper blurs + tints the content sliding underneath it.
       bottomNavigationBar: TranslucentBar(
         child: NavigationBar(
+          height: navBarMinHeight(context),
           selectedIndex: _index,
           onDestinationSelected: (i) => setState(() => _index = i),
           destinations: const [

@@ -6,6 +6,7 @@ import '../models/order.dart';
 import '../services/api_client.dart';
 import '../services/payment_service.dart';
 import 'collect_payment_dialog.dart';
+import 'haptics.dart';
 
 /// Runs the full "collect this order" flow:
 ///   1. pick payment method(s) — the dialog supports splitting the due amount
@@ -40,6 +41,9 @@ Future<CafeOrder?> collectOrderAndPay(
         amountMinorUnits: (payments.first['amount'] as int?) ?? 0,
       );
     } on PlatformException catch (e) {
+      // Cancelled / unavailable GPay — a distinct buzz so it never feels
+      // like a successful payment.
+      if (context.mounted) AppHaptics.error(context);
       messenger.showSnackBar(SnackBar(
         content: Text(e.code == 'gpay_unavailable'
             ? 'Google Pay is not available on this device.'
@@ -48,6 +52,7 @@ Future<CafeOrder?> collectOrderAndPay(
       return null;
     }
     if (token == null) {
+      if (context.mounted) AppHaptics.error(context);
       messenger.showSnackBar(const SnackBar(
           content: Text('Google Pay was cancelled. No payment was taken.')));
       return null;
@@ -55,7 +60,7 @@ Future<CafeOrder?> collectOrderAndPay(
   }
 
   try {
-    return await api.updateOrderStatus(
+    final updated = await api.updateOrderStatus(
       order.id,
       'collected',
       paid: true,
@@ -64,9 +69,12 @@ Future<CafeOrder?> collectOrderAndPay(
       payments: payments,
       redeemPoints: result.redeemPoints,
     );
+    if (context.mounted) AppHaptics.success(context); // money landed
+    return updated;
   } on ApiException catch (e) {
     // Bad split (sum != due), a stale points balance, or anything else the
     // backend rejects: show it.
+    if (context.mounted) AppHaptics.error(context);
     messenger.showSnackBar(SnackBar(content: Text(e.message)));
     return null;
   }

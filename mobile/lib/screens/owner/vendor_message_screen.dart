@@ -186,9 +186,12 @@ class _VendorMessageScreenState extends State<VendorMessageScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, size: 40, color: Colors.grey),
+            Icon(Icons.error_outline,
+                size: 40, color: Theme.of(context).colorScheme.onSurfaceVariant),
             const SizedBox(height: 8),
-            Text(_error!, style: const TextStyle(color: Colors.grey)),
+            Text(_error!,
+                style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant)),
             const SizedBox(height: 12),
             OutlinedButton(onPressed: _load, child: const Text('Retry')),
           ],
@@ -577,7 +580,9 @@ class _ItemTile extends StatelessWidget {
                     ),
                     child: Icon(
                       selected ? Icons.check : Icons.add,
-                      color: selected ? Colors.white : Colors.grey.shade500,
+                      color: selected
+                          ? Colors.white
+                          : Theme.of(context).colorScheme.onSurfaceVariant,
                       size: 18,
                     ),
                   ),

@@ -13,6 +13,7 @@ import '../../state/cart_state.dart';
 import '../../util/money.dart';
 import '../../util/permissions.dart';
 import '../../widgets/collect_order_flow.dart';
+import '../../widgets/haptics.dart';
 import '../../widgets/menu_picker_sheet.dart';
 import '../../widgets/swipe_to_advance.dart';
 import 'order_detail_screen.dart';
@@ -116,6 +117,10 @@ class _StaffOrdersScreenState extends State<StaffOrdersScreen> {
     final api = context.read<ApiClient>();
     _advancing.add(order.id);
     if (mounted) setState(() {});
+
+    // On tap-accept, so the server feels responsive even before the network
+    // answers. (The 'collected' path additionally buzzes on success.)
+    AppHaptics.tap(context);
     try {
       if (next == 'collected') {
         // Payment flow — never optimistic: the collect dialog is the source

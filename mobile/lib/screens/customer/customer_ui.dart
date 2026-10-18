@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/menu_item.dart';
 import '../../util/money.dart';
+import '../../widgets/haptics.dart';
 import '../../widgets/menu_image.dart';
 import '../../widgets/motion.dart';
 import '../../widgets/ui_kit.dart';
@@ -186,6 +187,9 @@ class GradientPillButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final Widget child;
   final Gradient gradient;
+
+  /// Height at 100% text scale — used as a *minimum* so the pill grows
+  /// (instead of clipping its label) at large OS text sizes.
   final double height;
   final double horizontalPadding;
 
@@ -214,10 +218,11 @@ class GradientPillButton extends StatelessWidget {
         child: InkWell(
           borderRadius: radius,
           onTap: onPressed,
-          child: SizedBox(
-            height: height,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: height),
             child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+              padding: EdgeInsets.symmetric(
+                  horizontal: horizontalPadding, vertical: 6),
               child: DefaultTextStyle(
                 style: TextStyle(
                   fontSize: 16,
@@ -244,18 +249,26 @@ class ItemAddButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (onTap == null) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-        decoration: BoxDecoration(
-          color: CafePalette.latte,
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: const Text(
-          'Sold out',
-          style: TextStyle(
-            fontSize: 12.5,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF9C8A78),
+      // Tell screen readers *why* the control is inert, and keep the
+      // "Sold out" label dark enough to read on the latte chip (the old
+      // 0xFF9C8A78 was ~2.4:1 on white — far below the 4.5:1 floor).
+      return Semantics(
+        button: true,
+        enabled: false,
+        label: 'Sold out — currently unavailable',
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+          decoration: BoxDecoration(
+            color: CafePalette.latte,
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: const Text(
+            'Sold out',
+            style: TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w700,
+              color: CafePalette.coffee,
+            ),
           ),
         ),
       );
@@ -288,7 +301,7 @@ class QtyStepper extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 40,
+      constraints: const BoxConstraints(minHeight: 40),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(999),
@@ -300,10 +313,13 @@ class QtyStepper extends StatelessWidget {
           _RoundStepButton(
             icon: Icons.remove_rounded,
             enabled: onDecrement != null,
+            // Value included so a screen reader reports the new quantity
+            // context, not just "decrease".
+            semanticLabel: 'Decrement quantity, currently $qty',
             onTap: onDecrement,
           ),
-          SizedBox(
-            width: 30,
+          ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 30),
             child: Text(
               '$qty',
               textAlign: TextAlign.center,
@@ -313,6 +329,7 @@ class QtyStepper extends StatelessWidget {
           _RoundStepButton(
             icon: Icons.add_rounded,
             enabled: onIncrement != null,
+            semanticLabel: 'Increment quantity, currently $qty',
             onTap: onIncrement,
           ),
         ],
@@ -324,28 +341,55 @@ class QtyStepper extends StatelessWidget {
 class _RoundStepButton extends StatelessWidget {
   final IconData icon;
   final bool enabled;
+  final String semanticLabel;
   final VoidCallback? onTap;
 
   const _RoundStepButton({
     required this.icon,
     required this.enabled,
+    required this.semanticLabel,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return InkResponse(
-      radius: 18,
-      onTap: onTap,
-      child: SizedBox(
-        width: 36,
-        height: 36,
-        child: Icon(
-          icon,
-          size: 20,
-          color: enabled ? CafePalette.espresso : Colors.black26,
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      label: semanticLabel,
+      child: InkResponse(
+        radius: 22,
+        // 44×44: Apple's minimum comfortable touch target (was 36×36).
+        onTap: onTap == null
+            ? null
+            : () {
+                AppHaptics.tap(context);
+                onTap!();
+              },
+        child: SizedBox(
+          width: 44,
+          height: 44,
+          child: _StepIcon(icon: icon, enabled: enabled),
         ),
       ),
+    );
+  }
+}
+
+class _StepIcon extends StatelessWidget {
+  final IconData icon;
+  final bool enabled;
+  const _StepIcon({required this.icon, required this.enabled});
+
+  @override
+  Widget build(BuildContext context) {
+    // Disabled colour follows the theme instead of a hard-coded black26.
+    final disabledColor =
+        Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.38);
+    return Icon(
+      icon,
+      size: 20,
+      color: enabled ? CafePalette.espresso : disabledColor,
     );
   }
 }
@@ -382,27 +426,33 @@ class FloatingCartBar extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
             child: Row(
               children: [
-                Container(
-                  constraints:
-                      const BoxConstraints(minWidth: 30, minHeight: 30),
-                  padding: const EdgeInsets.symmetric(horizontal: 9),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.22),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        '$count',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 14,
+                Semantics(
+                  // The count digit alone means nothing read aloud — give
+                  // the badge a full phrase.
+                  label: '$count ${count == 1 ? 'item' : 'items'} in cart',
+                  excludeSemantics: true,
+                  child: Container(
+                    constraints:
+                        const BoxConstraints(minWidth: 30, minHeight: 30),
+                    padding: const EdgeInsets.symmetric(horizontal: 9),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.22),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          '$count',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 14,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),

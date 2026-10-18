@@ -223,8 +223,11 @@ class _LoyaltyTabState extends State<_LoyaltyTab>
                   ),
                   if (account['updated_at'] != null)
                     Text('Updated ${account['updated_at']}',
-                        style:
-                            const TextStyle(fontSize: 11, color: Colors.grey)),
+                        style: TextStyle(
+                            fontSize: 11,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant)),
                 ],
               ),
             ),
@@ -396,9 +399,11 @@ class _DeliveryTabState extends State<_DeliveryTab>
       );
     }
     if (_orders.isEmpty) {
-      return const Center(
+      return Center(
         child: Text('No delivery orders yet.\nSwiggy/Zomato orders land here.',
-            textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant)),
       );
     }
     return RefreshIndicator(

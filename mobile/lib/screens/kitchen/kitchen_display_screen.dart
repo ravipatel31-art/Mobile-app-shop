@@ -10,6 +10,8 @@ import '../../services/printer_models.dart';
 import '../../services/printing_service.dart';
 import '../../util/money.dart';
 import '../../widgets/swipe_to_advance.dart';
+
+import '../../widgets/haptics.dart';
 import '../../widgets/ui_kit.dart';
 
 /// Kitchen display: incoming orders grouped by stage, colour-coded by age
@@ -155,6 +157,10 @@ class _KitchenDisplayScreenState extends State<KitchenDisplayScreen> {
         for (final o in _orders) o.id == order.id ? o.withStatus(next) : o
       ];
     });
+
+    // Fire the haptic on tap-accept (immediate, offline-safe), not after
+    // the network round-trip that may still fail.
+    AppHaptics.tap(context);
     try {
       await api.updateOrderStatus(order.id, next);
 
@@ -507,7 +513,7 @@ class _KitchenOrderCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
-                    color: Colors.grey.shade500,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                     letterSpacing: 1,
                   ),
                 ),
@@ -568,7 +574,9 @@ class _KitchenOrderCard extends StatelessWidget {
                                 item.options.join(', '),
                                 style: TextStyle(
                                   fontSize: 11,
-                                  color: Colors.grey.shade500,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
                                   fontStyle: FontStyle.italic,
                                 ),
                               ),

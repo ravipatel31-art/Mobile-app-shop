@@ -854,7 +854,8 @@ class _TableCard extends StatelessWidget {
                             fontSize: 9,
                             letterSpacing: 1.2,
                             fontWeight: FontWeight.w700,
-                            color: Colors.grey.shade500),
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant),
                       ),
                     ),
                     Text(occupied ? '🧾' : '🍽️',
@@ -905,7 +906,7 @@ class _TableCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 10,
-                      color: Colors.grey.shade500,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontStyle: FontStyle.italic,
                     ),
                   ),
