@@ -5,6 +5,7 @@ import '../../models/menu_item.dart';
 import '../../services/api_client.dart';
 import '../../state/tenant_state.dart';
 import '../../util/money.dart';
+import '../../widgets/motion.dart';
 import '../../widgets/ui_kit.dart';
 import 'cart_screen.dart';
 import 'customer_cart.dart';
@@ -158,37 +159,43 @@ class _CustomerMenuScreenState extends State<CustomerMenuScreen> {
           // One dock material for every screen bottom (see [BottomSurface]);
           // no dock at all while the cart is empty, so the menu keeps its
           // clean bottom edge.
-          bottomNavigationBar: _cart.isEmpty
-              ? null
-              : BottomSurface(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.lg,
-                    AppSpacing.sm,
-                    AppSpacing.lg,
-                    AppSpacing.lg,
+          bottomNavigationBar: BottomSurface(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              AppSpacing.sm,
+              AppSpacing.lg,
+              AppSpacing.lg,
+            ),
+            child: AnimatedSwitcher(
+              duration: AppMotion.duration(context, 260),
+              switchInCurve: AppMotion.curve,
+              switchOutCurve: AppMotion.curve,
+              // The bar rises from the bottom edge; under reduced motion the
+              // offset is dropped and we keep a pure cross-fade.
+              transitionBuilder: (child, animation) {
+                final fade = FadeTransition(opacity: animation, child: child);
+                if (AppMotion.reducedOf(context)) return fade;
+                return FadeTransition(
+                  opacity: animation,
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0, 0.5),
+                      end: Offset.zero,
+                    ).animate(animation),
+                    child: child,
                   ),
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 260),
-                    switchInCurve: Curves.easeOutCubic,
-                    switchOutCurve: Curves.easeInCubic,
-                    transitionBuilder: (child, animation) => FadeTransition(
-                      opacity: animation,
-                      child: SlideTransition(
-                        position: Tween<Offset>(
-                          begin: const Offset(0, 0.5),
-                          end: Offset.zero,
-                        ).animate(animation),
-                        child: child,
-                      ),
-                    ),
-                    child: FloatingCartBar(
+                );
+              },
+              child: _cart.isEmpty
+                  ? const SizedBox.shrink(key: ValueKey('cart-empty'))
+                  : FloatingCartBar(
                       key: const ValueKey('cart-bar'),
                       count: _cart.count,
                       total: _cart.total,
                       onTap: _openCart,
                     ),
-                  ),
-                ),
+            ),
+          ),
         );
       },
     );
@@ -339,8 +346,12 @@ class _CustomerMenuScreenState extends State<CustomerMenuScreen> {
         onTap: () => _openItem(item),
         child: Padding(
           padding: const EdgeInsets.all(12),
-          child: Opacity(
+          // Sold-out dim eases in/out when availability flips on refresh
+          // (instant Opacity would pop). Fast/zero under reduced motion.
+          child: AnimatedOpacity(
             opacity: item.available ? 1 : 0.55,
+            duration: AppMotion.duration(context, 200),
+            curve: AppMotion.curve,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

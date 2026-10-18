@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../state/auth_state.dart';
+import '../../widgets/motion.dart';
 import '../../widgets/ui_kit.dart';
 import 'register_screen.dart';
 
@@ -358,8 +359,8 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
           AnimatedSize(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOut,
+            duration: AppMotion.duration(context, 200),
+            curve: AppMotion.curve,
             alignment: Alignment.topCenter,
             child: !_showDemo
                 ? const SizedBox(height: 0, width: double.infinity)

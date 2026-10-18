@@ -8,6 +8,7 @@ import '../state/cart_state.dart';
 import '../util/money.dart';
 import '../widgets/menu_image.dart';
 import 'ui_kit.dart';
+import '../widgets/motion.dart';
 
 /// Opens a bottom-sheet menu picker so staff can add more items to the cart
 /// straight from the order review / order-queue screen, without leaving it.
@@ -403,8 +404,12 @@ class _ItemRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final disabled = !item.available;
-    return Opacity(
+    // Sold-out dim eases in/out when availability changes; an instant
+    // Opacity would pop. Fast/zero duration under reduced motion.
+    return AnimatedOpacity(
       opacity: disabled ? 0.5 : 1,
+      duration: AppMotion.duration(context, 200),
+      curve: AppMotion.curve,
       child: Card(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
         clipBehavior: Clip.antiAlias,

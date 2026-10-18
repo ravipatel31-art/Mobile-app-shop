@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import '../services/api_client.dart';
 import '../services/offline/offline.dart';
 import '../state/tenant_state.dart';
+import 'motion.dart';
 import 'ui_kit.dart';
 
 /// Compact "Sat, 10 Oct" label used as the shells' app-bar subtitle.
@@ -266,17 +267,24 @@ class _ShellAppBarState extends State<ShellAppBar> {
           const SizedBox(width: 12),
           Flexible(
             child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 200),
-              switchInCurve: Curves.easeOut,
-              transitionBuilder: (child, anim) => FadeTransition(
-                opacity: anim,
-                child: SlideTransition(
-                  position:
-                      Tween(begin: const Offset(0, 0.15), end: Offset.zero)
-                          .animate(anim),
-                  child: child,
-                ),
-              ),
+              duration: AppMotion.duration(context, 200),
+              switchInCurve: AppMotion.curve,
+              switchOutCurve: AppMotion.curve,
+              // Titles rise from below into place; under reduced motion the
+              // offset is dropped and we keep a pure cross-fade.
+              transitionBuilder: (child, anim) {
+                final fade = FadeTransition(opacity: anim, child: child);
+                if (AppMotion.reducedOf(context)) return fade;
+                return FadeTransition(
+                  opacity: anim,
+                  child: SlideTransition(
+                    position: Tween(
+                            begin: const Offset(0, 0.15), end: Offset.zero)
+                        .animate(anim),
+                    child: child,
+                  ),
+                );
+              },
               child: Column(
                 key: ValueKey(widget.title),
                 crossAxisAlignment: CrossAxisAlignment.start,

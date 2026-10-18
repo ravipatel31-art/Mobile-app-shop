@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/menu_item.dart';
 import '../../models/option_group.dart';
 import '../../util/money.dart';
+import '../../widgets/motion.dart';
 import '../../widgets/ui_kit.dart';
 import 'customer_cart.dart';
 import 'customer_ui.dart';
@@ -324,8 +325,8 @@ class _CustomerItemSheetState extends State<_CustomerItemSheet> {
         borderRadius: radius,
         onTap: () => _toggle(g, c.label),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          curve: Curves.easeOut,
+          duration: AppMotion.duration(context, 150),
+          curve: AppMotion.curve,
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
             gradient: chosen ? CafeGradients.coffee : null,
