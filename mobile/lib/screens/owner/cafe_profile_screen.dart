@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../services/api_client.dart';
+import '../../widgets/motion.dart';
 import '../../widgets/ui_kit.dart';
 
 /// The owner's business identity, printed on every thermal bill: cafe name,
@@ -204,8 +205,8 @@ class _CafeSetupWizardState extends State<CafeSetupWizard> {
       setState(() => _step++);
       _pageController.animateToPage(
         _step,
-        duration: const Duration(milliseconds: 220),
-        curve: Curves.easeOut,
+        duration: AppMotion.duration(context, 220),
+        curve: AppMotion.curve,
       );
     } else {
       _finish();
@@ -217,8 +218,8 @@ class _CafeSetupWizardState extends State<CafeSetupWizard> {
     setState(() => _step--);
     _pageController.animateToPage(
       _step,
-      duration: const Duration(milliseconds: 220),
-      curve: Curves.easeOut,
+      duration: AppMotion.duration(context, 220),
+      curve: AppMotion.curve,
     );
   }
 

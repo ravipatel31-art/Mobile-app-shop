@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../../services/api_client.dart';
 import '../../util/money.dart';
+import '../../widgets/motion.dart';
 import '../../widgets/ui_kit.dart';
 import 'customer_ui.dart';
 
@@ -323,8 +324,12 @@ class _CustomerOrderStatusScreenState extends State<CustomerOrderStatusScreen> {
         ? Colors.white
         : CafePalette.caramel.withValues(alpha: 0.8);
 
-    return Opacity(
+    // Upcoming steps ease down in emphasis as the order progresses instead
+    // of popping; reduced motion keeps it near-instant.
+    return AnimatedOpacity(
       opacity: activeIndex < 0 || index <= activeIndex ? 1 : 0.55,
+      duration: AppMotion.duration(context, 200),
+      curve: AppMotion.curve,
       child: IntrinsicHeight(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,

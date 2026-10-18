@@ -6,6 +6,7 @@ import '../../services/api_client.dart';
 import '../../services/printer_models.dart';
 import '../../services/printer_settings.dart';
 import '../../services/printing_service.dart';
+import '../../widgets/motion.dart';
 import '../../widgets/ui_kit.dart';
 
 class PrinterSettingsScreen extends StatefulWidget {
@@ -633,7 +634,8 @@ class _ModeCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
+      duration: AppMotion.duration(context, 180),
+      curve: AppMotion.curve,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         border: Border.all(

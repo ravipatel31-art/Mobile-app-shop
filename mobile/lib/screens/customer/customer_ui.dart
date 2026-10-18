@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/menu_item.dart';
 import '../../util/money.dart';
 import '../../widgets/menu_image.dart';
+import '../../widgets/motion.dart';
 import '../../widgets/ui_kit.dart';
 
 /// Photo-or-emoji art for a menu item: real photo when the item has one,
@@ -145,8 +146,8 @@ class CategoryPill extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
         onTap: onTap,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          curve: Curves.easeOut,
+          duration: AppMotion.duration(context, 180),
+          curve: AppMotion.curve,
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
           decoration: BoxDecoration(
             gradient: selected ? CafeGradients.coffee : null,

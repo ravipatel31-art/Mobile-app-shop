@@ -7,6 +7,7 @@ import '../../models/sales_summary.dart';
 import '../../services/api_client.dart';
 import '../../state/auth_state.dart';
 import '../../util/money.dart';
+import '../../widgets/motion.dart';
 import '../../widgets/ui_kit.dart';
 import '../owner/billing_screen.dart';
 import '../owner/growth_screen.dart';
@@ -25,7 +26,8 @@ class DashboardScreen extends StatefulWidget {
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class _DashboardScreenState extends State<DashboardScreen>
+    with SingleTickerProviderStateMixin {
   final _fmt = DateFormat('yyyy-MM-dd');
   DateTime _selected = DateTime.now();
   String _range = 'today'; // today | 7d | 30d
@@ -33,6 +35,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
   List<SalesSummary> _series = []; // chart series for the range
   bool _loading = true;
   String? _error;
+
+  // Spring-driven revenue counter. Keeps the *presented* value so a refresh
+  // (pull-to-refresh, new date) counts from wherever the number currently
+  // stands instead of restarting from 0 like the old Tween(0 → value).
+  // Unbounded: revenue in paise runs far past the default 0..1 range.
+  late final AnimationController _revenue =
+      AnimationController.unbounded(vsync: this);
+  double _presentedRevenue = 0;
 
   // Best-effort extras for badges/KPIs — advisory, so never fatal.
   int? _unpaid; // outstanding dues, paise
@@ -43,7 +53,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
+    // Track what is actually on screen so a retarget mid-count-up springs
+    // from the current number, not from a stale target.
+    _revenue.addListener(() => _presentedRevenue = _revenue.value);
     _load();
+  }
+
+  @override
+  void dispose() {
+    _revenue.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -73,6 +92,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _series = series;
         _loading = false;
       });
+      // Retarget the headline number *outside* the build phase so the
+      // spring hands off from the currently presented value.
+      _setRevenueTarget(_agg!.grossSales);
       await _loadExtras(api);
     } catch (e) {
       if (!mounted) return;
@@ -152,6 +174,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (hour < 12) return 'Good morning';
     if (hour < 17) return 'Good afternoon';
     return 'Good evening';
+  }
+
+  /// Headline revenue, spring-driven: animates from the last *presented*
+  /// value to the new total — so a refresh counts on from where the number
+  /// stands, never restarting from 0. Under reduced motion it jumps to the
+  /// final number immediately. Retargeting happens in [_setRevenueTarget],
+  /// outside the build phase; this only renders.
+  Widget _revenueText() => AnimatedBuilder(
+        animation: _revenue,
+        builder: (_, __) => FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(
+            formatMoney(_revenue.value.round()),
+            style: const TextStyle(
+                color: Colors.white,
+                fontSize: 40,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -1),
+          ),
+        ),
+      );
+
+  /// Springs the revenue counter to [grossSales] from whatever is currently
+  /// on screen (handing off mid-flight velocity, so an interrupted count-up
+  /// retargets instead of restarting). Reduced motion jumps instantly.
+  void _setRevenueTarget(int grossSales) {
+    if (!mounted) return;
+    final target = grossSales.toDouble();
+    // Tolerance so float dust from the settled spring doesn't retrigger.
+    if ((target - _presentedRevenue).abs() <= 0.5) return;
+    if (AppMotion.reducedOf(context)) {
+      _revenue.value = target; // jump immediately
+    } else {
+      AppMotion.springTo(_revenue, end: target);
+    }
   }
 
   @override
@@ -242,23 +300,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           letterSpacing: 1.2),
                     ),
                     const SizedBox(height: 4),
-                    TweenAnimationBuilder<double>(
-                      tween: Tween(begin: 0, end: agg.grossSales.toDouble()),
-                      duration: const Duration(milliseconds: 900),
-                      curve: Curves.easeOutCubic,
-                      builder: (_, v, __) => FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          formatMoney(v.round()),
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 40,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -1),
-                        ),
-                      ),
-                    ),
+                    _revenueText(),
                     const SizedBox(height: 12),
                     Wrap(
                       spacing: 8,
