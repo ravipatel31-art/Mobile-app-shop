@@ -1,4 +1,4 @@
-name: Build iOS IPA
+name: Build iOS IPA for iLoader
 
 on:
   push:
@@ -22,16 +22,17 @@ jobs:
     
     - name: Install dependencies
       working-directory: ./mobile
-      run: flutter pub get
+      run: |
+        flutter clean
+        flutter pub get
     
-    - name: Build iOS App
+    - name: Build iOS App (No Code Signing for Sideloading)
       working-directory: ./mobile
       run: |
-        # Clean build
-        flutter clean
+        echo "Building iOS app for sideloading..."
         
-        # Build iOS app (this creates the actual app)
-        flutter build ios --release --no-codesign
+        # Build iOS app without code signing (for iLoader/AltStore sideloading)
+        flutter build ios --release --no-codesign --obfuscate --split-debug-info=./build/symbols
         
         # Check if build was successful
         if [ ! -d "build/ios/iphoneos/Runner.app" ]; then
@@ -44,7 +45,7 @@ jobs:
         echo "Build location: build/ios/iphoneos/Runner.app"
         echo "Size: $(du -sh build/ios/iphoneos/Runner.app | cut -f1)"
     
-    - name: Package IPA
+    - name: Create IPA for Sideloading
       working-directory: ./mobile
       run: |
         # Create IPA from the built app
@@ -70,6 +71,12 @@ jobs:
           echo "✅ IPA created successfully"
           echo "IPA size: $(du -h "$IPA_OUTPUT" | cut -f1)"
           echo "IPA location: $IPA_OUTPUT"
+          echo ""
+          echo "📱 To install on iPhone with iLoader:"
+          echo "1. Download the IPA from GitHub Actions"
+          echo "2. Open iLoader on your iPhone"
+          echo "3. Select the IPA file"
+          echo "4. Tap 'Install'"
         else
           echo "ERROR: IPA creation failed"
           exit 1
@@ -90,3 +97,76 @@ jobs:
         path: mobile/build/ios/iphoneos/Runner.app
         retention-days: 30
         if-no-files-found: error
+    
+    - name: Create Installation Guide
+      run: |
+        cat > INSTALLATION_GUIDE.md << 'EOF'
+        # 📱 How to Install Cafe POS on iPhone with iLoader
+
+        ## Prerequisites
+        - iPhone 17 with iOS 15 or later
+        - iLoader app installed on iPhone
+        - GitHub Actions build completed
+
+        ## Installation Steps
+
+        ### Step 1: Download the IPA
+        1. Go to: https://github.com/ravipatel31-art/Mobile-app-shop/actions
+        2. Click on the latest "Build iOS IPA for iLoader" workflow run
+        3. Scroll down to "Artifacts" section
+        4. Download `cafe-pos-ipa`
+
+        ### Step 2: Install with iLoader
+        1. Open iLoader on your iPhone
+        2. Tap "Add" or "+" button
+        3. Select the downloaded IPA file
+        4. Wait for installation to complete
+        5. Tap "Install" to confirm
+
+        ### Step 3: Trust the App
+        1. Go to Settings > General > VPN & Device Management
+        2. Find "Cafe POS" or your developer
+        3. Tap "Trust Cafe POS"
+        4. Confirm trust
+
+        ### Step 4: Launch the App
+        1. Open iLoader
+        2. Find "Cafe POS" in your apps
+        3. Tap to launch
+
+        ## Troubleshooting
+
+        ### App Won't Open
+        - Make sure you've trusted the app in Settings
+        - Reinstall the IPA
+        - Ensure iOS is up to date
+
+        ### Installation Failed
+        - Check that you downloaded the correct IPA
+        - Make sure iLoader is updated
+        - Try a different iOS version
+
+        ### "Untrusted Developer" Error
+        - Go to Settings > General > VPN & Device Management
+        - Trust the app certificate
+        - Restart the app
+
+        ## Build Information
+        - App Name: Cafe POS
+        - Build Type: IPA (for sideloading)
+        - Code Signing: None (for testing)
+        - Compatible with: iPhone 17, iOS 15+
+
+        ## Need Help?
+        - Check the workflow logs for build errors
+        - Ensure you have the latest Flutter version
+        - Try building locally if GitHub Actions fails
+        EOF
+        cat INSTALLATION_GUIDE.md
+    
+    - name: Upload Installation Guide
+      uses: actions/upload-artifact@v4
+      with:
+        name: installation-guide
+        path: INSTALLATION_GUIDE.md
+        retention-days: 30
