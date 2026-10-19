@@ -20,61 +20,58 @@ jobs:
         channel: 'stable'
         cache: true
     
-    - name: Setup Xcode
-      uses: maxim-lobanov/setup-xcode@v1
-      with:
-        xcode-version: '15.0'
-    
     - name: Install dependencies
       working-directory: ./mobile
       run: flutter pub get
     
-    - name: Build iOS Release
+    - name: Build iOS App
       working-directory: ./mobile
       run: |
-        flutter build ios --release --no-codesign --obfuscate --split-debug-info=./build/symbols
-      env:
-        FLUTTER_ROOT: ${{ github.workspace }}/mobile
+        # Clean build
+        flutter clean
         
-    - name: Prepare for IPA export
-      working-directory: ./mobile/ios
-      run: |
-        # Create necessary directories
-        mkdir -p build
+        # Build iOS app (this creates the actual app)
+        flutter build ios --release --no-codesign
         
-        # Build Xcode archive
-        xcodebuild -workspace Runner.xcworkspace \
-          -scheme Runner \
-          -configuration Release \
-          -archivePath Runner.xcarchive \
-          archive \
-          CODE_SIGN_IDENTITY="" \
-          CODE_SIGNING_REQUIRED=NO \
-          CODE_SIGNING_ALLOWED=NO \
-          SKIP_INSTALL=NO \
-          ARCHS=arm64
+        # Check if build was successful
+        if [ ! -d "build/ios/iphoneos/Runner.app" ]; then
+          echo "ERROR: iOS build failed - Runner.app not found"
+          ls -la build/ios/
+          exit 1
+        fi
         
-        # Export IPA
-        xcodebuild -exportArchive \
-          -archivePath Runner.xcarchive \
-          -exportPath ./build \
-          -exportOptionsPlist ExportOptions.plist \
-          -allowProvisioningUpdates
+        echo "✅ iOS build completed successfully"
+        echo "Build location: build/ios/iphoneos/Runner.app"
+        echo "Size: $(du -sh build/ios/iphoneos/Runner.app | cut -f1)"
     
-    - name: Find and upload IPA
-      working-directory: ./mobile/ios/build
+    - name: Package IPA
+      working-directory: ./mobile
       run: |
-        # Find the IPA file
-        IPA_FILE=$(find . -name "*.ipa" -type f | head -1)
-        echo "Found IPA: $IPA_FILE"
-        echo "IPA_SIZE=$(du -h "$IPA_FILE" | cut -f1)"
+        # Create IPA from the built app
+        APP_PATH="build/ios/iphoneos/Runner.app"
+        IPA_OUTPUT="build/CafePOS.ipa"
         
-        # Upload to artifacts
-        if [ -n "$IPA_FILE" ]; then
-          echo "IPA found and will be uploaded"
-          echo "$IPA_FILE" > ipa_path.txt
+        # Create temporary directory for IPA
+        TEMP_DIR=$(mktemp -d)
+        
+        # Copy app to temp directory
+        cp -r "$APP_PATH" "$TEMP_DIR/Payload/Runner.app"
+        
+        # Create IPA using zip
+        cd "$TEMP_DIR"
+        zip -qry "$IPA_OUTPUT" Payload
+        
+        # Clean up
+        cd -
+        rm -rf "$TEMP_DIR"
+        
+        # Verify IPA was created
+        if [ -f "$IPA_OUTPUT" ]; then
+          echo "✅ IPA created successfully"
+          echo "IPA size: $(du -h "$IPA_OUTPUT" | cut -f1)"
+          echo "IPA location: $IPA_OUTPUT"
         else
-          echo "ERROR: No IPA found in build output!"
+          echo "ERROR: IPA creation failed"
           exit 1
         fi
     
@@ -82,8 +79,14 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: cafe-pos-ipa
-        path: |
-          mobile/ios/build/*.ipa
-          mobile/ios/build/ipa_path.txt
+        path: mobile/build/CafePOS.ipa
+        retention-days: 30
+        if-no-files-found: error
+    
+    - name: Upload App Bundle
+      uses: actions/upload-artifact@v4
+      with:
+        name: cafe-pos-app
+        path: mobile/build/ios/iphoneos/Runner.app
         retention-days: 30
         if-no-files-found: error

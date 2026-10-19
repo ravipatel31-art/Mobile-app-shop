@@ -28,27 +28,27 @@ jobs:
     
     - name: Install dependencies
       working-directory: ./mobile
-      run: flutter pub get
+      run: |
+        flutter clean
+        flutter pub get
     
     - name: Build Android APK
       working-directory: ./mobile
       run: |
-        # Clean build
-        flutter clean
-        flutter pub get
+        echo "Building Android APK..."
         
         # Build release APK
         flutter build apk --release --split-per-abi
         
-        # Check build output
-        echo "Build completed successfully"
-        ls -lh build/app/outputs/flutter-apk/
+        # Check if build was successful
+        if [ ! -f "build/app/outputs/flutter-apk/app-arm64-v8a-release.apk" ]; then
+          echo "ERROR: APK build failed"
+          ls -la build/app/outputs/flutter-apk/
+          exit 1
+        fi
         
-        # Show APK sizes
-        for file in build/app/outputs/flutter-apk/*.apk; do
-          echo "APK: $file"
-          ls -lh "$file"
-        done
+        echo "✅ APK build completed successfully"
+        echo "APK size: $(du -h build/app/outputs/flutter-apk/app-arm64-v8a-release.apk | cut -f1)"
     
     - name: Upload APK Artifacts
       uses: actions/upload-artifact@v4
@@ -59,10 +59,16 @@ jobs:
         retention-days: 30
         if-no-files-found: error
     
-    - name: Create APK Summary
+    - name: Create Build Summary
       run: |
-        echo "## APK Build Summary" >> $GITHUB_STEP_SUMMARY
+        echo "## ✅ Build Successful!" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "Build completed successfully!" >> $GITHUB_STEP_SUMMARY
+        echo "Android APK has been built successfully!" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "Download the APK from the artifacts below." >> $GITHUB_STEP_SUMMARY
+        echo "**APK Location:**" >> $GITHUB_STEP_SUMMARY
+        echo "\`mobile/build/app/outputs/flutter-apk/app-arm64-v8a-release.apk\`" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**To install on your phone:**" >> $GITHUB_STEP_SUMMARY
+        echo "1. Download the APK artifact" >> $GITHUB_STEP_SUMMARY
+        echo "2. Copy it to your phone" >> $GITHUB_STEP_SUMMARY
+        echo "3. Tap to install" >> $GITHUB_STEP_SUMMARY
