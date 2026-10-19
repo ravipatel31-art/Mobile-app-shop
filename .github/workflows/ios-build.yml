@@ -1,0 +1,40 @@
+name: Build iOS IPA
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.16.0'
+        channel: 'stable'
+        cache: true
+    
+    - name: Install dependencies
+      working-directory: ./mobile
+      run: flutter pub get
+    
+    - name: Build iOS App
+      working-directory: ./mobile
+      run: |
+        flutter build ios --release --no-codesign
+        cd ios
+        xcodebuild -workspace Runner.xcworkspace -scheme Runner -configuration Release -archivePath Runner.xcarchive archive
+        xcodebuild -exportArchive -archivePath Runner.xcarchive -exportPath ./build -exportOptionsPlist ExportOptions.plist
+    
+    - name: Upload IPA
+      uses: actions/upload-artifact@v3
+      with:
+        name: cafe-pos-ipa
+        path: mobile/ios/build/CafePOS.ipa
+        retention-days: 30
