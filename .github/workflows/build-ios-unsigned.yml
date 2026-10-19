@@ -1,9 +1,29 @@
-name: Build iOS IPA (unsigned)
+name: Build iOS IPA (unsigned — for sideloading)
+
+# Builds a proper Flutter IPA that you can install on your iPhone with a
+# sideloading tool (iLoader / AltStore / Sideloadly / Scarlet).
+#
+# WHY THIS WORKFLOW AND NOT `flutter build ipa`:
+#   `flutter build ipa --no-codesign` still runs Xcode's archive + export
+#   pipeline, which REQUIRES a DEVELOPMENT_TEAM (Apple Developer account).
+#   Without a paid account it fails with an export error.
+#
+#   `flutter build ios --release --no-codesign` SKIPS that pipeline and
+#   writes a raw Runner.app bundle to build/ios/iphoneos/. We then wrap
+#   that bundle in a Payload/ folder and zip it — which is exactly the
+#   structure an .ipa file is. No Apple account needed.
+#
+#   The resulting IPA is unsigned. Your sideloading tool (iLoader etc.)
+#   re-signs it on install using your own Apple ID, so it works on your
+#   device for 7 days (free account) or 1 year (paid account).
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: # Run manually from the Actions tab
   push:
     branches: [main]
+    paths:
+      - 'mobile/**'
+      - '.github/workflows/build-ios-unsigned.yml'
 
 jobs:
   build:
@@ -11,12 +31,13 @@ jobs:
     defaults:
       run:
         working-directory: mobile
-    env:
-      DEVELOPMENT_TEAM: ""
-    steps:
-      - uses: actions/checkout@v4
 
-      - uses: subosito/flutter-action@v2
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
@@ -24,83 +45,122 @@ jobs:
       - name: Install Flutter dependencies
         run: flutter pub get
 
-      - name: Patch Xcode project for unsigned build
+      - name: Show Flutter & Xcode versions
         run: |
-          PBX="ios/Runner.xcodeproj/project.pbxproj"
-          # Switch to manual signing
-          sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' "$PBX"
-          # Use ad-hoc / no identity
-          sed -i '' 's/"CODE_SIGN_IDENTITY\[sdk=iphoneos\*\]" = "iPhone Developer";/"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "-";/g' "$PBX"
-          sed -i '' 's/"CODE_SIGN_IDENTITY" = "iPhone Developer";/"CODE_SIGN_IDENTITY" = "-";/g' "$PBX"
-          # Remove all DEVELOPMENT_TEAM entries
-          sed -i '' '/DEVELOPMENT_TEAM/d' "$PBX"
-          # Disable code signing for all build configs
-          sed -i '' 's/ENABLE_CODE_SIGNING = YES;/ENABLE_CODE_SIGNING = NO;/g' "$PBX"
+          flutter --version
+          xcodebuild -version
 
-      - name: Install CocoaPods dependencies
+      - name: Build iOS app (no code signing)
         run: |
-          cd ios
-          pod install --repo-update
-          cd ..
-
-      - name: Build iOS with xcodebuild (unsigned)
-        run: |
+          set -euo pipefail
+          # Build the raw Runner.app. This skips archive/export entirely,
+          # so no DEVELOPMENT_TEAM or Apple account is required.
           flutter build ios --release --no-codesign \
-            --dart-define=API_BASE_URL="https://mobileapp.unonomercysound.online" || true
+            --dart-define=API_BASE_URL="https://mobileapp.unonomercysound.online"
 
-          # Fallback: build with xcodebuild directly if flutter build fails
-          xcodebuild \
-            -workspace ios/Runner.xcworkspace \
-            -scheme Runner \
-            -sdk iphoneos \
-            -configuration Release \
-            -derivedDataPath build/ios \
-            CODE_SIGN_IDENTITY="-" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            DEVELOPMENT_TEAM="" \
-            ENABLE_BITCODE=NO \
-            ONLY_ACTIVE_ARCH=NO || true
+          echo "Flutter build complete. Contents of build/ios/:"
+          ls -la build/ios/ || true
+          find build/ios -maxdepth 3 -name "Runner.app" -type d || true
 
-          # Verify Runner.app exists
-          echo "Looking for Runner.app..."
-          find build/ios -name "Runner.app" -type d 2>/dev/null
-
-      - name: Package IPA
+      - name: Package Runner.app into a .ipa
         run: |
-          # Find Runner.app in various possible locations
+          set -euo pipefail
+
+          # Locate Runner.app. Flutter puts it in build/ios/iphoneos/, but
+          # be defensive and search a few common locations.
           APP_PATH=""
           for dir in \
-            build/ios/Build/Products/Release-iphoneos/Runner.app \
             build/ios/iphoneos/Runner.app \
+            build/ios/Build/Products/Release-iphoneos/Runner.app \
             build/ios/Release-iphoneos/Runner.app; do
             if [ -d "$dir" ]; then
               APP_PATH="$dir"
               break
             fi
           done
-          
+
           if [ -z "$APP_PATH" ]; then
-            echo "::error::Runner.app not found. Listing build/ios contents:"
-            find build/ios -name "*.app" -type d 2>/dev/null
-            find build/ios -name "Runner*" -type d 2>/dev/null
-            ls -la build/ios/ 2>/dev/null || echo "build/ios not found"
-            ls -la build/ios/Build/Products/ 2>/dev/null || echo "Products dir not found"
+            echo "::error::Runner.app not found anywhere under build/ios."
+            find build/ios -name "*.app" -type d 2>/dev/null || true
             exit 1
           fi
-          
-          echo "Found Runner.app at: $APP_PATH"
-          ls -lh "$APP_PATH/Runner" 2>/dev/null || true
-          
-          rm -rf Payload cafe-app-unsigned.ipa
-          mkdir Payload
-          cp -r "$APP_PATH" Payload/
-          zip -r cafe-app-unsigned.ipa Payload
-          rm -rf Payload
-          ls -lh cafe-app-unsigned.ipa
 
-      - uses: actions/upload-artifact@v4
+          echo "Found Runner.app at: $APP_PATH"
+          echo "Binary size:"
+          ls -lh "$APP_PATH/Runner" || true
+
+          # An .ipa is just a zip with this layout:
+          #   Payload/
+          #     YourApp.app/
+          #       ... (the app bundle contents)
+          rm -rf Payload
+          mkdir Payload
+          cp -R "$APP_PATH" Payload/
+
+          rm -f cafe-pos-unsigned.ipa
+          # -y stores symlinks as links (required for iOS bundles)
+          # -q quiet, -r recursive, -9 max compression
+          zip -qry -9 cafe-pos-unsigned.ipa Payload
+          rm -rf Payload
+
+          echo ""
+          echo "IPA created:"
+          ls -lh cafe-pos-unsigned.ipa
+
+      - name: Verify IPA is a real build (size + contents)
+        run: |
+          set -euo pipefail
+          IPA="cafe-pos-unsigned.ipa"
+
+          IPA_BYTES=$(stat -f%z "$IPA")
+          echo "IPA size: $IPA_BYTES bytes ($(ls -lh "$IPA" | awk '{print $5}'))"
+
+          # A real Flutter iOS app is at least ~15 MB. Anything smaller means
+          # the build silently failed and we uploaded an empty shell.
+          if [ "$IPA_BYTES" -lt 15000000 ]; then
+            echo "::error::IPA is only $IPA_BYTES bytes — too small to be a real app. Aborting."
+            exit 1
+          fi
+
+          # Sanity-check that the zip actually contains a Payload/Runner.app
+          echo "IPA contents (top level):"
+          unzip -l "$IPA" | head -20
+          if ! unzip -l "$IPA" | grep -q "Payload/Runner.app/"; then
+            echo "::error::IPA does not contain Payload/Runner.app — not a valid IPA."
+            exit 1
+          fi
+
+          echo ""
+          echo "IPA looks valid."
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
         with:
-          name: cafe-ios-ipa-unsigned
-          path: mobile/cafe-app-unsigned.ipa
+          name: cafe-pos-ipa
+          path: mobile/cafe-pos-unsigned.ipa
           retention-days: 30
+          if-no-files-found: error
+
+      - name: Write build summary
+        run: |
+          {
+            echo "## ✅ Cafe POS IPA built successfully"
+            echo ""
+            echo "Download the **cafe-pos-ipa** artifact below, rename it from \`.zip\` to \`.ipa\`, then install with iLoader / AltStore / Sideloadly."
+            echo ""
+            echo "### Install on iPhone"
+            echo "1. Download the \`cafe-pos-ipa\` artifact and unzip it."
+            echo "2. You get \`cafe-pos-unsigned.ipa\` — send it to your iPhone (AirDrop / Files app)."
+            echo "3. Open **iLoader**, tap **+ / Add**, select the .ipa, tap **Install**."
+            echo "4. After install: **Settings → General → VPN & Device Management** → trust your Apple ID."
+            echo "5. Launch **Cafe POS** from your home screen."
+            echo ""
+            echo "> **Note:** This IPA is unsigned. Your sideloading tool re-signs it with your Apple ID. A free Apple ID expires after **7 days** (re-install to renew). A paid developer account lasts **1 year**."
+            echo ""
+            echo "### Build details"
+            echo "- Runner: \`macos-15\`"
+            echo "- Method: \`flutter build ios --no-codesign\` + Payload zip (no Apple account required)"
+            echo "- Bundle ID: \`com.ravi.cafeapp\`"
+            echo "- API: \`https://mobileapp.unonomercysound.online\`"
+            echo "- Built: $(date -u '+%Y-%m-%d %H:%M UTC')"
+          } >> "$GITHUB_STEP_SUMMARY"

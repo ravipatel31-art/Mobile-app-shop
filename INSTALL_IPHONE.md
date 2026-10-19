@@ -1,93 +1,91 @@
-# 📱 How to Install Cafe POS on iPhone with iLoader
+# How to Build & Install the Cafe POS iPhone App (IPA)
 
-## Prerequisites
-- iPhone 17 with iOS 15 or later
-- iLoader app installed on iPhone
-- GitHub account
+This project builds a **sideloadable iOS IPA** automatically with GitHub Actions.
+No Mac and no Apple Developer account required.
 
-## Installation Steps
+## What you get
 
-### Step 1: Build the IPA
-1. Go to: https://github.com/ravipatel31-art/Mobile-app-shop/actions
-2. Click on "Build iOS IPA for iLoader" workflow
-3. Click "Run workflow" → "main" → "Run workflow"
-4. Wait 10-30 minutes for the build to complete
+A proper **~20–50 MB** `.ipa` file that you install on your iPhone with a
+sideloading app (iLoader, AltStore, Sideloadly, or Scarlet).
 
-### Step 2: Download the IPA
-1. After the build completes, go to the Actions tab
-2. Click on the completed workflow run
-3. Scroll down to "Artifacts" section
-4. Download `cafe-pos-ipa` (this is your IPA file)
+## Why the old 6 KB file was broken
 
-### Step 3: Install with iLoader
-1. Open iLoader on your iPhone
-2. Tap "Add" or "+" button
-3. Select the downloaded IPA file
-4. Wait for installation to complete
-5. Tap "Install" to confirm
+`flutter build ipa --no-codesign` still runs Xcode's archive+export pipeline,
+which **requires a `DEVELOPMENT_TEAM`** (a paid Apple Developer account).
+Without one, the export fails and produces an empty/invalid IPA.
 
-### Step 4: Trust the App
-1. Go to Settings > General > VPN & Device Management
-2. Find "Cafe POS" or your developer
-3. Tap "Trust Cafe POS"
-4. Confirm trust
+This project instead uses:
 
-### Step 5: Launch the App
-1. Open iLoader
-2. Find "Cafe POS" in your apps
-3. Tap to launch
+```
+flutter build ios --release --no-codesign     # produces Runner.app, no Apple account needed
+zip -r app.ipa Payload                        # wrap Runner.app in Payload/ to make a real .ipa
+```
+
+This is the standard way to build an unsigned, sideloadable Flutter IPA.
+
+## Step 1 — Run the workflow
+
+1. Open **https://github.com/ravipatel31-art/Mobile-app-shop/actions**
+2. In the left sidebar click **Build iOS IPA (unsigned — for sideloading)**
+3. Click **Run workflow → Run workflow** (branch: `main`)
+4. Wait ~10–20 minutes. The run turns green when done.
+
+> The workflow also runs automatically whenever you push changes to `mobile/`.
+
+## Step 2 — Download the IPA
+
+1. Click the finished workflow run.
+2. Scroll to the **Artifacts** section at the bottom.
+3. Download **`cafe-pos-ipa`** — this is a `.zip` containing your IPA.
+4. Unzip it. You get **`cafe-pos-unsigned.ipa`**.
+
+## Step 3 — Get the IPA onto your iPhone
+
+Pick one:
+
+- **AirDrop** — send the `.ipa` to your iPhone (easiest if you're on a Mac).
+- **Files app** — save it to iCloud Drive / On My iPhone, then open from Files.
+- **iLoader / Sideloadly** — these tools also let you transfer directly.
+
+## Step 4 — Install with iLoader
+
+1. Open **iLoader** on your iPhone.
+2. Tap **+ / Add** and select `cafe-pos-unsigned.ipa`.
+3. Tap **Install** and wait.
+4. When prompted, sign in with your **Apple ID** (this re-signs the app for your device).
+
+## Step 5 — Trust the app
+
+1. Go to **Settings → General → VPN & Device Management**.
+2. Under your Apple ID, tap **Trust**.
+3. Confirm.
+
+## Step 6 — Launch
+
+Open **Cafe POS** from your home screen.
+
+## Important: 7-day expiry
+
+An unsigned IPA signed with a **free Apple ID** expires after **7 days**.
+When it stops opening:
+
+1. Delete the app.
+2. Re-run the workflow (or reuse the IPA).
+3. Re-install with iLoader.
+
+A **paid Apple Developer account ($99/yr)** extends this to **1 year**.
 
 ## Troubleshooting
 
-### App Won't Open
-- Make sure you've trusted the app in Settings
-- Reinstall the IPA
-- Ensure iOS is up to date
+| Problem | Fix |
+|---|---|
+| Workflow fails | Open the run → click the failed step → read the log. Most common: Flutter version drift. |
+| IPA is still tiny | The build didn't finish. Re-run the workflow; check the "Verify IPA" step log. |
+| "Untrusted Developer" | Settings → General → VPN & Device Management → Trust. |
+| App won't open after 7 days | It expired. Delete and re-install (see above). |
+| App opens but can't reach server | The app talks to `https://mobileapp.unonomercysound.online`. Make sure that backend is running. |
 
-### Installation Failed
-- Check that you downloaded the correct IPA
-- Make sure iLoader is updated
-- Try a different iOS version
+## Files in this repo
 
-### "Untrusted Developer" Error
-- Go to Settings > General > VPN & Device Management
-- Trust the app certificate
-- Restart the app
-
-## What You'll Get
-
-- **App Name:** Cafe POS
-- **Build Type:** IPA (for sideloading)
-- **Code Signing:** None (for testing)
-- **Compatible with:** iPhone 17, iOS 15+
-- **Size:** ~20-50MB (proper size!)
-
-## Quick Start
-
-```bash
-# Build the IPA on GitHub Actions
-1. Go to GitHub Actions
-2. Run "Build iOS IPA for iLoader"
-3. Wait for completion
-4. Download the IPA
-5. Install with iLoader
-```
-
-## Need Help?
-
-If you encounter issues:
-1. Check the workflow logs for errors
-2. Make sure you have the latest Flutter version
-3. Try building locally if GitHub Actions fails
-
-## Build Information
-
-- **App:** Cafe POS
-- **Version:** 1.0.0
-- **Platform:** iOS (iPhone 17)
-- **Build Type:** IPA for sideloading with iLoader
-- **Signing:** Ad-hoc (for testing)
-
----
-
-**Ready to install!** 🎉
+- `.github/workflows/build-ios-unsigned.yml` — the sideloadable IPA build (the one you want)
+- `.github/workflows/build-ios.yml` — signed TestFlight/App Store build (needs Apple Developer secrets; optional)
