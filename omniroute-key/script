@@ -1,0 +1,24 @@
+Edit the file ~/.config/opencode/opencode.json. Add a new entry under "provider" called "omniroute" with this exact structure, without removing or changing any existing keys (like "mcp" or "plugin"):
+
+```
+{
+  "npm": "@ai-sdk/openai-compatible",
+  "name": "OmniRoute",
+  "options": {
+    "baseURL": "http://localhost:20128/v1",
+    "apiKey": "you api key"
+  },
+  "models": {
+    "auto": { "name": "auto" },
+    "auto/coding": { "name": "auto/coding" },
+    "auto/fast": { "name": "auto/fast" },
+    "auto/cheap": { "name": "auto/cheap" }
+  }
+}
+```
+
+Show me the full updated file afterward so I can verify nothing else was changed.
+
+---
+
+code ~/.config/opencode/opencode.json

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../services/api_client.dart';
 import '../../state/auth_state.dart';
+import '../../widgets/haptics.dart';
 import '../../widgets/shell_app_bar.dart';
 import '../../widgets/ui_kit.dart';
 import '../admin/dashboard_screen.dart';
@@ -83,6 +84,10 @@ class _OwnerShellState extends State<OwnerShell> {
   ];
 
   void _openMoreMenu() {
+    // Same theme as the sheet will resolve to — read once, used by the
+    // handle and the header copy below.
+    final scheme = Theme.of(context).colorScheme;
+    final dark = scheme.brightness == Brightness.dark;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -99,22 +104,22 @@ class _OwnerShellState extends State<OwnerShell> {
           children: [
             // NB: no drag handle drawn here — the theme's bottom-sheet
             // `showDragHandle` already renders the one and only handle.
-            const Padding(
-              padding: EdgeInsets.fromLTRB(20, 16, 20, 8),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
               child: Row(
                 children: [
-                  IconChip(
+                  const IconChip(
                     icon: Icons.more_horiz_rounded,
                     gradient: CafeGradients.coffee,
                     size: 40,
                     iconSize: 20,
                   ),
-                  SizedBox(width: 12),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
+                        const Text(
                           'More',
                           style: TextStyle(
                             fontSize: 18,
@@ -125,7 +130,7 @@ class _OwnerShellState extends State<OwnerShell> {
                           'Reports, growth, exports & team',
                           style: TextStyle(
                             fontSize: 12,
-                            color: Color(0xFF8A6A52),
+                            color: scheme.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -145,6 +150,7 @@ class _OwnerShellState extends State<OwnerShell> {
                     title: 'Reports',
                     subtitle: 'Sales analytics & P&L',
                     onTap: () {
+                      AppHaptics.tap(context);
                       Navigator.pop(context);
                       Navigator.push(
                         context,
@@ -159,6 +165,7 @@ class _OwnerShellState extends State<OwnerShell> {
                     title: 'Growth',
                     subtitle: 'Loyalty, delivery orders & table QRs',
                     onTap: () {
+                      AppHaptics.tap(context);
                       Navigator.pop(context);
                       Navigator.push(
                         context,
@@ -172,6 +179,7 @@ class _OwnerShellState extends State<OwnerShell> {
                     title: 'Exports',
                     subtitle: 'Tally XML/CSV & GSTR-1/GSTR-3B',
                     onTap: () {
+                      AppHaptics.tap(context);
                       Navigator.pop(context);
                       Navigator.push(
                         context,
@@ -186,6 +194,7 @@ class _OwnerShellState extends State<OwnerShell> {
                     title: 'Printers',
                     subtitle: 'Network · USB · Bluetooth',
                     onTap: () {
+                      AppHaptics.tap(context);
                       Navigator.pop(context);
                       Navigator.push(
                         context,
@@ -397,31 +406,40 @@ class _ImpersonationBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final status = AppStatus.of(context);
+    final dark = status.brightness == Brightness.dark;
+    // Amber-50 block on cream; in dark the same warning signal as a low
+    // alpha wash — a bright amber slab would glare against espresso.
     return Material(
-      color: const Color(0xFFFFF3E0),
+      color: dark
+          ? status.tint(status.warning, alpha: 0.16)
+          : const Color(0xFFFFF3E0),
       child: InkWell(
         onTap: () => auth.exitToAdmin(),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
           child: Row(
             children: [
-              const Icon(Icons.admin_panel_settings_rounded,
-                  size: 18, color: Color(0xFFB26A00)),
+              Icon(Icons.admin_panel_settings_rounded,
+                  size: 18,
+                  color: dark ? status.warning : const Color(0xFFB26A00)),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   'Managing ${auth.actingCafeName ?? 'cafe'} — tap to return '
                   'to all cafes',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF7A4700),
+                    color: dark ? status.warning : const Color(0xFF7A4700),
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const Icon(Icons.close_rounded, size: 18, color: Color(0xFFB26A00)),
+              Icon(Icons.close_rounded,
+                  size: 18,
+                  color: dark ? status.warning : const Color(0xFFB26A00)),
             ],
           ),
         ),

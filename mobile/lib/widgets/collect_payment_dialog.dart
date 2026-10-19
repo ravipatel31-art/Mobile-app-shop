@@ -8,6 +8,7 @@ import '../models/order.dart';
 import '../services/api_client.dart';
 import '../util/money.dart';
 import 'haptics.dart';
+import 'ui_kit.dart';
 
 const paymentMethods = [
   (value: 'gpay', label: 'GPay', icon: Icons.account_balance_wallet_outlined),
@@ -294,6 +295,7 @@ class _CollectPaymentDialogState extends State<_CollectPaymentDialog> {
     final diff = _due - entered;
     final exact = diff == 0 && entered > 0;
     final overpaid = diff < 0;
+    final status = AppStatus.of(context);
 
     return AlertDialog(
       title: const Text('Collect order'),
@@ -312,7 +314,9 @@ class _CollectPaymentDialogState extends State<_CollectPaymentDialog> {
               Text(
                 'Order total ${formatMoney(widget.order.total)} '
                 '• ${formatMoney(widget.order.paidAmount)} already paid',
-                style: const TextStyle(fontSize: 12, color: Colors.black54),
+                style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
             ],
             if (_phone != null) ...[
@@ -413,11 +417,13 @@ class _CollectPaymentDialogState extends State<_CollectPaymentDialog> {
               width: double.infinity,
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
+                // One semantic wash per outcome — `shade50` tints only read
+                // on white, so the tint follows the current brightness.
                 color: exact
-                    ? Colors.green.shade50
+                    ? status.tint(status.success)
                     : overpaid
-                        ? Colors.orange.shade50
-                        : Colors.red.shade50,
+                        ? status.tint(status.warning)
+                        : status.tint(status.danger),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Column(
@@ -431,24 +437,24 @@ class _CollectPaymentDialogState extends State<_CollectPaymentDialog> {
                   if (exact)
                     Text('Exact — ready to collect',
                         style: TextStyle(
-                            color: Colors.green.shade700, fontSize: 12)),
+                            color: status.success, fontSize: 12)),
                   if (diff > 0)
                     Text('${formatMoney(diff)} short',
-                        style: TextStyle(
-                            color: Colors.red.shade700, fontSize: 12)),
+                        style:
+                            TextStyle(color: status.danger, fontSize: 12)),
                   if (overpaid)
                     Text(
                         'Overpaid ${formatMoney(-diff)} — change to return '
                         '${formatMoney(-diff)}',
                         style: TextStyle(
-                            color: Colors.orange.shade800, fontSize: 12)),
+                            color: status.warning, fontSize: 12)),
                 ],
               ),
             ),
             if (_error != null) ...[
               const SizedBox(height: 8),
               Text(_error!,
-                  style: TextStyle(color: Colors.red.shade700, fontSize: 12)),
+                  style: TextStyle(color: status.danger, fontSize: 12)),
             ],
           ],
         ),
@@ -468,16 +474,23 @@ class _CollectPaymentDialogState extends State<_CollectPaymentDialog> {
 
   /// Balance + "redeem" switch. Shown only for orders with a phone number.
   Widget _loyaltySection() {
+    final status = AppStatus.of(context);
     final points = _loyaltyPoints;
     final usable = _redeemablePoints;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: _redeeming ? Colors.green.shade50 : Colors.amber.shade50,
+        // Amber at rest, green while redeeming — as brightness-aware tints
+        // (the `shade50`/`shade200` pair only ever read on white).
+        color: _redeeming
+            ? status.tint(status.success)
+            : status.tint(status.warning),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-            color: _redeeming ? Colors.green.shade200 : Colors.amber.shade200),
+            color: _redeeming
+                ? status.tint(status.success, alpha: 0.40)
+                : status.tint(status.warning, alpha: 0.40)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -502,7 +515,7 @@ class _CollectPaymentDialogState extends State<_CollectPaymentDialog> {
           ),
           if (_loyaltyError != null)
             Text(_loyaltyError!,
-                style: TextStyle(color: Colors.red.shade700, fontSize: 12)),
+                style: TextStyle(color: status.danger, fontSize: 12)),
           if (!_loyaltyLoading && points != null && points > 0) ...[
             const SizedBox(height: 6),
             Row(

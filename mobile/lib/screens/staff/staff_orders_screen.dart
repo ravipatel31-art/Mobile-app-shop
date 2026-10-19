@@ -210,6 +210,7 @@ class _StaffOrdersScreenState extends State<StaffOrdersScreen> {
       context.read<CartState>().tablesChanged();
       await _load();
       if (!mounted) return;
+      AppHaptics.tap(context);
       await Navigator.push(
         context,
         MaterialPageRoute(
@@ -454,6 +455,7 @@ class _OrderCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () async {
+          AppHaptics.tap(context);
           final refreshed = await Navigator.push(
             context,
             MaterialPageRoute(

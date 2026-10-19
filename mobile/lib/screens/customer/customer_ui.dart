@@ -39,6 +39,63 @@ class ItemArt extends StatelessWidget {
   }
 }
 
+/// Shared-element (Hero) tags for one dish across the customer journey:
+/// menu card -> item sheet -> cart line -> checkout summary. Every screen
+/// wraps the same dish in the same tag, so it keeps its identity while the
+/// flow moves on instead of blinking out and reappearing.
+///
+/// Flutter only flies heroes between `PageRoute`s (a modal bottom sheet is a
+/// `PopupRoute`), so the item sheet carries the same tags for continuity but
+/// the flight itself only happens on the pushed screens.
+class DishHeroTags {
+  const DishHeroTags({required this.art, required this.title});
+
+  /// The dish's picture (emoji tile or photo).
+  final String art;
+
+  /// The dish's name.
+  final String title;
+}
+
+/// Hero tags for a single dish: the item id is the identity, with the name
+/// as a last-resort fallback when the id comes back blank.
+DishHeroTags dishHeroTagsForItem(MenuItem item) {
+  final id = item.id.trim();
+  final key = id.isEmpty ? item.name.trim() : id;
+  return DishHeroTags(art: 'dish-$key', title: 'dish-$key-title');
+}
+
+/// Hero tags for a listed run of dishes, made unique for one route.
+///
+/// A dish listed once keeps its plain tag — that is what pairs it with the
+/// dish's card. Anything that would repeat a tag already used in this run —
+/// the same dish listed twice (different options are separate cart lines),
+/// or an id crafted to collide with another dish's `-title` slot — gets the
+/// list position appended: Hero throws when two widgets in one route share a
+/// tag.
+List<DishHeroTags> dishHeroTagsFor(Iterable<MenuItem> items) {
+  final used = <String>{};
+  final tags = <DishHeroTags>[];
+  var position = 0;
+  for (final item in items) {
+    final base = dishHeroTagsForItem(item);
+    var dish = base;
+    while (used.contains(dish.art) || used.contains(dish.title)) {
+      dish = _withSuffix(dish, '@$position');
+    }
+    used.add(dish.art);
+    used.add(dish.title);
+    tags.add(dish);
+    position++;
+  }
+  return tags;
+}
+
+DishHeroTags _withSuffix(DishHeroTags tags, String suffix) => DishHeroTags(
+      art: '${tags.art}$suffix',
+      title: '${tags.title}$suffix',
+    );
+
 /// "GST 5%" pill shown next to prices on the menu.
 class GstChip extends StatelessWidget {
   final int rate;
@@ -47,18 +104,21 @@ class GstChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: CafePalette.latte,
+        // Pale latte chip on cream; the raised surface tone in dark, so it
+        // reads as a chip instead of a bright sticker.
+        color: scheme.latte,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
         'GST $rate%',
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w700,
-          color: CafePalette.coffee,
+          color: scheme.coffee,
           letterSpacing: 0.2,
         ),
       ),
@@ -141,6 +201,8 @@ class CategoryPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final dark = scheme.brightness == Brightness.dark;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -152,14 +214,25 @@ class CategoryPill extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
           decoration: BoxDecoration(
             gradient: selected ? CafeGradients.coffee : null,
-            color: selected ? null : Colors.white,
+            // Unselected rests on the page: white on cream, card surface
+            // on espresso (a white pill would glare there).
+            color: selected ? null : scheme.surface,
             borderRadius: BorderRadius.circular(999),
             border: selected
                 ? null
-                : Border.all(color: Colors.black.withValues(alpha: 0.07)),
-            // Chips lift on the low rung of the shadow scale — no coloured
-            // glow; the gradient alone carries the selection colour.
-            boxShadow: selected ? AppShadow.low : null,
+                : Border.all(
+                    color: dark
+                        ? Colors.white.withValues(alpha: 0.10)
+                        : Colors.black.withValues(alpha: 0.07)),
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                      color: CafePalette.coffee.withValues(alpha: 0.30),
+                      blurRadius: 12,
+                      offset: const Offset(0, 5),
+                    ),
+                  ]
+                : null,
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -171,7 +244,7 @@ class CategoryPill extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 13.5,
                   fontWeight: FontWeight.w700,
-                  color: selected ? Colors.white : CafePalette.espresso,
+                  color: selected ? Colors.white : scheme.espressoInk,
                 ),
               ),
             ],
@@ -205,11 +278,15 @@ class GradientPillButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final enabled = onPressed != null;
+    final scheme = Theme.of(context).colorScheme;
+    final dark = scheme.brightness == Brightness.dark;
     final radius = BorderRadius.circular(999);
     return DecoratedBox(
       decoration: BoxDecoration(
         gradient: enabled ? gradient : null,
-        color: enabled ? null : const Color(0xFFE8E2DB),
+        // Disabled drops the gradient for a flat, inert tone: greyed cream
+        // on light, the top of the espresso ladder in dark.
+        color: enabled ? null : scheme.surfaceContainerHighest,
         borderRadius: radius,
         boxShadow: enabled ? AppShadow.low : null,
       ),
@@ -227,7 +304,12 @@ class GradientPillButton extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
-                  color: enabled ? Colors.white : Colors.black38,
+                  // White over the gradient; a muted on-surface wash over
+                  // the inert fill (black at 26–38% on light, warm white
+                  // at the same strength in dark).
+                  color: enabled
+                      ? Colors.white
+                      : scheme.onSurface.withValues(alpha: dark ? 0.45 : 0.38),
                 ),
                 child: Center(child: child),
               ),
@@ -249,26 +331,22 @@ class ItemAddButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (onTap == null) {
-      // Tell screen readers *why* the control is inert, and keep the
-      // "Sold out" label dark enough to read on the latte chip (the old
-      // 0xFF9C8A78 was ~2.4:1 on white — far below the 4.5:1 floor).
-      return Semantics(
-        button: true,
-        enabled: false,
-        label: 'Sold out — currently unavailable',
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-          decoration: BoxDecoration(
-            color: CafePalette.latte,
-            borderRadius: BorderRadius.circular(999),
-          ),
-          child: const Text(
-            'Sold out',
-            style: TextStyle(
-              fontSize: 12.5,
-              fontWeight: FontWeight.w700,
-              color: CafePalette.coffee,
-            ),
+      final scheme = Theme.of(context).colorScheme;
+      final dark = scheme.brightness == Brightness.dark;
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+        decoration: BoxDecoration(
+          color: scheme.latte,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Text(
+          'Sold out',
+          style: TextStyle(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w700,
+            // Muted coffee-grey on latte; the muted secondary text role
+            // carries the same "inert" reading on the dark surface.
+            color: dark ? scheme.onSurfaceVariant : const Color(0xFF9C8A78),
           ),
         ),
       );
@@ -300,12 +378,17 @@ class QtyStepper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final dark = scheme.brightness == Brightness.dark;
     return Container(
       constraints: const BoxConstraints(minHeight: 40),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.black.withValues(alpha: 0.07)),
+        border: Border.all(
+            color: dark
+                ? Colors.white.withValues(alpha: 0.10)
+                : Colors.black.withValues(alpha: 0.07)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -353,23 +436,22 @@ class _RoundStepButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      enabled: enabled,
-      label: semanticLabel,
-      child: InkResponse(
-        radius: 22,
-        // 44×44: Apple's minimum comfortable touch target (was 36×36).
-        onTap: onTap == null
-            ? null
-            : () {
-                AppHaptics.tap(context);
-                onTap!();
-              },
-        child: SizedBox(
-          width: 44,
-          height: 44,
-          child: _StepIcon(icon: icon, enabled: enabled),
+    final scheme = Theme.of(context).colorScheme;
+    final dark = scheme.brightness == Brightness.dark;
+    return InkResponse(
+      radius: 18,
+      onTap: onTap,
+      child: SizedBox(
+        width: 36,
+        height: 36,
+        child: Icon(
+          icon,
+          size: 20,
+          // Espresso ink when live; black@26% (light) / warm white@38%
+          // (dark) when the step is out of range.
+          color: enabled
+              ? scheme.espressoInk
+              : scheme.onSurface.withValues(alpha: dark ? 0.38 : 0.26),
         ),
       ),
     );
@@ -501,12 +583,29 @@ class BottomDock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BottomSurface(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.lg,
-        AppSpacing.md,
-        AppSpacing.lg,
-        AppSpacing.lg,
+    final scheme = Theme.of(context).colorScheme;
+    final dark = scheme.brightness == Brightness.dark;
+    return SafeArea(
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+        decoration: BoxDecoration(
+          // A white dock reads as "laid over" the cream page; in dark the
+          // same move is a *lighter* surface, one step up the ladder.
+          color: dark ? scheme.surfaceContainerHigh : Colors.white,
+          border: Border(
+              top: BorderSide(
+                  color: dark
+                      ? Colors.white.withValues(alpha: 0.08)
+                      : Colors.black.withValues(alpha: 0.05))),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 14,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: child,
       ),
       child: child,
     );

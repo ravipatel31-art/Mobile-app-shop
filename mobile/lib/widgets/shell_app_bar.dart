@@ -198,6 +198,9 @@ class _ShellAppBarState extends State<ShellAppBar> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final dark = scheme.brightness == Brightness.dark;
+    // The page colour the bar melts into (light: cream, dark: espresso).
+    final page = Theme.of(context).scaffoldBackgroundColor;
     final baseTitle = Theme.of(context).appBarTheme.titleTextStyle ??
         Theme.of(context).textTheme.titleLarge;
     // Big and unmistakably readable. We restore the user's OS text size
@@ -219,7 +222,9 @@ class _ShellAppBarState extends State<ShellAppBar> {
           height: 1.15,
           fontWeight: FontWeight.w600,
           letterSpacing: 0.1,
-          color: CafePalette.coffee.withValues(alpha: 0.9),
+          // Coffee ink on cream; the muted latte primary on espresso, where
+          // the coffee brown itself would sink into the background.
+          color: scheme.coffee.withValues(alpha: 0.9),
         );
     // Cafe name + date, or just the date when no branding is loaded yet.
     final subtitle = shellSubtitle(context, widget.subtitle);
@@ -327,9 +332,21 @@ class _ShellAppBarState extends State<ShellAppBar> {
           height: 36,
           padding: const EdgeInsets.only(left: 4, right: 10),
           decoration: BoxDecoration(
-            color: scheme.surface,
-            borderRadius: BorderRadius.circular(AppRadius.pill),
-            border: Border.all(color: AppColors.hairline),
+            // A white pill reads as "raised" on cream; on espresso the
+            // equivalent is the top of the surface ladder.
+            color: dark
+                ? scheme.surfaceContainerHighest
+                : Colors.white.withValues(alpha: 0.9),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+                color: dark ? scheme.outlineVariant : CafePalette.latte),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,

@@ -71,23 +71,67 @@ class _CafeAppState extends State<CafeApp> {
         title: 'Cafe POS',
         debugShowCheckedModeBanner: false,
         theme: buildAppTheme(),
+        darkTheme: buildAppTheme(brightness: Brightness.dark),
+        // Follow the OS appearance (Apple-style: dark mode is a system
+        // decision, never an in-app toggle).
+        themeMode: ThemeMode.system,
         home: const RootGate(),
       ),
     );
   }
 }
 
-ThemeData buildAppTheme() {
+/// Dark-appearance overrides on top of the seed-derived scheme.
+///
+/// The coffee seed already gives the dark palette its warmth — what it
+/// lacks is *hierarchy* and *restraint*:
+///  - Material's dark ramp compresses every surface into near-identical
+///    near-blacks, so nothing reads as elevated. We widen it into a five
+///    step espresso ladder: page < card < sheet < input, each step lighter
+///    as it comes forward.
+///  - The derived primary is a glare-prone peach; the dark brand brown is a
+///    muted latte instead.
+///  - Hairlines flip from black-alpha to white-alpha — a black line simply
+///    disappears against an espresso surface.
+ColorScheme _darkColorScheme(ColorScheme base) => base.copyWith(
+      // Muted, softened coffee: light enough to carry dark text and to
+      // read as a foreground, desaturated enough not to glare.
+      primary: const Color(0xFFD9AE8E),
+      // Surface ladder (page background is set separately, in the theme).
+      surfaceContainerLowest: const Color(0xFF100D09),
+      surfaceContainerLow: const Color(0xFF1C1712),
+      surface: const Color(0xFF231D17),
+      surfaceContainer: const Color(0xFF231D17),
+      surfaceContainerHigh: const Color(0xFF2C251D),
+      surfaceContainerHighest: const Color(0xFF352D25),
+      // Hairline / soft-edge line: white at low alpha, so one token works
+      // on the page, on cards and on sheets alike.
+      outlineVariant: const Color(0x2EFFFFFF),
+    );
+
+/// Builds the app theme for [brightness].
+///
+/// Both appearances share one structure — typography tracking, radii,
+/// button shapes, the quiet ink ripple — and differ only in tone: light is
+/// cream-on-espresso ink, dark is a re-tinted hierarchy of warm
+/// near-blacks with warm off-white text (never white-on-pure-black).
+ThemeData buildAppTheme({Brightness brightness = Brightness.light}) {
   const seed = CafePalette.coffee; // coffee brown
-  final scheme = ColorScheme.fromSeed(
+  final dark = brightness == Brightness.dark;
+  final seedScheme = ColorScheme.fromSeed(
     seedColor: seed,
-    brightness: Brightness.light,
+    brightness: brightness,
   );
+  final scheme = dark ? _darkColorScheme(seedScheme) : seedScheme;
+  // Deep espresso page background — near-black, but never pure black, so
+  // the surface steps above it stay visible.
+  final scaffoldBg = dark ? const Color(0xFF17120E) : CafePalette.cream;
   final base = ThemeData(colorScheme: scheme, useMaterial3: true);
   // One hairline token for every soft edge (borders, dividers) so the app
   // stops shipping three near-identical 5–6% black line colors.
-  const hairline = AppColors.hairline;
-  const softBorder = BorderSide(color: hairline);
+  final hairline =
+      dark ? const Color(0x1AFFFFFF) : const Color(0x0F000000); // white 10% / black 6%
+  final softBorder = BorderSide(color: hairline);
 
   // Size-specific tracking on every text role (WWDC typography): display
   // sizes tighten, small labels gain legibility, body stays neutral. Styles
@@ -115,14 +159,16 @@ ThemeData buildAppTheme() {
 
   return base.copyWith(
     textTheme: ramp,
-    scaffoldBackgroundColor: CafePalette.cream,
+    scaffoldBackgroundColor: scaffoldBg,
     // Warm coffee hover/focus tint so cards and tiles feel alive on
-    // pointer devices instead of the default neutral grey wash.
-    hoverColor: const Color(0x146F4E37),
-    focusColor: const Color(0x1F6F4E37),
-    highlightColor: const Color(0x0F6F4E37),
+    // pointer devices instead of the default neutral grey wash. On dark the
+    // same brown needs more alpha to register at all — a 6–12% tint of a
+    // colour *darker* than the surface is invisible on espresso.
+    hoverColor: dark ? const Color(0x2E6F4E37) : const Color(0x146F4E37),
+    focusColor: dark ? const Color(0x406F4E37) : const Color(0x1F6F4E37),
+    highlightColor: dark ? const Color(0x1F6F4E37) : const Color(0x0F6F4E37),
     appBarTheme: AppBarTheme(
-      backgroundColor: CafePalette.cream,
+      backgroundColor: scaffoldBg,
       foregroundColor: scheme.onSurface,
       elevation: 0,
       // Scroll-edge feedback for every plain AppBar, theme-wide: a soft
@@ -151,7 +197,10 @@ ThemeData buildAppTheme() {
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: const Color(0xFFFAF9F7),
+      // Fields read as sunken wells on cream; on espresso they must go the
+      // other way (lighter than the card) or they vanish into it.
+      fillColor:
+          dark ? scheme.surfaceContainerHighest : const Color(0xFFFAF9F7),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       labelStyle: TextStyle(color: scheme.onSurfaceVariant),
       prefixIconColor: scheme.onSurfaceVariant,
@@ -204,13 +253,13 @@ ThemeData buildAppTheme() {
       labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
     ),
     dialogTheme: DialogThemeData(
-      backgroundColor: scheme.surface,
+      backgroundColor: dark ? scheme.surfaceContainerHigh : scheme.surface,
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.xxl)),
     ),
     bottomSheetTheme: BottomSheetThemeData(
-      backgroundColor: scheme.surface,
+      backgroundColor: dark ? scheme.surfaceContainerHigh : scheme.surface,
       surfaceTintColor: Colors.transparent,
       showDragHandle: true,
       shape: const RoundedRectangleBorder(
@@ -229,10 +278,12 @@ ThemeData buildAppTheme() {
       trackColor: WidgetStateProperty.resolveWith(
         (states) => states.contains(WidgetState.selected)
             ? scheme.primaryContainer
-            : Colors.black.withValues(alpha: 0.1),
+            : dark
+                ? const Color(0x2EFFFFFF) // white @ 18%
+                : Colors.black.withValues(alpha: 0.1),
       ),
     ),
-    dividerTheme: const DividerThemeData(
+    dividerTheme: DividerThemeData(
       color: hairline,
       space: 1,
     ),
@@ -242,9 +293,11 @@ ThemeData buildAppTheme() {
     ),
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
-      backgroundColor: const Color(0xFF4E3626), // espresso
-      contentTextStyle: const TextStyle(
-        color: Colors.white,
+      // Espresso on cream; a *lifted* espresso on the dark page, so the
+      // toast still separates from a background that is already near-black.
+      backgroundColor: dark ? const Color(0xFF3A3026) : const Color(0xFF4E3626),
+      contentTextStyle: TextStyle(
+        color: dark ? const Color(0xFFF5F0EA) : Colors.white,
         fontWeight: FontWeight.w600,
       ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -317,24 +370,90 @@ final QrDeepLink? qrLaunchDeepLink = kIsWeb ? parseQrDeepLink(Uri.base) : null;
 /// A table-QR deep link skips all of that: the customer self-order flow is
 /// public, so `/t/<slug>/table/<n>` opens straight into the menu for that
 /// cafe without asking anyone to sign in.
-class RootGate extends StatelessWidget {
+///
+/// Smooth login→shell transition: when the user logs in, the shell screens
+/// fade in from the login screen (Apple-style: a gentle spring fade, not a
+/// hard tree swap).
+class RootGate extends StatefulWidget {
   const RootGate({super.key});
+
+  @override
+  State<RootGate> createState() => _RootGateState();
+}
+
+class _RootGateState extends State<RootGate> with SingleTickerProviderStateMixin {
+  late AnimationController _fadeController;
+  late Animation<double> _fadeAnimation;
+  bool _isLoggedIn = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fadeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    )..value = 0;
+    _fadeAnimation = CurvedAnimation(
+      parent: _fadeController,
+      curve: Curves.easeOut,
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant RootGate oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Detect login state change and trigger fade-in
+    if (oldWidget != widget) {
+      final auth = context.read<AuthState>();
+      if (!_isLoggedIn && auth.isLoggedIn) {
+        _fadeController.forward();
+      } else if (_isLoggedIn && !auth.isLoggedIn) {
+        _fadeController.reverse();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _fadeController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final qr = qrLaunchDeepLink;
     if (qr != null) {
-      return CustomerMenuScreen(tenant: qr.tenant, tableNumber: qr.tableNumber);
+      return FadeTransition(
+        opacity: _fadeAnimation,
+        child: CustomerMenuScreen(tenant: qr.tenant, tableNumber: qr.tableNumber),
+      );
     }
     final auth = context.watch<AuthState>();
     if (auth.loading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-    if (!auth.isLoggedIn) return const LoginScreen();
-    if (auth.isAdmin) return const AdminShell();
-    if (auth.isOwner) return const OwnerShell();
-    if (auth.role == 'cafe_ca') return const CaShell();
-    if (auth.isKitchen) return const KitchenShell();
-    return const StaffShell();
+    if (!auth.isLoggedIn) {
+      return FadeTransition(
+        opacity: _fadeAnimation,
+        child: const LoginScreen(),
+      );
+    }
+    // Store login state for transition detection
+    if (!_isLoggedIn) {
+      setState(() => _isLoggedIn = true);
+    }
+
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: auth.isAdmin
+          ? const AdminShell()
+          : auth.isOwner
+              ? const OwnerShell()
+              : auth.role == 'cafe_ca'
+                  ? const CaShell()
+                  : auth.isKitchen
+                      ? const KitchenShell()
+                      : const StaffShell(),
+    );
   }
 }

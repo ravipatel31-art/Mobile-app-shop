@@ -1,0 +1,39 @@
+Apple-Design Plan — 7 Phases
+Phase 1 — Foundations ✅ (done)
+- Design tokens in ui_kit.dart: AppSpacing (4pt), AppRadius, AppShadow (3-level depth), trackFor() size-specific tracking
+- Theme in main.dart: type ramp with tracking on every text role, quiet InkRipple splash, card clipBehavior, single hairline token, scheme-driven colors
+- ShellAppBar title tracking fixed for its 26px size
+Phase 2 — Materials & scroll-edge
+- Translucent BackdropFilter material for ShellAppBar, NavigationBar, BottomDock — content scrolls under chrome
+- Scroll-driven hairline (appears when content passes under, not always-on) — replace ShellAppBar's permanent divider; add edge feedback to plain AppBars
+- Consolidate 3 conflicting bottom-surface treatments (dock border+shadow / sheet footer border-only / ad-hoc padding with neither) into one
+- Apply AppShadow scale to all ~28 ad-hoc BoxShadows; remove colored glows (kitchen card, pill button)
+- Fix stacked-translucent-surface issue (identity chip over opaque gradient bar)
+- Align radius mismatches (menu picker 22 vs theme 24, double drag-handles)
+Phase 3 — Motion system
+- New motion.dart: Apple spring presets (critically damped response 0.4 default; 0.8 bounce only after flicks), reduceMotion(context) guard, gated haptic helper
+- Convert fixed-duration animations to springs (200/260/150/180ms sites)
+- Fix the 900ms revenue count-up — settle from the previously presented value, don't restart at 0 on refresh
+- Replace instant Opacity swaps with animated fades (sold-out dimming etc.)
+- Cross-fades under MediaQuery.disableAnimations
+Phase 4 — Gestures & latency
+- Optimistic state: paint order-advance/table changes immediately, reconcile after server response (kill await _load()-before-paint in kitchen, staff, tables)
+- Double-tap guards on kitchen/staff _advance (currently can skip a stage)
+- Flick-to-advance on kitchen tickets + order cards: 1:1 drag → velocity projection → spring commit or rubber-band release (flagship interaction)
+- Real detents (snapSizes) on DraggableScrollableSheets; snapping category strip; un-lock the wizard PageView drag
+- Floor-plan drag: rubber-banding at canvas edges, snap-to-grid
+- Unlock chat input during requests (type while waiting)
+Phase 5 — A11y & haptics
+- Restore text scaling in ShellAppBar (scope the web-glyph workaround), fix ~20 fixed-height-around-text containers (nav bar 68px, pill buttons, floor tiles)
+- Semantics on QtyStepper, emoji tiles, cart badge, icon-only buttons
+- Contrast fixes: sold-out 2.4:1, grey-on-cream body text, black26 disabled icons
+- HapticFeedback at 7 commit moments: add-to-cart, payment success/failure, fire-to-kitchen, stage advance, stepper taps, validation errors
+Phase 6 — Dark mode (blocker-sized)
+- darkTheme + themeMode
+- Migrate 129 Colors.white, 49 black, 58 grey, 165 status colors, 28 hex literals → scheme roles
+- Replace Opacity(...) "disabled" hack with a real color role
+Phase 7 — Spatial polish
+- Hero flights: menu card → item sheet → cart → checkout (shared-element continuity)
+- RootGate login→shell transition (currently a hard tree swap with zero transition)
+- Unify menu-picker's instant list→detail swap with the sheet language used by the customer flow
+- Haptic + directional consistency pass on route transitions

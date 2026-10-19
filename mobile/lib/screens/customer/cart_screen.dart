@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../util/money.dart';
+import '../../widgets/haptics.dart';
 import '../../widgets/ui_kit.dart';
 import 'checkout_screen.dart';
 import 'customer_cart.dart';
@@ -45,7 +46,9 @@ class CustomerCartScreen extends StatelessWidget {
                               '${cart.count} ${cart.count == 1 ? 'item' : 'items'} • GST incl.',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.grey.shade600,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
                               ),
                             ),
                             const SizedBox(height: 2),
@@ -64,13 +67,16 @@ class CustomerCartScreen extends StatelessWidget {
                       ),
                       const SizedBox(width: 12),
                       GradientPillButton(
-                        onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => CustomerCheckoutScreen(
-                                cart: cart, tenant: tenant),
-                          ),
-                        ),
+                        onPressed: () {
+                          AppHaptics.tap(context); // Navigate to checkout
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => CustomerCheckoutScreen(
+                                  cart: cart, tenant: tenant),
+                            ),
+                          );
+                        },
                         horizontalPadding: 24,
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,
@@ -105,74 +111,77 @@ class CustomerCartScreen extends StatelessWidget {
   }
 
   Widget _summaryHero(BuildContext context) {
-    return HeroBanner(
-      gradient: CafeGradients.coffee,
-      illustration: Align(
-        alignment: const Alignment(1.05, 0.4),
-        child: Opacity(
-          opacity: 0.25,
-          child: SizedBox(
-            width: 120,
-            height: 120,
-            child: CustomPaint(painter: LatteArtPainter(withBeans: false)),
+    return Hero(
+      tag: 'cart_summary',
+      child: HeroBanner(
+        gradient: CafeGradients.coffee,
+        illustration: Align(
+          alignment: const Alignment(1.05, 0.4),
+          child: Opacity(
+            opacity: 0.25,
+            child: SizedBox(
+              width: 120,
+              height: 120,
+              child: CustomPaint(painter: LatteArtPainter(withBeans: false)),
+            ),
           ),
         ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Expanded(
-            child: Column(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    cart.tableNumber == null
+                        ? 'Table not set'
+                        : 'Table ${cart.tableNumber}',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.88),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  const Text(
+                    'Your order',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 21,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Column(
               mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  cart.tableNumber == null
-                      ? 'Table not set'
-                      : 'Table ${cart.tableNumber}',
+                  '${cart.count} ${cart.count == 1 ? 'item' : 'items'}',
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.88),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
+                    color: Colors.white.withValues(alpha: 0.85),
+                    fontSize: 12.5,
                   ),
                 ),
-                const SizedBox(height: 3),
-                const Text(
-                  'Your order',
-                  style: TextStyle(
+                const SizedBox(height: 2),
+                Text(
+                  formatMoney(cart.total),
+                  style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 21,
+                    fontSize: 24,
                     fontWeight: FontWeight.w800,
-                    letterSpacing: -0.4,
+                    letterSpacing: -0.6,
                   ),
                 ),
               ],
             ),
-          ),
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                '${cart.count} ${cart.count == 1 ? 'item' : 'items'}',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.85),
-                  fontSize: 12.5,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                formatMoney(cart.total),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.6,
-                ),
-              ),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -188,7 +197,10 @@ class CustomerCartScreen extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ItemArt(item: line.item, size: 56, fontSize: 26),
+            Hero(
+              tag: 'item_${line.item.id}',
+              child: ItemArt(item: line.item, size: 56, fontSize: 26),
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -240,8 +252,7 @@ class CustomerCartScreen extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontSize: 12,
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
+                            color: theme.colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ),

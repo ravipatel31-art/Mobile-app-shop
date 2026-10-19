@@ -21,6 +21,151 @@ class CafePalette {
   static const ivory = Color(0xFFFFFFFF);
 }
 
+/// Semantic status colours, defined **once** for the whole app.
+///
+/// Order states, table occupancy and success/warning/error feedback used to
+/// re-type raw `Colors.red` / `Colors.green.shade700` / `0xFF2F6B51`
+/// literals in a dozen screens — colours that only ever read on cream.
+/// Resolve the palette for the current appearance at the top of `build`
+/// and reference it from there:
+///
+/// ```dart
+/// final status = AppStatus.of(context);
+/// ...
+/// status.danger,
+/// status.tint(status.danger), // soft chip/row wash
+/// ```
+///
+/// Light keeps the deep ink tones that hold contrast on cream (all ≥4.5:1
+/// on `#F6F4F1`, white-on-them ≥4.5:1 too, so a filled status button works
+/// either way). Dark lifts and softens them into warm pastel-with-body
+/// tones that stay legible over espresso without glaring — never the light
+/// values, which would punch a hole in a near-black screen.
+class AppStatus {
+  const AppStatus._();
+
+  /// Light appearance: deep, ink-like status colours.
+  static const light = AppStatusPalette(
+    success: Color(0xFF2F6B51),
+    warning: Color(0xFFB45309),
+    danger: Color(0xFFC62828),
+    info: Color(0xFF1E5FA8),
+    neutral: Color(0xFF546A73),
+    occupied: Color(0xFF9A4A2B),
+    brightness: Brightness.light,
+    onColor: Colors.white,
+  );
+
+  /// Dark appearance: same roles, lifted so they don't glare or sink.
+  static const dark = AppStatusPalette(
+    success: Color(0xFF7FC9A4),
+    warning: Color(0xFFE5B168),
+    danger: Color(0xFFF08A80),
+    info: Color(0xFF8FB8F8),
+    neutral: Color(0xFF9AA7AE),
+    occupied: Color(0xFFD19A79),
+    brightness: Brightness.dark,
+    onColor: Color(0xFF17120E),
+  );
+
+  /// The palette for the appearance currently in effect.
+  static AppStatusPalette of(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark ? dark : light;
+}
+
+/// One appearance's worth of [AppStatus] colours — see [AppStatus].
+class AppStatusPalette {
+  const AppStatusPalette({
+    required this.success,
+    required this.warning,
+    required this.danger,
+    required this.info,
+    required this.neutral,
+    required this.occupied,
+    required this.brightness,
+    this.onColor = Colors.white,
+  });
+
+  /// Done / paid / ready / free table.
+  final Color success;
+
+  /// Preparing / low stock / awaiting confirmation.
+  final Color warning;
+
+  /// Failed / cancelled / urgent.
+  final Color danger;
+
+  /// Neutral information (new, pending, queued).
+  final Color info;
+
+  /// Idle / unknown — the grey-blue "no strong signal" state.
+  final Color neutral;
+
+  /// Occupied table / busy station.
+  final Color occupied;
+
+  final Brightness brightness;
+
+  /// What to draw *on top of* one of these colours when it is used as a
+  /// fill (button, badge, full-colour chip): white on the deep light-mode
+  /// tones, near-black espresso on the lifted dark-mode ones.
+  final Color onColor;
+
+  /// The soft wash behind a status chip or highlighted row: the colour
+  /// itself at low alpha, so a badge tints its own backdrop instead of
+  /// shipping a second `shade50`/`shade100` literal that only reads on
+  /// cream. Dark needs roughly twice the alpha to register on espresso.
+  Color tint(Color base, {double? alpha}) => base.withValues(
+      alpha: alpha ?? (brightness == Brightness.dark ? 0.20 : 0.10));
+}
+
+/// [CafePalette] relationships expressed as theme roles, so screens can say
+/// `scheme.coffee` / `scheme.cream` instead of re-typing a hex literal that
+/// only ever read on a cream page.
+///
+/// The light values are *exactly* the palette constants (no light-mode
+/// drift); the dark values restate the same relationship on the espresso
+/// ladder — ink becomes the muted latte primary, pale fills step down
+/// toward the page, forward panels step up.
+extension CafePaletteRoles on ColorScheme {
+  /// Coffee ink: text, icons and accents that used to be
+  /// [CafePalette.coffee] (too dark to read on espresso).
+  Color get coffee =>
+      brightness == Brightness.dark ? primary : CafePalette.coffee;
+
+  /// Espresso ink: the dark text drawn *on* pale fills — [CafePalette.latte]
+  /// chips, white pills. In dark those fills become dark surfaces of their
+  /// own, so the ink is simply the current on-surface text colour.
+  Color get espressoInk =>
+      brightness == Brightness.dark ? onSurface : CafePalette.espresso;
+
+  /// Berry accent: the "required / attention" ink used by option badges and
+  /// validation hints — lifted in dark so it clears 4.5:1 on espresso.
+  Color get berry =>
+      brightness == Brightness.dark ? const Color(0xFFE8A5B5) : CafePalette.berry;
+
+  /// Mint accent: price deltas and other "positive" ink.
+  Color get mint =>
+      brightness == Brightness.dark ? const Color(0xFF8FD0AA) : CafePalette.mint;
+
+  /// Page / soft-card fill that used to be [CafePalette.cream].
+  Color get cream => brightness == Brightness.dark
+      ? surfaceContainerLow
+      : CafePalette.cream;
+
+  /// Pale secondary panel / chip fill that used to be [CafePalette.latte].
+  Color get latte => brightness == Brightness.dark
+      ? surfaceContainerHigh
+      : CafePalette.latte;
+
+  /// Dark contrast block (badge, snackbar-ish panel) that used to be
+  /// [CafePalette.espresso] — lightens in dark so it separates from the
+  /// page rather than merging with it.
+  Color get espresso => brightness == Brightness.dark
+      ? surfaceContainerHighest
+      : CafePalette.espresso;
+}
+
 class CafeGradients {
   static const coffee = LinearGradient(
     begin: Alignment.topLeft,

@@ -5,6 +5,7 @@ import '../../models/menu_item.dart';
 import '../../services/api_client.dart';
 import '../../state/tenant_state.dart';
 import '../../util/money.dart';
+import '../../widgets/haptics.dart';
 import '../../widgets/motion.dart';
 import '../../widgets/ui_kit.dart';
 import 'cart_screen.dart';
@@ -116,9 +117,11 @@ class _CustomerMenuScreenState extends State<CustomerMenuScreen> {
     if (!item.available) return;
     final added = await showCustomerItemSheet(context, item, _cart);
     if (!added || !mounted) return;
+    AppHaptics.light(context); // Navigate to cart moment
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       behavior: SnackBarBehavior.floating,
-      backgroundColor: CafePalette.espresso,
+      // Background comes from `snackBarTheme` (espresso in light, a lifted
+      // espresso in dark) — no per-snackbar colour to drift.
       duration: const Duration(milliseconds: 1400),
       content: Text('${item.name} added to your order'),
     ));
@@ -126,6 +129,7 @@ class _CustomerMenuScreenState extends State<CustomerMenuScreen> {
 
   void _openCart() {
     if (_cart.isEmpty) return;
+    AppHaptics.tap(context); // Navigate to cart
     Navigator.push(
         context,
         MaterialPageRoute(
@@ -203,14 +207,16 @@ class _CustomerMenuScreenState extends State<CustomerMenuScreen> {
 
   Widget _buildBody() {
     if (_loading) {
-      return const Center(
+      // The secondary text role instead of `Colors.black54` — one token
+      // that reads as "quiet hint" on cream and on espresso alike.
+      final hint = Theme.of(context).colorScheme.onSurfaceVariant;
+      return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 14),
-            Text('Warming up the menu…',
-                style: TextStyle(color: Colors.black54)),
+            const CircularProgressIndicator(),
+            const SizedBox(height: 14),
+            Text('Warming up the menu…', style: TextStyle(color: hint)),
           ],
         ),
       );
@@ -342,15 +348,16 @@ class _CustomerMenuScreenState extends State<CustomerMenuScreen> {
   }
 
   Widget _itemCard(MenuItem item) {
+    final scheme = Theme.of(context).colorScheme;
+    final muted = !item.available;
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       clipBehavior: Clip.antiAlias,
+      color: muted ? scheme.surfaceContainerHighest : null,
       child: InkWell(
         onTap: () => _openItem(item),
         child: Padding(
           padding: const EdgeInsets.all(12),
-          // Sold-out dim eases in/out when availability flips on refresh
-          // (instant Opacity would pop). Fast/zero under reduced motion.
           child: AnimatedOpacity(
             opacity: item.available ? 1 : 0.55,
             duration: AppMotion.duration(context, 200),
@@ -361,35 +368,24 @@ class _CustomerMenuScreenState extends State<CustomerMenuScreen> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    ItemArt(item: item, size: 84, fontSize: 36),
+                    Hero(
+                      tag: 'item_${item.id}',
+                      child: ItemArt(item: item, size: 84, fontSize: 36),
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            item.name,
+                            item.description,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 15.5,
-                              fontWeight: FontWeight.w700,
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              color: scheme.onSurfaceVariant,
                             ),
                           ),
-                          if (item.description.isNotEmpty) ...[
-                            const SizedBox(height: 3),
-                            Text(
-                              item.description,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 12.5,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant,
-                              ),
-                            ),
-                          ],
                         ],
                       ),
                     ),
@@ -406,10 +402,11 @@ class _CustomerMenuScreenState extends State<CustomerMenuScreen> {
                         alignment: Alignment.centerLeft,
                         child: Text(
                           formatMoney(item.basePrice),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 16.5,
                             fontWeight: FontWeight.w800,
                             letterSpacing: -0.2,
+                            color: muted ? scheme.onSurfaceVariant : null,
                           ),
                         ),
                       ),
