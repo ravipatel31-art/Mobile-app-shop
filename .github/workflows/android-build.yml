@@ -11,10 +11,10 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     
     - name: Setup Java
-      uses: actions/setup-java@v3
+      uses: actions/setup-java@v4
       with:
         distribution: 'zulu'
         java-version: '17'
@@ -32,11 +32,37 @@ jobs:
     
     - name: Build Android APK
       working-directory: ./mobile
-      run: flutter build apk --release
+      run: |
+        # Clean build
+        flutter clean
+        flutter pub get
+        
+        # Build release APK
+        flutter build apk --release --split-per-abi
+        
+        # Check build output
+        echo "Build completed successfully"
+        ls -lh build/app/outputs/flutter-apk/
+        
+        # Show APK sizes
+        for file in build/app/outputs/flutter-apk/*.apk; do
+          echo "APK: $file"
+          ls -lh "$file"
+        done
     
-    - name: Upload APK
-      uses: actions/upload-artifact@v3
+    - name: Upload APK Artifacts
+      uses: actions/upload-artifact@v4
       with:
         name: cafe-pos-apk
-        path: mobile/build/app/outputs/flutter-apk/app-release.apk
+        path: |
+          mobile/build/app/outputs/flutter-apk/*.apk
         retention-days: 30
+        if-no-files-found: error
+    
+    - name: Create APK Summary
+      run: |
+        echo "## APK Build Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "Build completed successfully!" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "Download the APK from the artifacts below." >> $GITHUB_STEP_SUMMARY
