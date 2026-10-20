@@ -371,9 +371,12 @@ final QrDeepLink? qrLaunchDeepLink = kIsWeb ? parseQrDeepLink(Uri.base) : null;
 /// public, so `/t/<slug>/table/<n>` opens straight into the menu for that
 /// cafe without asking anyone to sign in.
 ///
-/// Smooth login→shell transition: when the user logs in, the shell screens
-/// fade in from the login screen (Apple-style: a gentle spring fade, not a
-/// hard tree swap).
+/// Smooth login→shell transition: [AnimatedSwitcher] cross-fades between
+/// screens (Apple-style: the outgoing screen fades out while the incoming
+/// one fades in, so there is never a blank frame). Every state carries a
+/// distinct key so the switcher animates exactly when the visible screen
+/// changes — and, crucially, the first screen is shown at full opacity
+/// instead of being trapped behind a fade that starts at zero.
 class RootGate extends StatefulWidget {
   const RootGate({super.key});
 
@@ -381,79 +384,42 @@ class RootGate extends StatefulWidget {
   State<RootGate> createState() => _RootGateState();
 }
 
-class _RootGateState extends State<RootGate> with SingleTickerProviderStateMixin {
-  late AnimationController _fadeController;
-  late Animation<double> _fadeAnimation;
-  bool _isLoggedIn = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _fadeController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    )..value = 0;
-    _fadeAnimation = CurvedAnimation(
-      parent: _fadeController,
-      curve: Curves.easeOut,
-    );
-  }
-
-  @override
-  void didUpdateWidget(covariant RootGate oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // Detect login state change and trigger fade-in
-    if (oldWidget != widget) {
-      final auth = context.read<AuthState>();
-      if (!_isLoggedIn && auth.isLoggedIn) {
-        _fadeController.forward();
-      } else if (_isLoggedIn && !auth.isLoggedIn) {
-        _fadeController.reverse();
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _fadeController.dispose();
-    super.dispose();
-  }
-
+class _RootGateState extends State<RootGate> {
   @override
   Widget build(BuildContext context) {
     final qr = qrLaunchDeepLink;
     if (qr != null) {
-      return FadeTransition(
-        opacity: _fadeAnimation,
-        child: CustomerMenuScreen(tenant: qr.tenant, tableNumber: qr.tableNumber),
-      );
-    }
-    final auth = context.watch<AuthState>();
-    if (auth.loading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-    if (!auth.isLoggedIn) {
-      return FadeTransition(
-        opacity: _fadeAnimation,
-        child: const LoginScreen(),
-      );
-    }
-    // Store login state for transition detection
-    if (!_isLoggedIn) {
-      setState(() => _isLoggedIn = true);
+      // Public self-order flow — no auth gate, straight into the menu.
+      return CustomerMenuScreen(tenant: qr.tenant, tableNumber: qr.tableNumber);
     }
 
-    return FadeTransition(
-      opacity: _fadeAnimation,
-      child: auth.isAdmin
-          ? const AdminShell()
-          : auth.isOwner
-              ? const OwnerShell()
-              : auth.role == 'cafe_ca'
-                  ? const CaShell()
-                  : auth.isKitchen
-                      ? const KitchenShell()
-                      : const StaffShell(),
+    final auth = context.watch<AuthState>();
+
+    final Widget screen;
+    if (auth.loading) {
+      screen = const Scaffold(
+        key: ValueKey('loading'),
+        body: Center(child: CircularProgressIndicator()),
+      );
+    } else if (!auth.isLoggedIn) {
+      screen = const LoginScreen(key: ValueKey('login'));
+    } else if (auth.isAdmin) {
+      screen = const AdminShell(key: ValueKey('admin'));
+    } else if (auth.isOwner) {
+      screen = const OwnerShell(key: ValueKey('owner'));
+    } else if (auth.role == 'cafe_ca') {
+      screen = const CaShell(key: ValueKey('ca'));
+    } else if (auth.isKitchen) {
+      screen = const KitchenShell(key: ValueKey('kitchen'));
+    } else {
+      screen = const StaffShell(key: ValueKey('staff'));
+    }
+
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 280),
+      switchInCurve: Curves.easeOut,
+      switchOutCurve: Curves.easeIn,
+      child: screen,
     );
   }
 }

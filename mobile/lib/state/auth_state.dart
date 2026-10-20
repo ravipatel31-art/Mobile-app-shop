@@ -68,20 +68,25 @@ class AuthState extends ChangeNotifier {
       _storage.write(key: _key, value: jsonEncode(_snapshot()));
 
   Future<void> load() async {
-    final raw = await _storage.read(key: _key);
-    if (raw != null) {
-      final data = jsonDecode(raw) as Map<String, dynamic>;
-      _token = data['token'] as String?;
-      role = data['role'] as String?;
-      username = data['username'] as String?;
-      name = data['name'] as String?;
-      tenant = data['tenant'] as String?;
-      _adminToken = data['adminToken'] as String?;
-      _adminUsername = data['adminUsername'] as String?;
-      _adminName = data['adminName'] as String?;
-      actingSlug = data['actingSlug'] as String?;
-      actingCafeName = data['actingCafeName'] as String?;
-      _api.token = _token;
+    try {
+      final raw = await _storage.read(key: _key);
+      if (raw != null) {
+        final data = jsonDecode(raw) as Map<String, dynamic>;
+        _token = data['token'] as String?;
+        role = data['role'] as String?;
+        username = data['username'] as String?;
+        name = data['name'] as String?;
+        tenant = data['tenant'] as String?;
+        _adminToken = data['adminToken'] as String?;
+        _adminUsername = data['adminUsername'] as String?;
+        _adminName = data['adminName'] as String?;
+        actingSlug = data['actingSlug'] as String?;
+        actingCafeName = data['actingCafeName'] as String?;
+        _api.token = _token;
+      }
+    } catch (_) {
+      // Stored session unreadable (e.g. keychain hiccup on a release iOS
+      // build) — start logged out rather than hang on the spinner forever.
     }
     _loading = false;
     notifyListeners();
