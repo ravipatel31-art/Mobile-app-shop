@@ -377,15 +377,36 @@ class _CustomerMenuScreenState extends State<CustomerMenuScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // The dish's name is the primary label — it was
+                          // missing entirely, so a customer couldn't tell what
+                          // they were ordering at a glance. Hierarchy mirrors
+                          // the item sheet: strong title over a quiet line of
+                          // description.
                           Text(
-                            item.description,
-                            maxLines: 1,
+                            item.name,
+                            maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              fontSize: 12.5,
-                              color: scheme.onSurfaceVariant,
+                              fontSize: 15.5,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.2,
+                              height: 1.2,
+                              color: scheme.onSurface,
                             ),
                           ),
+                          if (item.description.isNotEmpty) ...[
+                            const SizedBox(height: 3),
+                            Text(
+                              item.description,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                height: 1.3,
+                                color: scheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -406,7 +427,11 @@ class _CustomerMenuScreenState extends State<CustomerMenuScreen> {
                             fontSize: 16.5,
                             fontWeight: FontWeight.w800,
                             letterSpacing: -0.2,
-                            color: muted ? scheme.onSurfaceVariant : null,
+                            // `scheme.coffee` is brass-gold in dark and the
+                            // warm brown in light — matches the price treatment
+                            // already used in the item sheet, so the accent is
+                            // consistent from menu to detail.
+                            color: muted ? scheme.onSurfaceVariant : scheme.coffee,
                           ),
                         ),
                       ),

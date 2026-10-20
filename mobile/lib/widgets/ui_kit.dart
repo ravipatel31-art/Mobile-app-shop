@@ -194,30 +194,39 @@ class CafeGradients {
     end: Alignment.bottomRight,
     colors: [Color(0xFFF3DCA8), Color(0xFFD8A75A)],
   );
+  // The category / status accents are deliberately tuned to a rich,
+  // medium-deep value. Every one of these backs *white* content — the icon
+  // in a StatCard or QuickActionTile chip, the title on a hero banner, a
+  // chosen pill — and the old candy-bright stops put white at 1.7–2.7:1
+  // (unreadable). Each end now sits in a luminance band where white clears
+  // ~3.6–5.5:1: crisp to read, still fully saturated, and premium rather
+  // than pastel. Hue variety is preserved so categories stay tellable apart,
+  // and the deep end stays at the top-left (where hero text lives) to match
+  // [coffee] and [espresso].
   static const sunrise = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFFF2B251), Color(0xFFE8845C)],
+    colors: [Color(0xFFA85A22), Color(0xFFC1741F)],
   );
   static const peach = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFFFFB88C), Color(0xFFE8845C)],
+    colors: [Color(0xFFB5614A), Color(0xFFC1745C)],
   );
   static const mint = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFF5FAB86), Color(0xFF8FD0AA)],
+    colors: [Color(0xFF2F8A67), Color(0xFF3F9876)],
   );
   static const berry = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFFB3546E), Color(0xFFD98A9E)],
+    colors: [Color(0xFF9E3F5B), Color(0xFFB45E74)],
   );
   static const sky = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFF5B8DEF), Color(0xFF8FB8F8)],
+    colors: [Color(0xFF3B6FD0), Color(0xFF5488DF)],
   );
 
   /// Stable pick from a seed string so the same category/dish always gets
