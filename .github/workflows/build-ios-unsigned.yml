@@ -3,19 +3,21 @@ name: Build iOS IPA (unsigned — for sideloading)
 # Builds a proper Flutter IPA that you can install on your iPhone with a
 # sideloading tool (iLoader / AltStore / Sideloadly / Scarlet).
 #
-# WHY THIS WORKFLOW AND NOT `flutter build ipa`:
-#   `flutter build ipa --no-codesign` still runs Xcode's archive + export
-#   pipeline, which REQUIRES a DEVELOPMENT_TEAM (Apple Developer account).
-#   Without a paid account it fails with an export error.
+# WHY `flutter build ipa` DOESN'T WORK HERE:
+#   `flutter build ipa` (even with --no-codesign) runs Xcode's archive+export
+#   pipeline, which REQUIRES a DEVELOPMENT_TEAM (a paid Apple Developer
+#   account). Without one, the export fails.
 #
-#   `flutter build ios --release --no-codesign` SKIPS that pipeline and
-#   writes a raw Runner.app bundle to build/ios/iphoneos/. We then wrap
-#   that bundle in a Payload/ folder and zip it — which is exactly the
-#   structure an .ipa file is. No Apple account needed.
+#   We instead:
+#     1. Patch the Xcode project to disable code signing entirely
+#        (CODE_SIGN_STYLE=Manual, CODE_SIGN_IDENTITY=-, ENABLE_CODE_SIGNING=NO)
+#     2. Run `flutter build ios --release --no-codesign`, which skips the
+#        archive/export pipeline and writes a raw Runner.app bundle.
+#     3. Wrap Runner.app in a Payload/ folder and zip it — that IS an .ipa.
 #
-#   The resulting IPA is unsigned. Your sideloading tool (iLoader etc.)
-#   re-signs it on install using your own Apple ID, so it works on your
-#   device for 7 days (free account) or 1 year (paid account).
+#   The result is an UNSIGNED ipa. Your sideloading tool re-signs it with
+#   your own Apple ID on install, so it runs on your device for 7 days
+#   (free Apple ID) or 1 year (paid account).
 
 on:
   workflow_dispatch: # Run manually from the Actions tab
@@ -50,24 +52,53 @@ jobs:
           flutter --version
           xcodebuild -version
 
+      # This is ESSENTIAL. Without it, `flutter build ios` fails with
+      # "Building a deployable iOS app requires a selected Development Team"
+      # because the project is set to CODE_SIGN_STYLE=Automatic.
+      - name: Patch Xcode project for unsigned build
+        run: |
+          set -euo pipefail
+          PBX="ios/Runner.xcodeproj/project.pbxproj"
+          echo "Patching $PBX to disable code signing..."
+
+          # Switch from automatic to manual signing
+          sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' "$PBX"
+          # Use ad-hoc / no identity ("-") instead of "iPhone Developer"
+          sed -i '' 's/"CODE_SIGN_IDENTITY\[sdk=iphoneos\*\]" = "iPhone Developer";/"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "-";/g' "$PBX"
+          sed -i '' 's/"CODE_SIGN_IDENTITY" = "iPhone Developer";/"CODE_SIGN_IDENTITY" = "-";/g' "$PBX"
+          # Remove any DEVELOPMENT_TEAM entries (not needed for unsigned)
+          sed -i '' '/DEVELOPMENT_TEAM/d' "$PBX"
+          # Force code signing off for all build configurations
+          sed -i '' 's/ENABLE_CODE_SIGNING = YES;/ENABLE_CODE_SIGNING = NO;/g' "$PBX"
+
+          echo "Patched. Signing-related lines now:"
+          grep -n "CODE_SIGN_STYLE\|CODE_SIGN_IDENTITY\|DEVELOPMENT_TEAM\|ENABLE_CODE_SIGNING" "$PBX" || true
+
+      - name: Install CocoaPods dependencies
+        run: |
+          set -euo pipefail
+          cd ios
+          pod install --repo-update
+          cd ..
+
       - name: Build iOS app (no code signing)
         run: |
           set -euo pipefail
-          # Build the raw Runner.app. This skips archive/export entirely,
-          # so no DEVELOPMENT_TEAM or Apple account is required.
+          # Build the raw Runner.app. Because we patched the project to
+          # disable signing, this succeeds WITHOUT a DEVELOPMENT_TEAM.
           flutter build ios --release --no-codesign \
             --dart-define=API_BASE_URL="https://mobileapp.unonomercysound.online"
 
           echo "Flutter build complete. Contents of build/ios/:"
           ls -la build/ios/ || true
-          find build/ios -maxdepth 3 -name "Runner.app" -type d || true
+          find build/ios -maxdepth 4 -name "Runner.app" -type d || true
 
       - name: Package Runner.app into a .ipa
         run: |
           set -euo pipefail
 
-          # Locate Runner.app. Flutter puts it in build/ios/iphoneos/, but
-          # be defensive and search a few common locations.
+          # Locate Runner.app. Depending on Flutter/Xcode version it can land
+          # in a few places — search them all.
           APP_PATH=""
           for dir in \
             build/ios/iphoneos/Runner.app \
@@ -91,7 +122,7 @@ jobs:
 
           # An .ipa is just a zip with this layout:
           #   Payload/
-          #     YourApp.app/
+          #     Runner.app/
           #       ... (the app bundle contents)
           rm -rf Payload
           mkdir Payload
@@ -159,7 +190,7 @@ jobs:
             echo ""
             echo "### Build details"
             echo "- Runner: \`macos-15\`"
-            echo "- Method: \`flutter build ios --no-codesign\` + Payload zip (no Apple account required)"
+            echo "- Method: patched Xcode project (signing off) + \`flutter build ios --no-codesign\` + Payload zip"
             echo "- Bundle ID: \`com.ravi.cafeapp\`"
             echo "- API: \`https://mobileapp.unonomercysound.online\`"
             echo "- Built: $(date -u '+%Y-%m-%d %H:%M UTC')"
