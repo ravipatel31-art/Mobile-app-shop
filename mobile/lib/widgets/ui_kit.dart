@@ -315,14 +315,17 @@ double trackFor(double fontSize) {
 /// Frosted-glass chrome material — the app's one translucent surface.
 ///
 /// Blurs whatever scrolls underneath (blur 20, the iOS "regular blur"
-/// width), sits on a light semi-transparent tint, and catches the light
-/// along its top edge with a bright hairline. Use it for app chrome that
-/// content scrolls *under* (role-shell app bar, bottom navigation) instead
-/// of stacking opaque surfaces on opaque ones.
+/// width), sits on a deep espresso semi-transparent tint, and catches the
+/// light along its top edge with a faint hairline. The tint is dark (not
+/// the old white glass) so the chrome reads as part of the espresso theme:
+/// content slides under a subtle dark glass instead of a bright panel
+/// cutting across the dark appearance. Use it for app chrome that content
+/// scrolls *under* (role-shell app bar, bottom navigation) instead of
+/// stacking opaque surfaces on opaque ones.
 ///
 /// NB: iOS pairs the blur with a 180% saturation boost; Flutter's backdrop
 /// API only exposes geometric `ImageFilter.matrix` (no colour matrix), so
-/// the saturation stage is approximated by the blur + light glass tint.
+/// the saturation stage is approximated by the blur + espresso tint.
 class TranslucentBar extends StatelessWidget {
   const TranslucentBar({super.key, this.child});
 
@@ -342,10 +345,10 @@ class TranslucentBar extends StatelessWidget {
         filter: _frost,
         child: DecoratedBox(
           decoration: const BoxDecoration(
-            color: Color(0xB3FFFFFF), // white @ 70% — the light glass tint
+            color: Color(0xD6100D09), // espresso @ 84% — the dark glass tint
             border: Border(
               top: BorderSide(
-                color: Color(0x99FFFFFF), // light catching the top edge
+                color: Color(0x40FFFFFF), // faint light catching the top edge
                 width: 0.5,
               ),
             ),

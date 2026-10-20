@@ -265,22 +265,26 @@ ThemeData buildAppTheme({Brightness brightness = Brightness.light}) {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     ),
-    navigationBarTheme: NavigationBarThemeData(
+    navigationBarTheme: const NavigationBarThemeData(
       // No fixed height here: the shells pass a scale-aware minimum
       // (navBarMinHeight) so destination labels grow with the OS text size
       // instead of being clipped inside a 68px box.
       elevation: 0,
       // Frosted chrome: the four role shells wrap their NavigationBar in a
-      // [TranslucentBar] (blur + light glass tint + bright top edge), so the
-      // bar's own background stays transparent and content slides under a
-      // light glass surface instead of hitting an opaque wall.
+      // [TranslucentBar] (blur + deep espresso glass tint + faint top edge),
+      // so the bar's own background stays transparent and content slides
+      // under a dark glass surface instead of hitting an opaque wall.
       backgroundColor: Colors.transparent,
       surfaceTintColor: Colors.transparent,
-      // Selected: a warm gold pill (primaryContainer) with a bright-gold
-      // icon/label on it — M3 paints the selected content with
-      // onSecondaryContainer, so that role is set to champagne in the scheme.
-      // Unselected stays a quiet on-surface grey.
-      indicatorColor: scheme.primaryContainer,
+      // Selected: a warm gold pill with a bright-champagne icon/label on it —
+      // M3 paints the selected content with onSecondaryContainer, so that
+      // role is set to champagne in the scheme. The pill is lifted a touch
+      // above primaryContainer (#4A3C1E): against the old light glass that
+      // dark gold read clearly, but on the dark frosted glass it fell to
+      // ~1.8:1 and the filled selected shape all but vanished. This value
+      // reads as a clear pill (~2.9:1 vs the glass) while still holding the
+      // champagne content at ~4.9:1. Unselected stays a quiet grey.
+      indicatorColor: Color(0xFF705A26),
       labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
     ),
     dialogTheme: DialogThemeData(

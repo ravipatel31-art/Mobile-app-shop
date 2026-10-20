@@ -231,18 +231,22 @@ class _ShellAppBarState extends State<ShellAppBar> {
 
     return AppBar(
       toolbarHeight: ShellAppBar.kHeight - 1,
-      // Frosted chrome material: a 20px backdrop blur behind a light glass
-      // tint, with a bright hairline catching the light along the top edge.
-      // The old opaque latte→cream gradient is gone: list content now meets
-      // a translucent bar instead of a painted wall.
+      // Frosted chrome material: a 20px backdrop blur behind a deep espresso
+      // glass tint, with a faint hairline catching the light along the top
+      // edge. The old opaque latte→cream gradient is gone: list content now
+      // meets a translucent bar instead of a painted wall — and because the
+      // glass is dark, the bar sits *inside* the espresso theme rather than
+      // cutting across it as a bright panel.
       backgroundColor: Colors.transparent,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       // Our own hairline handles scroll-edge feedback (see `bottom` below).
       scrolledUnderElevation: 0,
-      // A transparent background would otherwise be estimated as "dark" and
-      // flip the status-bar icons to white; the bar is light, keep them dark.
-      systemOverlayStyle: SystemUiOverlayStyle.dark,
+      // The glass is dark espresso now, so the status-bar icons want to be
+      // light (white) to stay legible over it. A transparent background
+      // would already be estimated as "dark" and flip them white, but we pin
+      // the light style explicitly so it holds regardless of estimation.
+      systemOverlayStyle: SystemUiOverlayStyle.light,
       flexibleSpace: const TranslucentBar(),
       // Hairline (or the offline / pending-sync banner) under the toolbar:
       // the line only fades in once content has actually scrolled under the
@@ -256,7 +260,13 @@ class _ShellAppBarState extends State<ShellAppBar> {
                 opacity: widget.scrolledUnder ? 1 : 0,
                 duration: const Duration(milliseconds: 200),
                 curve: Curves.easeOut,
-                child: const ColoredBox(color: AppColors.hairline),
+                child: ColoredBox(
+                  // Theme hairline (white @ 10% in dark) so the scroll-edge
+                  // line reads on the dark glass — the const black hairline
+                  // would vanish against espresso.
+                  color: Theme.of(context).dividerTheme.color ??
+                      AppColors.hairline,
+                ),
               ),
       ),
       titleSpacing: 16,
