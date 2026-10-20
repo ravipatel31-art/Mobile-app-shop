@@ -81,17 +81,40 @@ jobs:
           pod install --repo-update
           cd ..
 
-      - name: Build iOS app (no code signing)
+      # Flutter 3.47's `flutter build ios` refuses to finish without a
+      # DEVELOPMENT_TEAM even with --no-codesign, so it can't produce a
+      # runnable Runner.app on its own here. We still run it once because it
+      # downloads the iOS engine + does Dart setup that xcodebuild relies on
+      # (the exit code is expected to be non-zero, hence `|| true`).
+      - name: Prepare Flutter iOS build environment
+        run: |
+          flutter build ios --release --no-codesign \
+            --dart-define=API_BASE_URL="https://mobileapp.unonomercysound.online" \
+            || echo "::warning::flutter build ios exited non-zero (expected on CI). Continuing with direct xcodebuild."
+
+      # This is the build that actually works. Calling xcodebuild directly
+      # with code signing force-disabled bypasses Flutter's DEVELOPMENT_TEAM
+      # gate. The Flutter "Run Flutter Build" script phase compiles the Dart
+      # AOT code as part of this same xcodebuild invocation.
+      - name: Build iOS app with xcodebuild (signing disabled)
         run: |
           set -euo pipefail
-          # Build the raw Runner.app. Because we patched the project to
-          # disable signing, this succeeds WITHOUT a DEVELOPMENT_TEAM.
-          flutter build ios --release --no-codesign \
-            --dart-define=API_BASE_URL="https://mobileapp.unonomercysound.online"
+          xcodebuild \
+            -workspace ios/Runner.xcworkspace \
+            -scheme Runner \
+            -sdk iphoneos \
+            -configuration Release \
+            -derivedDataPath build/ios \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            DEVELOPMENT_TEAM="" \
+            ENABLE_BITCODE=NO \
+            ONLY_ACTIVE_ARCH=NO
 
-          echo "Flutter build complete. Contents of build/ios/:"
-          ls -la build/ios/ || true
-          find build/ios -maxdepth 4 -name "Runner.app" -type d || true
+          echo ""
+          echo "xcodebuild finished. Looking for Runner.app..."
+          find build/ios -maxdepth 6 -name "Runner.app" -type d
 
       - name: Package Runner.app into a .ipa
         run: |
@@ -101,8 +124,8 @@ jobs:
           # in a few places — search them all.
           APP_PATH=""
           for dir in \
-            build/ios/iphoneos/Runner.app \
             build/ios/Build/Products/Release-iphoneos/Runner.app \
+            build/ios/iphoneos/Runner.app \
             build/ios/Release-iphoneos/Runner.app; do
             if [ -d "$dir" ]; then
               APP_PATH="$dir"
