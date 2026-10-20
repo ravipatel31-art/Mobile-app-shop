@@ -19,6 +19,13 @@ class CafePalette {
   static const mist = Color(0xFFE4E6EB);
   static const charcoal = Color(0xFF333333);
   static const ivory = Color(0xFFFFFFFF);
+
+  // ---- Premium brass family (the "Dark & Premium" accent) ---------------
+  /// Polished brass gold — the hero accent. Matches the dark theme's
+  /// `primary`; use it for the one element that should catch the eye.
+  static const gold = Color(0xFFE6B25A);
+  static const champagne = Color(0xFFF3DCA8); // pale gold highlight
+  static const bronze = Color(0xFF9C7038); // deeper metal, for gradients
 }
 
 /// Semantic status colours, defined **once** for the whole app.
@@ -167,15 +174,25 @@ extension CafePaletteRoles on ColorScheme {
 }
 
 class CafeGradients {
+  /// Deep espresso → warm bronze: the signature header wash. Darker and
+  /// richer than a flat brown so gold content on top feels lit from within.
   static const coffee = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFF6F4E37), Color(0xFFA0785A)],
+    colors: [Color(0xFF3D2A1A), Color(0xFF9C7038)],
   );
   static const espresso = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFF4E3626), Color(0xFF6F4E37)],
+    colors: [Color(0xFF2A1E14), Color(0xFF5E4128)],
+  );
+  /// Polished-brass shimmer — reserved for the single most important moment
+  /// on a screen (a hero total, a success celebration). Used sparingly so it
+  /// stays special.
+  static const gold = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFFF3DCA8), Color(0xFFD8A75A)],
   );
   static const sunrise = LinearGradient(
     begin: Alignment.topLeft,

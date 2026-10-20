@@ -56,10 +56,12 @@ flutter_launcher_icons:
     background_color: "#4E3626"
 
 flutter_native_splash:
-  color: "#4E3626"
+  # Matches the app's deep-espresso page background (#100D09) so the launch
+  # screen dissolves straight into the app with no colour jump.
+  color: "#100D09"
   image: assets/images/logo.png
   android_12:
-    color: "#4E3626"
+    color: "#100D09"
     image: assets/images/logo.png
   android: true
   ios: true

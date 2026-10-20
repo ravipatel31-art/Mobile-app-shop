@@ -72,41 +72,67 @@ class _CafeAppState extends State<CafeApp> {
         debugShowCheckedModeBanner: false,
         theme: buildAppTheme(),
         darkTheme: buildAppTheme(brightness: Brightness.dark),
-        // Follow the OS appearance (Apple-style: dark mode is a system
-        // decision, never an in-app toggle).
-        themeMode: ThemeMode.system,
+        // "Dark & Premium": the app owns a deep-espresso, gold-accented
+        // appearance instead of following the OS. It reads upscale in a dim
+        // cafe and keeps this hero look identical on every device.
+        themeMode: ThemeMode.dark,
         home: const RootGate(),
       ),
     );
   }
 }
 
-/// Dark-appearance overrides on top of the seed-derived scheme.
+/// Dark appearance — the app's hero look: a deep, warm espresso ladder with
+/// a single polished-brass accent.
 ///
-/// The coffee seed already gives the dark palette its warmth — what it
-/// lacks is *hierarchy* and *restraint*:
-///  - Material's dark ramp compresses every surface into near-identical
-///    near-blacks, so nothing reads as elevated. We widen it into a five
-///    step espresso ladder: page < card < sheet < input, each step lighter
-///    as it comes forward.
-///  - The derived primary is a glare-prone peach; the dark brand brown is a
-///    muted latte instead.
-///  - Hairlines flip from black-alpha to white-alpha — a black line simply
-///    disappears against an espresso surface.
+/// Premium here means restraint. The surfaces are warm near-blacks (never
+/// pure black, so the steps above them stay visible), depth comes from a
+/// clear five-step elevation ladder — cards visibly lift off the page
+/// instead of merging into it — and gold is spent only where it earns
+/// attention: primary actions, the nav indicator, key accents. Amber-washing
+/// every surface would read as garish, not expensive.
 ColorScheme _darkColorScheme(ColorScheme base) => base.copyWith(
-      // Muted, softened coffee: light enough to carry dark text and to
-      // read as a foreground, desaturated enough not to glare.
-      primary: const Color(0xFFD9AE8E),
+      // Polished brass gold: the hero accent. Light enough to carry deep
+      // espresso ink (onPrimary clears 8.9:1, so a filled CTA reads as
+      // gold-on-ink) and rich enough to feel like metal, not neon.
+      primary: const Color(0xFFE6B25A),
+      onPrimary: const Color(0xFF221A0B),
+      // Warm gold-tinted container: the selected nav pill and other
+      // "active" wells. The selected icon/label is painted with
+      // onSecondaryContainer (champagne) at 7.8:1 over this pill.
+      primaryContainer: const Color(0xFF4A3C1E),
+      onPrimaryContainer: const Color(0xFFF3DCA8),
+      secondaryContainer: const Color(0xFF4A3C1E),
+      onSecondaryContainer: const Color(0xFFF3DCA8),
       // Surface ladder (page background is set separately, in the theme).
-      surfaceContainerLowest: const Color(0xFF100D09),
-      surfaceContainerLow: const Color(0xFF1C1712),
-      surface: const Color(0xFF231D17),
-      surfaceContainer: const Color(0xFF231D17),
-      surfaceContainerHigh: const Color(0xFF2C251D),
-      surfaceContainerHighest: const Color(0xFF352D25),
-      // Hairline / soft-edge line: white at low alpha, so one token works
-      // on the page, on cards and on sheets alike.
-      outlineVariant: const Color(0x2EFFFFFF),
+      // Spaced to read as distinct elevations — the premium cue is that
+      // each surface step is perceptibly one level above the one below it.
+      surfaceContainerLowest: const Color(0xFF0B0906),
+      surfaceContainerLow: const Color(0xFF17130D),
+      surface: const Color(0xFF1E1811),
+      surfaceContainer: const Color(0xFF1E1811),
+      surfaceContainerHigh: const Color(0xFF282117),
+      surfaceContainerHighest: const Color(0xFF332A1D),
+      // Hairline / soft-edge line: warm white at low alpha, so one token
+      // works on the page, on cards and on sheets alike. Slightly more
+      // present than before so edges catch light against the deeper page.
+      outlineVariant: const Color(0x33FFFFFF),
+    );
+
+/// Light appearance — a warm, premium counterpart so the app still reads as
+/// considered if the appearance is ever flipped: ivory page, deep-bronze
+/// accent. Bronze is dark enough to clear 5:1 on ivory, so links, labels and
+/// filled buttons stay legible without going grey.
+ColorScheme _lightColorScheme(ColorScheme base) => base.copyWith(
+      primary: const Color(0xFF8A5D26),
+      onPrimary: Colors.white,
+      primaryContainer: const Color(0xFFEEDFC4),
+      onPrimaryContainer: const Color(0xFF3A2A12),
+      // Nav selection: a pale-gold pill with deep-bronze content on it, so
+      // the active tab reads the same way it does in dark.
+      secondaryContainer: const Color(0xFFEEDFC4),
+      onSecondaryContainer: const Color(0xFF7A4F1F),
+      outlineVariant: const Color(0x1A000000),
     );
 
 /// Builds the app theme for [brightness].
@@ -122,10 +148,11 @@ ThemeData buildAppTheme({Brightness brightness = Brightness.light}) {
     seedColor: seed,
     brightness: brightness,
   );
-  final scheme = dark ? _darkColorScheme(seedScheme) : seedScheme;
+  final scheme = dark ? _darkColorScheme(seedScheme) : _lightColorScheme(seedScheme);
   // Deep espresso page background — near-black, but never pure black, so
-  // the surface steps above it stay visible.
-  final scaffoldBg = dark ? const Color(0xFF17120E) : CafePalette.cream;
+  // the surface steps above it stay visible. Light is a warm ivory, never a
+  // cool grey, so the coffee warmth survives in both appearances.
+  final scaffoldBg = dark ? const Color(0xFF100D09) : const Color(0xFFF7F2E9);
   final base = ThemeData(colorScheme: scheme, useMaterial3: true);
   // One hairline token for every soft edge (borders, dividers) so the app
   // stops shipping three near-identical 5–6% black line colors.
@@ -249,6 +276,10 @@ ThemeData buildAppTheme({Brightness brightness = Brightness.light}) {
       // light glass surface instead of hitting an opaque wall.
       backgroundColor: Colors.transparent,
       surfaceTintColor: Colors.transparent,
+      // Selected: a warm gold pill (primaryContainer) with a bright-gold
+      // icon/label on it — M3 paints the selected content with
+      // onSecondaryContainer, so that role is set to champagne in the scheme.
+      // Unselected stays a quiet on-surface grey.
       indicatorColor: scheme.primaryContainer,
       labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
     ),
