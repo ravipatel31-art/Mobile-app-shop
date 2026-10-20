@@ -607,7 +607,6 @@ class BottomDock extends StatelessWidget {
         ),
         child: child,
       ),
-      child: child,
     );
   }
 }

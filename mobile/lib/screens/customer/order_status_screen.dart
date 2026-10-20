@@ -408,6 +408,7 @@ class _CustomerOrderStatusScreenState extends State<CustomerOrderStatusScreen> {
             ),
         ],
       ),
+      ),
     );
   }
 }
