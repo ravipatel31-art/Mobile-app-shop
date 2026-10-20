@@ -169,23 +169,35 @@ jobs:
           IPA_BYTES=$(stat -f%z "$IPA")
           echo "IPA size: $IPA_BYTES bytes ($(ls -lh "$IPA" | awk '{print $5}'))"
 
-          # A real Flutter iOS app is at least ~15 MB. Anything smaller means
-          # the build silently failed and we uploaded an empty shell.
-          if [ "$IPA_BYTES" -lt 15000000 ]; then
+          # A real Flutter iOS app is at least ~5 MB (Flutter engine + Dart
+          # AOT + assets). The old broken workflow produced a 6 KB empty
+          # shell — anything under 5 MB means the build silently failed.
+          if [ "$IPA_BYTES" -lt 5000000 ]; then
             echo "::error::IPA is only $IPA_BYTES bytes — too small to be a real app. Aborting."
             exit 1
           fi
 
-          # Sanity-check that the zip actually contains a Payload/Runner.app
           echo "IPA contents (top level):"
-          unzip -l "$IPA" | head -20
+          unzip -l "$IPA" | head -25
+
+          # Must contain the app bundle...
           if ! unzip -l "$IPA" | grep -q "Payload/Runner.app/"; then
             echo "::error::IPA does not contain Payload/Runner.app — not a valid IPA."
             exit 1
           fi
+          # ...and the Flutter engine + Dart AOT code, otherwise it's an
+          # empty native shell that will crash on launch.
+          if ! unzip -l "$IPA" | grep -q "Payload/Runner.app/Frameworks/Flutter.framework/"; then
+            echo "::error::IPA is missing Flutter.framework — the Flutter engine was not bundled. Not a runnable app."
+            exit 1
+          fi
+          if ! unzip -l "$IPA" | grep -q "Payload/Runner.app/Frameworks/App.framework/"; then
+            echo "::error::IPA is missing App.framework — the Dart AOT code was not bundled. Not a runnable app."
+            exit 1
+          fi
 
           echo ""
-          echo "IPA looks valid."
+          echo "IPA looks valid: real size, Runner.app + Flutter engine + Dart code all present."
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
