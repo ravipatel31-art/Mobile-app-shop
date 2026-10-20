@@ -228,11 +228,12 @@ class _DashboardScreenState extends State<DashboardScreen>
 
     return Stack(
       children: [
-        // Soft cream-on-cream blobs keep the background lively, not loud.
+        // Faint warm glows keep the espresso background alive, not loud —
+        // gold up top, caramel low, both soft enough to sit behind content.
         const Positioned(
             top: -50,
             right: -40,
-            child: _Blob(color: CafePalette.latte, size: 190)),
+            child: _Blob(color: CafePalette.gold, size: 190)),
         const Positioned(
             bottom: 160,
             left: -70,
@@ -546,6 +547,9 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 }
 
+/// Faint ambient glow behind the scroll content. The colour sits at a low
+/// alpha so it reads as *warmth in the air* — on the espresso page a cream
+/// disc at the old 35% would glare, so these stay well under it.
 class _Blob extends StatelessWidget {
   final Color color;
   final double size;
@@ -558,7 +562,7 @@ class _Blob extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: color.withValues(alpha: 0.35),
+        color: color.withValues(alpha: 0.12),
       ),
     );
   }
@@ -571,6 +575,7 @@ class _RangeSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return SegmentedButton<String>(
       segments: const [
         ButtonSegment(value: 'today', label: Text('Today')),
@@ -580,12 +585,15 @@ class _RangeSelector extends StatelessWidget {
       selected: {value},
       onSelectionChanged: (s) => onChanged(s.first),
       showSelectedIcon: false,
+      // A dark material rail: resting segments sit on the page's own surface
+      // ladder, the chosen range fills with gold and takes espresso ink — the
+      // same active treatment as the bottom nav, so "selected" reads alike.
       style: SegmentedButton.styleFrom(
         visualDensity: VisualDensity.compact,
-        backgroundColor: Colors.white,
-        foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
-        selectedBackgroundColor: CafePalette.coffee,
-        selectedForegroundColor: Colors.white,
+        backgroundColor: scheme.surfaceContainerHigh,
+        foregroundColor: scheme.onSurfaceVariant,
+        selectedBackgroundColor: scheme.primary,
+        selectedForegroundColor: scheme.onPrimary,
         side: BorderSide.none,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
@@ -615,6 +623,9 @@ class _HeroChip extends StatelessWidget {
   }
 }
 
+/// Change-vs-yesterday pill for the dark hero: a faint tint of the signal
+/// colour carries a bright label, so "up" reads as green-on-dark rather than
+/// a light pastel disc glaring off the espresso.
 class _DeltaPill extends StatelessWidget {
   final int delta;
   const _DeltaPill({required this.delta});
@@ -622,12 +633,11 @@ class _DeltaPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final up = delta >= 0;
-    final color = up ? const Color(0xFF15803D) : const Color(0xFFB91C1C);
-    final bg = up ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2);
+    final color = up ? const Color(0xFF4ADE80) : const Color(0xFFF87171);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: bg,
+        color: color.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -645,7 +655,7 @@ class _DeltaPill extends StatelessWidget {
   }
 }
 
-/// Section header + white framed panel used for every chart block.
+/// Section header + material panel used for every chart block.
 class _Card extends StatelessWidget {
   final String title;
   final String? subtitle;
@@ -664,15 +674,10 @@ class _Card extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         SectionHeader(title: title, subtitle: subtitle, trailing: trailing),
-        Container(
-          width: double.infinity,
+        // A chart is a big, primary surface → the thicker material shadow.
+        MaterialPanel(
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
-            boxShadow: AppShadow.medium,
-          ),
+          shadow: AppShadow.medium,
           child: child,
         ),
       ],
@@ -681,10 +686,12 @@ class _Card extends StatelessWidget {
 }
 
 /// Warm coffee/peach/mint series shared by every chart on this screen.
+/// `caramel` stands in for the flat `coffee` brown, which was tuned for the
+/// old white panels — on the dark material card it sank almost to black.
 const _chartColors = [
   CafePalette.peach,
   CafePalette.mint,
-  CafePalette.coffee,
+  CafePalette.caramel,
   CafePalette.sunshine,
   CafePalette.berry,
 ];
@@ -943,8 +950,11 @@ class _TopSellerRow extends StatelessWidget {
                         child: LinearProgressIndicator(
                           value: progress,
                           minHeight: 6,
-                          color: art.colors.first,
-                          backgroundColor: CafePalette.latte,
+                          // The *light* end of the seed gradient reads on the
+                          // rail (its deep end would sink into it).
+                          color: art.colors.last,
+                          backgroundColor:
+                              Colors.white.withValues(alpha: 0.10),
                         ),
                       ),
                     ),
@@ -990,7 +1000,7 @@ class _CategoryBars extends StatelessWidget {
                     child: LinearProgressIndicator(
                       value: maxVal == 0 ? 0 : entries[i].value / maxVal,
                       minHeight: 10,
-                      backgroundColor: CafePalette.latte,
+                      backgroundColor: Colors.white.withValues(alpha: 0.10),
                       color: _chartColors[i % _chartColors.length],
                     ),
                   ),

@@ -3,6 +3,8 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
+import 'motion.dart';
+
 /// Shared visual language for the cafe app: warm coffee palette, gradients,
 /// hand-drawn latte-art illustration, and small reusable display widgets.
 class CafePalette {
@@ -845,6 +847,67 @@ class SectionHeader extends StatelessWidget {
   }
 }
 
+/// Apple-style **material** panel — a surface that reads as a physical sheet
+/// lit from above rather than flat paint. The fill lifts faintly top-to-bottom
+/// (light falling onto the material), the top edge catches a brighter hairline
+/// (Apple's "light grazing the surface" cue) while the sides stay soft, and a
+/// shadow grounds it. Bigger surfaces should read as *thicker* material, so
+/// pass a heavier [shadow] — see [AppShadow]'s low → medium → high scale.
+class MaterialPanel extends StatelessWidget {
+  final Widget child;
+  final EdgeInsetsGeometry? padding;
+  final double radius;
+  final Gradient? fill;
+  final List<BoxShadow>? shadow;
+
+  const MaterialPanel({
+    super.key,
+    required this.child,
+    this.padding,
+    this.radius = AppRadius.xl,
+    this.fill,
+    this.shadow,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final dark = scheme.brightness == Brightness.dark;
+    // Soft hairline all round: definition against the page without boxing the
+    // panel in — the top edge below stays the brightest side of the material.
+    final hairline = dark
+        ? Colors.white.withValues(alpha: 0.10)
+        : Colors.black.withValues(alpha: 0.07);
+    return Container(
+      padding: padding,
+      decoration: BoxDecoration(
+        gradient: fill ??
+            LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                scheme.surfaceContainerHigh, // lit from above
+                scheme.surfaceContainer, // resting base
+              ],
+            ),
+        borderRadius: BorderRadius.circular(radius),
+        border: Border(
+          // Bright top edge — light grazing the top of the sheet.
+          top: BorderSide(
+              color: dark
+                  ? Colors.white.withValues(alpha: 0.20)
+                  : Colors.white.withValues(alpha: 0.55)),
+          left: BorderSide(color: hairline),
+          right: BorderSide(color: hairline),
+          bottom: BorderSide(color: hairline),
+        ),
+        boxShadow: shadow ?? AppShadow.low,
+      ),
+      child: child,
+    );
+  }
+}
+
 /// KPI card with a colored accent — used on dashboards.
 class StatCard extends StatelessWidget {
   final String label;
@@ -866,14 +929,8 @@ class StatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
-    return Container(
+    return MaterialPanel(
       padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        // Scheme roles, not hard-coded white — survives theming/dark mode.
-        color: scheme.surface,
-        borderRadius: BorderRadius.circular(AppRadius.xl),
-        border: Border.all(color: scheme.outlineVariant),
-      ),
       child: Row(
         children: [
           IconChip(icon: icon, gradient: gradient, size: 42, iconSize: 20),
@@ -912,8 +969,12 @@ class StatCard extends StatelessWidget {
   }
 }
 
-/// Tappable quick-action tile: gradient icon + label.
-class QuickActionTile extends StatelessWidget {
+/// Tappable quick-action tile: gradient icon + label, dressed as a material
+/// panel. It answers the pointer **on contact** — the tile dips to 0.97 the
+/// instant it's pressed ("highlight on pointer-down, commit on pointer-up"),
+/// then eases back as the tap commits. Under reduced motion the scale becomes
+/// a plain opacity dip, so the feedback stays without the motion.
+class QuickActionTile extends StatefulWidget {
   final IconData icon;
   final String label;
   final Gradient gradient;
@@ -930,41 +991,70 @@ class QuickActionTile extends StatelessWidget {
   });
 
   @override
+  State<QuickActionTile> createState() => _QuickActionTileState();
+}
+
+class _QuickActionTileState extends State<QuickActionTile> {
+  bool _pressed = false;
+
+  void _press(bool value) {
+    if (_pressed == value) return;
+    setState(() => _pressed = value);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
-    return Card(
-      margin: EdgeInsets.zero,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(18),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-          child: Row(
-            children: [
-              IconChip(icon: icon, gradient: gradient, size: 40, iconSize: 19),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  label,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: text.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
-                ),
-              ),
-              if (badge != null)
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: gradient.colors.last.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(999),
+    final reduced = AppMotion.reducedOf(context);
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTapDown: (_) => _press(true),
+      onTapUp: (_) => _press(false),
+      onTapCancel: () => _press(false),
+      onTap: widget.onTap,
+      child: AnimatedScale(
+        scale: _pressed && !reduced ? 0.97 : 1.0,
+        duration: const Duration(milliseconds: 130),
+        curve: Curves.easeOutCubic,
+        child: AnimatedOpacity(
+          opacity: _pressed && reduced ? 0.78 : 1.0,
+          duration: const Duration(milliseconds: 130),
+          curve: Curves.easeOut,
+          child: MaterialPanel(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            child: Row(
+              children: [
+                IconChip(
+                    icon: widget.icon,
+                    gradient: widget.gradient,
+                    size: 40,
+                    iconSize: 19),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    widget.label,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style:
+                        text.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
                   ),
-                  child: Text(badge!,
-                      style: text.bodySmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: gradient.colors.last)),
                 ),
-            ],
+                if (widget.badge != null)
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: widget.gradient.colors.last
+                          .withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(widget.badge!,
+                        style: text.bodySmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: widget.gradient.colors.last)),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
