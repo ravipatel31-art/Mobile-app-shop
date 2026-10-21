@@ -517,7 +517,11 @@ String dishEmoji(String name, {String category = ''}) {
   return categoryEmoji(category);
 }
 
-/// Top-down latte-art illustration: saucer, cup, crema heart, coffee beans.
+/// Top-down latte-art illustration: saucer, cup, crema, rosetta fern, beans.
+///
+/// The rosetta replaces an earlier plain heart. Both are drawn with the [art]
+/// colour, so call sites that pass a translucent white for a watermark effect
+/// keep working unchanged — only the shape inside the crema changed.
 class LatteArtPainter extends CustomPainter {
   final Color cup;
   final Color crema;
@@ -559,27 +563,64 @@ class LatteArtPainter extends CustomPainter {
       ..strokeWidth = math.max(1.5, radius * 0.06);
     canvas.drawCircle(center, radius * 0.94, ring);
 
-    final heart = Path();
-    final hr = radius * 0.52;
-    final cy = center.dy - hr * 0.25;
-    heart.moveTo(center.dx, cy + hr * 1.05);
-    heart.cubicTo(
-      center.dx - hr * 1.35,
-      cy + hr * 0.1,
-      center.dx - hr * 0.85,
-      cy - hr * 0.95,
-      center.dx,
-      cy - hr * 0.35,
-    );
-    heart.cubicTo(
-      center.dx + hr * 0.85,
-      cy - hr * 0.95,
-      center.dx + hr * 1.35,
-      cy + hr * 0.1,
-      center.dx,
-      cy + hr * 1.05,
-    );
-    canvas.drawPath(heart, Paint()..color = art);
+    // The rosetta — the fern a barista free-pours. Drawn as a spine with
+    // paired leaves that swell then taper, and a drag-through stem that
+    // curls the tip, which is what makes a pour read as a rosetta rather
+    // than a leaf. Subtle enough (used at low opacity) to sit behind the
+    // hero numbers without competing with them, but with more craft than a
+    // plain glyph.
+    final ar = radius * 0.62;
+    final top = center.dy - ar;
+    final artPaint = Paint()..color = art;
+
+    // One leaf: base sits on the spine, tip points outward-and-slightly-down
+    // (a free-poured leaf always droops as the milk runs out). The two sides
+    // bulge by *different* amounts — the upper/outer edge swells more than
+    // the inner one — so each leaf reads as a rounded scallop rather than a
+    // straight-sided spike.
+    void leaf(Offset base, Offset tip, double bulgeOut, double bulgeIn) {
+      final d = tip - base;
+      if (d.distance < 0.5) return;
+      // Perpendicular to the leaf axis, used to push the side curves out.
+      final n = Offset(-d.dy, d.dx) / d.distance;
+      final mid = base + d * 0.5;
+      final p = Path()
+        ..moveTo(base.dx, base.dy)
+        // upper/outer side: big soft swell
+        ..quadraticBezierTo(mid.dx + n.dx * bulgeOut, mid.dy + n.dy * bulgeOut,
+            tip.dx, tip.dy)
+        // inner side: shallower swell back to the base, closing the leaf
+        ..quadraticBezierTo(mid.dx - n.dx * bulgeIn, mid.dy - n.dy * bulgeIn,
+            base.dx, base.dy)
+        ..close();
+      canvas.drawPath(p, artPaint);
+    }
+
+    for (var i = 0; i < 5; i++) {
+      final t = i / 4; // 0 = top (narrowest), 1 = base (widest)
+      final y = top + ar * (0.16 + 0.70 * t);
+      // Leaves grow toward the base and tilt downward as they do.
+      final reach = ar * (0.42 + 0.40 * t);
+      final droop = ar * (0.02 + 0.10 * t);
+      final base = Offset(center.dx, y + ar * 0.05);
+      final tipOut = Offset(center.dx - reach, y + droop);
+      final bulge = ar * (0.085 + 0.05 * t);
+      leaf(base, tipOut, bulge, bulge * 0.72);
+      leaf(base, Offset(center.dx + reach, y + droop), bulge, bulge * 0.72);
+    }
+
+    // Stem: the drag-through that curls the fern's tip. Thin, round-capped.
+    final stem = Paint()
+      ..color = art
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = math.max(2, ar * 0.05)
+      ..strokeCap = StrokeCap.round;
+    final spine = Path()
+      ..moveTo(center.dx, top + ar * 0.90)
+      ..lineTo(center.dx, top + ar * 0.24)
+      ..quadraticBezierTo(
+          center.dx, top + ar * 0.04, center.dx + ar * 0.13, top + ar * 0.0);
+    canvas.drawPath(spine, stem);
 
     if (withBeans) {
       void beanAt(Offset o, double r, double angle) {
