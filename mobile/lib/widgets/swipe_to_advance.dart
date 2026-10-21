@@ -52,10 +52,14 @@ class SwipeToAdvance extends StatefulWidget {
 class _SwipeToAdvanceState extends State<SwipeToAdvance>
     with SingleTickerProviderStateMixin {
   /// Drives the settle springs; its `value` is the reveal offset in px.
-  late final AnimationController _settle = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 400),
-  )..addListener(_onSettleTick);
+  /// Built on first use rather than as a `late` field: a `late` one would be
+  /// lazily constructed right inside `dispose()` for cards that never
+  /// animated, and creating a ticker mid-teardown throws.
+  AnimationController? _settleCtrl;
+  AnimationController get _settle => _settleCtrl ??= AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 400),
+      )..addListener(_onSettleTick);
 
   double _offset = 0;
 
@@ -78,7 +82,7 @@ class _SwipeToAdvanceState extends State<SwipeToAdvance>
 
   @override
   void dispose() {
-    _settle.dispose();
+    _settleCtrl?.dispose(); // never via the getter — that would *create* it
     super.dispose();
   }
 

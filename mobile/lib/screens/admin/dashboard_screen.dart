@@ -424,7 +424,9 @@ class _DashboardScreenState extends State<DashboardScreen>
                       icon: Icons.point_of_sale,
                       label: 'Billing',
                       gradient: CafeGradients.mint,
-                      badge: (_unpaid ?? 0) > 0 ? formatMoney(_unpaid!) : null,
+                      badge: (_unpaid ?? 0) > 0
+                          ? formatMoneyCompact(_unpaid!)
+                          : null,
                       onTap: () => _push(const BillingScreen()),
                     ),
                     QuickActionTile(

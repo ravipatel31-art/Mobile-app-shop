@@ -874,12 +874,13 @@ class MaterialPanel extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
     // Soft hairline all round: definition against the page without boxing the
-    // panel in — the top edge below stays the brightest side of the material.
+    // panel in. (Flutter only allows ONE colour on a rounded border, so the
+    // lit top edge is painted below as its own clipped strip — same look, and
+    // valid in debug/tests as well as release.)
     final hairline = dark
         ? Colors.white.withValues(alpha: 0.10)
         : Colors.black.withValues(alpha: 0.07);
     return Container(
-      padding: padding,
       decoration: BoxDecoration(
         gradient: fill ??
             LinearGradient(
@@ -891,19 +892,42 @@ class MaterialPanel extends StatelessWidget {
               ],
             ),
         borderRadius: BorderRadius.circular(radius),
-        border: Border(
-          // Bright top edge — light grazing the top of the sheet.
-          top: BorderSide(
-              color: dark
-                  ? Colors.white.withValues(alpha: 0.20)
-                  : Colors.white.withValues(alpha: 0.55)),
-          left: BorderSide(color: hairline),
-          right: BorderSide(color: hairline),
-          bottom: BorderSide(color: hairline),
-        ),
+        border: Border.all(color: hairline),
         boxShadow: shadow ?? AppShadow.low,
       ),
-      child: child,
+      child: Stack(
+        fit: StackFit.passthrough,
+        children: [
+          // Light grazing the top edge — the crispest cue that this is a solid
+          // sheet of material, easing into the rounded corners and fading out
+          // before it reaches them.
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: ClipRRect(
+              borderRadius:
+                  BorderRadius.vertical(top: Radius.circular(radius)),
+              child: SizedBox(
+                height: 1.5,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(colors: [
+                      Colors.white.withValues(alpha: 0),
+                      Colors.white.withValues(alpha: dark ? 0.30 : 0.85),
+                      Colors.white.withValues(alpha: 0),
+                    ]),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          if (padding != null)
+            Padding(padding: padding!, child: child)
+          else
+            child,
+        ],
+      ),
     );
   }
 }
@@ -1033,7 +1057,11 @@ class _QuickActionTileState extends State<QuickActionTile> {
                 Expanded(
                   child: Text(
                     widget.label,
-                    maxLines: 2,
+                    // One line always: with a badge present, a second line
+                    // would break a short label mid-word ("Billi/ng") on a
+                    // phone-width tile.
+                    maxLines: 1,
+                    softWrap: false,
                     overflow: TextOverflow.ellipsis,
                     style:
                         text.bodyMedium?.copyWith(fontWeight: FontWeight.w700),

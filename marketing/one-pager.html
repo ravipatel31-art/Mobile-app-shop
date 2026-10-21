@@ -54,9 +54,8 @@
   ul.feat{margin:0;padding-left:0;list-style:none;display:grid;gap:5px;font-size:12.5px;color:var(--muted)}
   ul.feat li{display:flex;gap:7px}
   ul.feat .b{color:var(--gold)}
-  .shot{width:100%;aspect-ratio:9/13;border-radius:12px;border:1px dashed rgba(255,255,255,.2);
-        background:linear-gradient(180deg,var(--s2),var(--espresso));display:grid;place-items:center;
-        text-align:center;color:var(--faint);font-size:11px;padding:10px}
+  .shot img{width:100%;height:auto;border-radius:12px;border:1px solid rgba(230,178,90,.25);
+        display:block}
   .price{text-align:center}
   .price .amt{font-family:Fraunces,serif;font-size:38px;color:var(--gold);line-height:1}
   .price .sub{font-size:11px;color:var(--muted);margin-top:2px}
@@ -114,8 +113,7 @@
 
     <!-- RIGHT -->
     <div>
-      <!-- Replace with a real screenshot: <img src="screens/onepager.png" style="width:100%;border-radius:12px"> -->
-      <div class="shot">screens/onepager.png<br>App screenshot</div>
+      <div class="shot"><img src="screens/onepager.png" alt="Cafe POS dashboard"></div>
 
       <div class="card price" style="margin-top:11px">
         <h2 style="margin-bottom:4px">Launch offer</h2>

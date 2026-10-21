@@ -300,7 +300,12 @@ class GradientPillButton extends StatelessWidget {
             child: Padding(
               padding: EdgeInsets.symmetric(
                   horizontal: horizontalPadding, vertical: 6),
-              child: DefaultTextStyle(
+              // `.merge`, not the plain widget: a bare DefaultTextStyle
+              // *replaces* the inherited chain, which both drops the theme's
+              // text roles (letter-spacing etc.) and — in golden tests —
+              // loses the font family entirely, rendering the label as boxes.
+              // Merging keeps whatever the ambient context provides.
+              child: DefaultTextStyle.merge(
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
@@ -311,7 +316,16 @@ class GradientPillButton extends StatelessWidget {
                       ? Colors.white
                       : scheme.onSurface.withValues(alpha: dark ? 0.45 : 0.38),
                 ),
-                child: Center(child: child),
+                // A bare `Center` *fills* any bounded constraint it is
+                // handed — inside the cart's bottom dock that stretched the
+                // pill (and the whole dock) to full screen height, starving
+                // the body of space. The factors keep it shrink-wrapped.
+                child: Align(
+                  alignment: Alignment.center,
+                  widthFactor: 1,
+                  heightFactor: 1,
+                  child: child,
+                ),
               ),
             ),
           ),

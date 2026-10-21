@@ -461,8 +461,12 @@ class _OrderCard extends StatelessWidget {
             // ── Actions ──
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+              // Wrap, not Row: with two long labels ("Add" + "Start
+              // preparing") the actions ran past a phone-width card edge.
+              child: Wrap(
+                alignment: WrapAlignment.end,
+                spacing: 8,
+                runSpacing: 8,
                 children: [
                   if (canEdit)
                     OutlinedButton.icon(
@@ -473,7 +477,6 @@ class _OrderCard extends StatelessWidget {
                         visualDensity: VisualDensity.compact,
                       ),
                     ),
-                  if (canEdit && canAdvance) const SizedBox(width: 8),
                   if (canAdvance)
                     o.status == 'ready'
                         ? FilledButton.icon(
