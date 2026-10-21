@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cafe POS — Orders, bills, kitchen &amp; sales for Indian cafés</title>
+<meta name="description" content="Cafe POS runs your café from the phone in your pocket. Orders, thermal bills, live kitchen display, UPI &amp; Google Pay — with no hardware to buy and no per-order cut.">
+
+<!--
+  ============================================================================
+  CAFE POS — LANDING PAGE  (edit me)
+  ============================================================================
+  This is ONE file. Open it in any text editor. Search for these placeholders
+  and replace them before you share the link:
+
+    1. PHONE / WHATSAPP .... search  wa.me/910000000000   and  +91 00000 00000
+    2. EMAIL ............... search  hello@cafepos.app
+    3. PRICE ............... search  ₹499   (pick your real launch price)
+    4. DEMO VIDEO .......... drop your 60-sec file next to this page as demo.mp4
+                             (it already points there), or swap in a YouTube link
+                             — see the commented-out <iframe> in the video section.
+    5. SCREENSHOTS ......... drop PNGs into  docs/screens/  (names in comments)
+
+  HOW TO PUBLISH (free, ~2 minutes):
+    git add docs && git commit -m "Add landing page" && git push
+    → GitHub repo → Settings → Pages → Source: "Deploy from a branch"
+    → Branch: main, folder: /docs → Save
+    → Your link: https://ravipatel31-art.github.io/Mobile-app-shop/
+  ============================================================================
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --espresso:#100D09;      /* page */
+    --surface:#1E1811;       /* cards */
+    --surface-2:#282117;     /* raised */
+    --gold:#E6B25A;
+    --champagne:#F3DCA8;
+    --ink:#F6EFE3;
+    --muted:rgba(246,239,227,.66);
+    --faint:rgba(246,239,227,.42);
+    --line:rgba(255,255,255,.10);
+    --line-top:rgba(255,255,255,.20);
+    --maxw:1120px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:var(--espresso);color:var(--ink);
+    font:16px/1.6 Inter,system-ui,-apple-system,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{font-family:Fraunces,Georgia,serif;font-weight:600;line-height:1.1;letter-spacing:-.02em;margin:0}
+  a{color:inherit}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px}
+  .eyebrow{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);font-weight:600}
+  .muted{color:var(--muted)}
+  .faint{color:var(--faint)}
+
+  /* buttons */
+  .btn{display:inline-flex;align-items:center;gap:.5rem;border-radius:14px;padding:.85rem 1.4rem;
+       font-weight:600;text-decoration:none;border:1px solid transparent;transition:.15s ease;font-size:15px}
+  .btn-gold{background:var(--gold);color:#221A0B}
+  .btn-gold:hover{background:var(--champagne);transform:translateY(-1px)}
+  .btn-ghost{border-color:var(--line-top);color:var(--ink)}
+  .btn-ghost:hover{background:rgba(255,255,255,.06)}
+
+  /* nav */
+  nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(14px);
+      background:rgba(16,13,9,.72);border-bottom:1px solid var(--line)}
+  nav .wrap{display:flex;align-items:center;justify-content:space-between;height:64px}
+  .brand{display:flex;align-items:center;gap:.6rem;font-family:Fraunces,serif;font-weight:700;font-size:19px}
+  .dot{width:26px;height:26px;border-radius:9px;background:linear-gradient(135deg,#3D2A1A,#9C7038);
+       display:grid;place-items:center;font-size:14px}
+  .nav-links{display:flex;gap:1.4rem;align-items:center;font-size:14px}
+  .nav-links a{color:var(--muted);text-decoration:none}
+  .nav-links a:hover{color:var(--ink)}
+
+  /* hero */
+  header{position:relative;overflow:hidden;padding:76px 0 60px}
+  .glow{position:absolute;border-radius:50%;filter:blur(60px);opacity:.14;pointer-events:none}
+  .glow.a{width:320px;height:320px;background:#E6B25A;top:-90px;right:-60px}
+  .glow.b{width:260px;height:260px;background:#C8956C;bottom:-100px;left:-70px}
+  .hero{display:grid;grid-template-columns:1.1fr .9fr;gap:48px;align-items:center;position:relative}
+  .hero h1{font-size:clamp(38px,5.2vw,62px);margin:.5rem 0 1rem}
+  .hero h1 em{font-style:normal;color:var(--gold)}
+  .hero p.lead{font-size:19px;color:var(--muted);max-width:34ch}
+  .cta-row{display:flex;gap:14px;flex-wrap:wrap;margin-top:1.8rem}
+  .micro{margin-top:1rem;font-size:13px;color:var(--faint)}
+
+  /* phone mock */
+  .phone{width:270px;margin:0 auto;aspect-ratio:9/19;border-radius:38px;padding:11px;
+         background:linear-gradient(160deg,#2A1E14,#0B0906);border:1px solid var(--line-top);
+         box-shadow:0 30px 70px rgba(0,0,0,.55)}
+  .screen{width:100%;height:100%;border-radius:28px;overflow:hidden;
+          background:linear-gradient(180deg,var(--surface-2),var(--surface));
+          display:flex;flex-direction:column}
+  .screen .bar{padding:12px 14px;border-bottom:1px solid var(--line);font-size:11px;color:var(--faint);
+               display:flex;justify-content:space-between}
+  .screen .body{padding:12px;display:flex;flex-direction:column;gap:9px;flex:1}
+  .row{background:rgba(255,255,255,.04);border:1px solid var(--line);border-top-color:var(--line-top);
+       border-radius:12px;padding:9px 11px;font-size:11px;display:flex;justify-content:space-between}
+  .row b{color:var(--gold);font-weight:600}
+  .kpi{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .kpi div{background:rgba(255,255,255,.04);border:1px solid var(--line);border-top-color:var(--line-top);
+           border-radius:12px;padding:10px}
+  .kpi small{color:var(--faint);font-size:9.5px}
+  .kpi strong{display:block;font-size:15px;margin-top:2px}
+  .pill{background:rgba(230,178,90,.16);color:var(--gold);border-radius:999px;padding:3px 9px;font-size:10px}
+
+  /* strip */
+  .strip{border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--surface)}
+  .strip .wrap{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;padding:22px}
+  .strip b{display:block;color:var(--gold);font-size:14px}
+  .strip span{font-size:13px;color:var(--muted)}
+
+  section{padding:72px 0}
+  .sec-head{max-width:60ch;margin-bottom:34px}
+  .sec-head h2{font-size:clamp(28px,3.6vw,40px);margin:.4rem 0 .7rem}
+
+  /* video */
+  .video-frame{border-radius:20px;overflow:hidden;border:1px solid var(--line-top);
+               background:#000;box-shadow:0 30px 70px rgba(0,0,0,.5)}
+  .video-frame video{width:100%;display:block}
+  video::cue{color:#fff}
+
+  /* steps */
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  .card{background:linear-gradient(180deg,var(--surface-2),var(--surface));
+        border:1px solid var(--line);border-top-color:var(--line-top);border-radius:18px;padding:24px}
+  .card .n{width:34px;height:34px;border-radius:11px;background:rgba(230,178,90,.14);color:var(--gold);
+           display:grid;place-items:center;font-weight:700;margin-bottom:14px}
+  .card h3{font-size:19px;margin-bottom:.4rem}
+  .card p{margin:0;color:var(--muted);font-size:14.5px}
+
+  /* features */
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  .feat{background:linear-gradient(180deg,var(--surface-2),var(--surface));
+        border:1px solid var(--line);border-top-color:var(--line-top);border-radius:16px;padding:20px}
+  .feat .ico{font-size:22px;margin-bottom:10px}
+  .feat h3{font-size:16px;font-family:Inter,sans-serif;font-weight:600;margin-bottom:.3rem}
+  .feat p{margin:0;font-size:13.5px;color:var(--muted)}
+
+  /* screenshots */
+  .shots{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+  .shot{aspect-ratio:9/17;border-radius:16px;border:1px dashed rgba(255,255,255,.18);
+        background:linear-gradient(180deg,var(--surface-2),var(--espresso));
+        display:grid;place-items:center;text-align:center;color:var(--faint);font-size:12px;padding:10px}
+
+  /* pricing */
+  .price{max-width:440px;margin:0 auto;text-align:center;
+         background:linear-gradient(180deg,var(--surface-2),var(--surface));
+         border:1px solid var(--line-top);border-radius:22px;padding:34px}
+  .price .amt{font-family:Fraunces,serif;font-size:52px;color:var(--gold);line-height:1}
+  .price ul{list-style:none;padding:0;margin:20px 0;text-align:left;display:grid;gap:10px;font-size:14.5px}
+  .price li{display:flex;gap:.6rem;color:var(--muted)}
+  .price li b{color:var(--gold)}
+
+  /* faq */
+  details{border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:12px;background:var(--surface)}
+  summary{cursor:pointer;font-weight:600;list-style:none}
+  summary::-webkit-details-marker{display:none}
+  details p{margin:.7rem 0 0;color:var(--muted);font-size:14.5px}
+
+  /* final cta */
+  .final{text-align:center;background:linear-gradient(160deg,#1B140C,#100D09);
+         border-top:1px solid var(--line-top)}
+  .final h2{font-size:clamp(30px,4vw,46px);margin-bottom:1rem}
+  footer{border-top:1px solid var(--line);padding:26px 0;font-size:13px;color:var(--faint);
+         display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+
+  @media(max-width:880px){
+    .hero{grid-template-columns:1fr;gap:34px}
+    .hero p.lead{max-width:none}
+    .strip .wrap{grid-template-columns:repeat(2,1fr)}
+    .steps,.grid{grid-template-columns:1fr}
+    .shots{grid-template-columns:repeat(2,1fr)}
+    .nav-links a:not(.btn){display:none}
+  }
+</style>
+</head>
+<body>
+
+<nav><div class="wrap">
+  <div class="brand"><span class="dot">☕</span> Cafe&nbsp;POS</div>
+  <div class="nav-links">
+    <a href="#how">How it works</a>
+    <a href="#features">Features</a>
+    <a href="#pricing">Pricing</a>
+    <a class="btn btn-gold" href="#demo">Book a demo</a>
+  </div>
+</div></nav>
+
+<header>
+  <div class="glow a"></div><div class="glow b"></div>
+  <div class="wrap hero">
+    <div>
+      <span class="eyebrow">Made for Indian cafés</span>
+      <h1>Run your café from the <em>phone in your pocket.</em></h1>
+      <p class="lead">Orders, thermal bills, a live kitchen screen and today's sales — with UPI &amp; Google&nbsp;Pay built in.</p>
+      <div class="cta-row">
+        <!-- REPLACE 910000000000 with your WhatsApp number (country code, no +) -->
+        <a class="btn btn-gold" href="https://wa.me/910000000000?text=Hi%2C%20I%27d%20like%20a%20Cafe%20POS%20demo" target="_blank" rel="noopener">💬 Book a free 10-min demo</a>
+        <a class="btn btn-ghost" href="#video">▶ Watch 60-sec demo</a>
+      </div>
+      <p class="micro">No hardware to buy &nbsp;·&nbsp; No per-order cut &nbsp;·&nbsp; Free 14-day trial</p>
+    </div>
+
+    <!-- App screenshot mock. Replace the inner .screen with <img src="screens/hero.png"> when you have one. -->
+    <div class="phone">
+      <div class="screen">
+        <div class="bar"><span>Table 4 · Dine-in</span><span class="pill">LIVE</span></div>
+        <div class="body">
+          <div class="kpi">
+            <div><small>Today's sales</small><strong>₹ 8,420</strong></div>
+            <div><small>Orders</small><strong>37</strong></div>
+          </div>
+          <div class="row"><span>☕ Cappuccino ×2</span><b>₹ 360</b></div>
+          <div class="row"><span>🥐 Butter croissant</span><b>₹ 140</b></div>
+          <div class="row"><span>🍰 Cheesecake</span><b>₹ 220</b></div>
+          <div class="row" style="border-top-color:rgba(230,178,90,.5)"><span><b>Total · UPI</b></span><b>₹ 720</b></div>
+          <div style="margin-top:auto;text-align:center;font-size:10px;color:var(--faint)">Bill printed · sent to kitchen</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="strip"><div class="wrap">
+  <div><b>UPI + Google Pay</b><span>Collect with no extra app</span></div>
+  <div><b>Live kitchen display</b><span>Orders appear the second they're placed</span></div>
+  <div><b>Thermal-printer ready</b><span>80mm bills, auto-formatted</span></div>
+  <div><b>Works on your phone</b><span>iOS &amp; Android — no hardware to buy</span></div>
+</div></div>
+
+<section id="video"><div class="wrap">
+  <div class="sec-head">
+    <span class="eyebrow">See it work</span>
+    <h2>Order → bill → kitchen → sales. In 60 seconds.</h2>
+    <p class="muted">The whole café loop, on one screen.</p>
+  </div>
+  <div class="video-frame">
+    <!-- Drop your exported file at docs/demo.mp4 (already referenced below), OR
+         delete the <video> and uncomment this YouTube embed:
+    <iframe style="width:100%;aspect-ratio:16/9;border:0" src="https://www.youtube.com/embed/VIDEO_ID" allowfullscreen></iframe>
+    -->
+    <video controls playsinline preload="metadata" poster="">
+      <source src="demo.mp4" type="video/mp4">
+      Your browser can't play this — add demo.mp4 to the docs folder.
+    </video>
+  </div>
+</div></section>
+
+<section id="how" style="padding-top:0"><div class="wrap">
+  <div class="sec-head"><span class="eyebrow">How it works</span><h2>Three taps, start to finish.</h2></div>
+  <div class="steps">
+    <div class="card"><div class="n">1</div><h3>Take the order</h3><p>Tap items from your menu — dine-in, takeaway or a table number. The cart totals itself.</p></div>
+    <div class="card"><div class="n">2</div><h3>Kitchen sees it live</h3><p>The order lands on the kitchen screen the moment it's placed. No shouting, no lost chits.</p></div>
+    <div class="card"><div class="n">3</div><h3>Bill &amp; collect</h3><p>Print the thermal bill or take UPI / Google Pay. It's marked paid and added to today's sales.</p></div>
+  </div>
+</div></section>
+
+<section id="features" style="padding-top:0"><div class="wrap">
+  <div class="sec-head"><span class="eyebrow">Everything a café needs</span><h2>Built for a small café, not a food court.</h2></div>
+  <div class="grid">
+    <div class="feat"><div class="ico">📱</div><h3>Customer self-order</h3><p>A QR menu customers can browse and order from — no app for them to install.</p></div>
+    <div class="feat"><div class="ico">👨‍🍳</div><h3>Kitchen display</h3><p>Live order queue with table numbers and status, so the kitchen always knows what's next.</p></div>
+    <div class="feat"><div class="ico">💳</div><h3>UPI &amp; Google Pay</h3><p>Collect payments directly — built in, no separate payment terminal.</p></div>
+    <div class="feat"><div class="ico">🖨️</div><h3>Thermal billing</h3><p>Auto-formatted 80mm bills from a normal thermal printer.</p></div>
+    <div class="feat"><div class="ico">🪑</div><h3>Tables &amp; shifts</h3><p>Track which table is open, and which staff member is on duty.</p></div>
+    <div class="feat"><div class="ico">📦</div><h3>Inventory &amp; vendors</h3><p>Watch stock levels and reorder from suppliers over WhatsApp.</p></div>
+    <div class="feat"><div class="ico">📊</div><h3>Daily reports</h3><p>Sales, best-sellers and payment mix — see how the day actually went.</p></div>
+    <div class="feat"><div class="ico">🧾</div><h3>CA-ready exports</h3><p>Export sales data for your accountant at the end of the month.</p></div>
+    <div class="feat"><div class="ico">🔒</div><h3>Your data, always on</h3><p>Everything syncs to your café's own account — nothing shared with anyone else.</p></div>
+  </div>
+</div></section>
+
+<!-- Screenshots: drop PNGs into docs/screens/ with these exact names, or edit src. -->
+<section style="padding-top:0"><div class="wrap">
+  <div class="sec-head"><span class="eyebrow">A look inside</span><h2>Dark, fast, and easy to hand to staff.</h2></div>
+  <div class="shots">
+    <div class="shot">screens/menu.png<br>Menu &amp; cart</div>
+    <div class="shot">screens/kitchen.png<br>Kitchen display</div>
+    <div class="shot">screens/billing.png<br>Billing &amp; UPI</div>
+    <div class="shot">screens/reports.png<br>Reports</div>
+  </div>
+</div></section>
+
+<section id="pricing" style="padding-top:0"><div class="wrap">
+  <div class="sec-head" style="text-align:center;margin:0 auto 34px">
+    <span class="eyebrow">Pricing</span>
+    <h2>One flat price. No cut of your sales.</h2>
+  </div>
+  <!-- REPLACE ₹499 with your real launch price -->
+  <div class="price">
+    <div class="eyebrow">Launch offer · first cafés</div>
+    <div class="amt">₹499<span style="font-size:20px;color:var(--muted)">/mo</span></div>
+    <p class="muted" style="margin:.4rem 0 0">per café · cancel anytime</p>
+    <ul>
+      <li><b>✓</b> Unlimited orders &amp; bills</li>
+      <li><b>✓</b> UPI + Google Pay built in</li>
+      <li><b>✓</b> Kitchen display &amp; thermal printing</li>
+      <li><b>✓</b> Inventory, staff &amp; CA exports</li>
+      <li><b>✓</b> Free setup &amp; training on site</li>
+    </ul>
+    <a class="btn btn-gold" style="width:100%;justify-content:center" href="https://wa.me/910000000000?text=Hi%2C%20I%27d%20like%20to%20try%20Cafe%20POS" target="_blank" rel="noopener">Start free 14-day trial</a>
+  </div>
+</div></section>
+
+<section style="padding-top:0"><div class="wrap">
+  <div class="sec-head"><span class="eyebrow">Questions</span><h2>Straight answers.</h2></div>
+  <details open><summary>Do I need to buy any hardware?</summary><p>No. It runs on the phone or tablet you already own. If you have a normal thermal printer, it works with that too.</p></details>
+  <details><summary>Do my customers need to install anything?</summary><p>No. They scan a QR code, browse your menu and order from their own browser.</p></details>
+  <details><summary>Does it work if the internet drops?</summary><p>Orders you've already taken stay available, and everything syncs back up when you're online again.</p></details>
+  <details><summary>How long does setup take?</summary><p>About 20 minutes. I set up your menu and train your staff on site — free during the trial.</p></details>
+</div></section>
+
+<section class="final" id="demo"><div class="wrap">
+  <span class="eyebrow">Free 14-day trial</span>
+  <h2>See it running in your café.</h2>
+  <p class="muted" style="max-width:46ch;margin:0 auto 1.8rem">Ten minutes, on your phone, no commitment. If it doesn't save you time, no hard feelings.</p>
+  <div class="cta-row" style="justify-content:center">
+    <a class="btn btn-gold" href="https://wa.me/910000000000?text=Hi%2C%20I%27d%20like%20a%20Cafe%20POS%20demo" target="_blank" rel="noopener">💬 WhatsApp me</a>
+    <!-- REPLACE with your number and email -->
+    <a class="btn btn-ghost" href="tel:+910000000000">📞 +91 00000 00000</a>
+    <a class="btn btn-ghost" href="mailto:hello@cafepos.app">✉️ Email</a>
+  </div>
+</div></section>
+
+<footer><div class="wrap">
+  <div>© <span id="y"></span> Cafe POS · Made in India 🇮🇳</div>
+  <div class="faint">Built for cafés, by someone who answers the phone.</div>
+</div></footer>
+
+<script>document.getElementById('y').textContent=new Date().getFullYear();</script>
+</body>
+</html>
