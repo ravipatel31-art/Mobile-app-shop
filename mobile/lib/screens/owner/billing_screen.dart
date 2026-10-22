@@ -8,6 +8,8 @@ import '../../models/billing.dart';
 import '../../models/order.dart';
 import '../../services/api_client.dart';
 import '../../util/money.dart';
+import '../../widgets/collect_payment_dialog.dart'
+    show paymentMethodLabel;
 import 'bill_screen.dart';
 
 /// Owner billing: collected orders grouped by date, with paid/unpaid totals
@@ -353,7 +355,7 @@ class _OrderCard extends StatelessWidget {
                       size: 14, color: Colors.grey.shade600),
                   const SizedBox(width: 4),
                   Flexible(
-                    child: Text(_prettyPayment(order.paymentMethod),
+                    child: Text(paymentMethodLabel(order.paymentMethod),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(fontSize: 13)),
@@ -420,11 +422,6 @@ class _OrderCard extends StatelessWidget {
       ),
     );
   }
-
-  String _prettyPayment(String m) => m
-      .split(' ')
-      .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
-      .join(' ');
 
   String get _customerPhone {
     final phone = order.customerPhone?.replaceAll(RegExp(r'[^0-9]'), '') ?? '';

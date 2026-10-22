@@ -188,6 +188,17 @@ class CafeGradients {
     end: Alignment.bottomRight,
     colors: [Color(0xFF2A1E14), Color(0xFF5E4128)],
   );
+  /// Flat, desaturated bronze — the **default** icon-chip fill for tiles that
+  /// carry no state. Saturation is spent only where it means something (a
+  /// due balance, low stock, the hero total); everything else sits in the
+  /// neutral coffee family so the screen reads as one material with accents,
+  /// not a rainbow of equal-weight tiles.
+  static const bronzeFlat = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFF4A3826), Color(0xFF5E4128)],
+  );
+
   /// Polished-brass shimmer — reserved for the single most important moment
   /// on a screen (a hero total, a success celebration). Used sparingly so it
   /// stays special.
@@ -1014,8 +1025,9 @@ class StatCard extends StatelessWidget {
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerLeft,
                   child: Text(value,
-                      style: text.titleMedium
-                          ?.copyWith(fontWeight: FontWeight.w700)),
+                      style: text.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          fontFeatures: kTabularFigures)),
                 ),
                 if (caption != null)
                   Text(caption!,
@@ -1043,6 +1055,13 @@ class QuickActionTile extends StatefulWidget {
   final IconData icon;
   final String label;
   final Gradient gradient;
+
+  /// Tint for the badge pill. Defaults to the gradient's last stop, so a
+  /// caller that only supplies a gradient still gets a matching badge — but a
+  /// caller using a neutral chip can point the badge at a semantic colour
+  /// instead, which is the only way an urgent count (unpaid dues, low stock)
+  /// can still read as urgent once the tiles themselves are neutral.
+  final Color? badgeColor;
   final VoidCallback? onTap;
   final String? badge;
 
@@ -1051,6 +1070,7 @@ class QuickActionTile extends StatefulWidget {
     required this.icon,
     required this.label,
     required this.gradient,
+    this.badgeColor,
     this.onTap,
     this.badge,
   });
@@ -1109,19 +1129,21 @@ class _QuickActionTileState extends State<QuickActionTile> {
                   ),
                 ),
                 if (widget.badge != null)
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: widget.gradient.colors.last
-                          .withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(widget.badge!,
-                        style: text.bodySmall?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: widget.gradient.colors.last)),
-                  ),
+                  Builder(builder: (context) {
+                    final badgeTint = widget.badgeColor ??
+                        widget.gradient.colors.last;
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: badgeTint.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(widget.badge!,
+                          style: text.bodySmall?.copyWith(
+                              fontWeight: FontWeight.w700, color: badgeTint)),
+                    );
+                  }),
               ],
             ),
           ),
@@ -1189,3 +1211,10 @@ class EmptyStateArt extends StatelessWidget {
     );
   }
 }
+
+/// Tabular figures: every digit the same advance width, so a column of money
+/// values aligns on the digit instead of wobbling on proportional `1`s. This
+/// is the cheapest available signal of a financial UI — Stripe and Mercury
+/// both set it. Apply to any numeric text, and to labels that sit in a column
+/// beside numbers.
+const List<ui.FontFeature> kTabularFigures = [ui.FontFeature.tabularFigures()];

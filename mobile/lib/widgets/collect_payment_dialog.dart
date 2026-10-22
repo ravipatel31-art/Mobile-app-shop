@@ -27,6 +27,19 @@ const allPaymentMethods = [
   (value: 'other', label: 'Other', icon: Icons.more_horiz),
 ];
 
+/// The display name for a stored payment method.
+///
+/// Goes through [allPaymentMethods] rather than title-casing the raw value:
+/// naive casing renders the stored `upi` as "Upi", which reads as a typo to
+/// anyone who actually takes UPI payments. Falling back to the raw value keeps
+/// an unrecognised method visible (and diagnosable) instead of blank.
+String paymentMethodLabel(String value) {
+  for (final m in allPaymentMethods) {
+    if (m.value == value) return m.label;
+  }
+  return value;
+}
+
 /// What staff confirm in the collect dialog: the ordered split-payment rows
 /// plus the loyalty points to redeem (0 when not redeeming).
 class SplitPaymentResult {

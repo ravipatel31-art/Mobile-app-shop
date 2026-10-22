@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../../models/order.dart';
 import '../../services/api_client.dart';
 import '../../util/money.dart';
+import '../../widgets/collect_payment_dialog.dart'
+    show paymentMethodLabel;
 import '../owner/bill_screen.dart';
 
 /// Full order detail view: shows who took the order, when, items, status,
@@ -115,7 +117,7 @@ class OrderDetailScreen extends StatelessWidget {
                 icon: Icons.payment_outlined,
                 label: 'Payment',
                 value:
-                    '${_prettyPayment(o.paymentMethod)} • ${o.paymentStatus}',
+                    '${paymentMethodLabel(o.paymentMethod)} • ${o.paymentStatus}',
               ),
             ],
           ),
@@ -342,21 +344,6 @@ class OrderDetailScreen extends StatelessWidget {
       return '$day/$month/${dt.year} at $hour:$min';
     } catch (_) {
       return iso;
-    }
-  }
-
-  String _prettyPayment(String method) {
-    switch (method) {
-      case 'cash':
-        return 'Cash';
-      case 'card':
-        return 'Card';
-      case 'upi':
-        return 'UPI';
-      case 'gpay':
-        return 'Google Pay';
-      default:
-        return method.toUpperCase();
     }
   }
 }

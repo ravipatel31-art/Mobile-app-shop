@@ -192,7 +192,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                 color: Colors.white,
                 fontSize: 40,
                 fontWeight: FontWeight.w800,
-                letterSpacing: -1),
+                letterSpacing: -1,
+                fontFeatures: kTabularFigures),
           ),
         ),
       );
@@ -309,9 +310,9 @@ class _DashboardScreenState extends State<DashboardScreen>
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         if (delta != null) _DeltaPill(delta: delta),
-                        _HeroChip(label: '🧾 ${agg.orderCount} orders'),
+                        _HeroChip(label: '${agg.orderCount} orders'),
                         if (agg.orderCount > 0)
-                          _HeroChip(label: '☕ avg ${formatMoney(avg)}'),
+                          _HeroChip(label: 'avg ${formatMoney(avg)}'),
                       ],
                     ),
                   ],
@@ -339,26 +340,29 @@ class _DashboardScreenState extends State<DashboardScreen>
                   const gap = 10.0;
                   final itemW =
                       (constraints.maxWidth - gap * (cols - 1)) / cols;
+                  // Tile colour carries state, not decoration. The three
+                  // neutral tiles are just numbers; the two that need action
+                  // are the only saturated ones, so the eye finds them first.
                   final stats = <Widget>[
                     StatCard(
                       label: 'Orders',
                       value: '${agg.orderCount}',
                       icon: Icons.receipt_long,
-                      gradient: CafeGradients.peach,
+                      gradient: CafeGradients.bronzeFlat,
                       caption: 'tickets in range',
                     ),
                     StatCard(
                       label: 'Revenue',
                       value: formatMoney(agg.grossSales),
                       icon: Icons.payments,
-                      gradient: CafeGradients.espresso,
+                      gradient: CafeGradients.bronzeFlat,
                       caption: 'gross sales',
                     ),
                     StatCard(
                       label: 'Avg order',
                       value: formatMoney(avg),
                       icon: Icons.shopping_bag,
-                      gradient: CafeGradients.mint,
+                      gradient: CafeGradients.bronzeFlat,
                       caption: 'per ticket',
                     ),
                     if (_unpaid != null)
@@ -366,7 +370,9 @@ class _DashboardScreenState extends State<DashboardScreen>
                         label: 'Unpaid dues',
                         value: formatMoney(_unpaid!),
                         icon: Icons.account_balance_wallet,
-                        gradient: CafeGradients.berry,
+                        gradient: _unpaid! > 0
+                            ? CafeGradients.sunrise
+                            : CafeGradients.bronzeFlat,
                         caption:
                             _unpaid! > 0 ? 'needs collecting' : 'all settled',
                       ),
@@ -382,7 +388,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                       label: 'Peak day',
                       value: _peakDay(),
                       icon: Icons.calendar_month,
-                      gradient: CafeGradients.sky,
+                      gradient: CafeGradients.bronzeFlat,
                       caption: _isToday ? 'busiest day so far' : 'busiest day',
                     ),
                   ];
@@ -407,45 +413,60 @@ class _DashboardScreenState extends State<DashboardScreen>
                   const gap = 10.0;
                   final itemW =
                       (constraints.maxWidth - gap * (cols - 1)) / cols;
+                  // Same discipline as the KPI strip: the tiles are one
+                  // material, not six competing brands. Colour is spent only
+                  // where it means something — the two badges that ask for
+                  // money or attention.
                   final actions = <Widget>[
                     QuickActionTile(
                       icon: Icons.table_restaurant,
                       label: 'Tables',
-                      gradient: CafeGradients.espresso,
+                      gradient: CafeGradients.bronzeFlat,
                       onTap: () => _push(const TablesAdminScreen()),
                     ),
                     QuickActionTile(
                       icon: Icons.receipt_long,
                       label: 'Orders',
-                      gradient: CafeGradients.peach,
+                      gradient: CafeGradients.bronzeFlat,
                       onTap: () => _push(const OrdersQueueScreen()),
                     ),
                     QuickActionTile(
                       icon: Icons.point_of_sale,
                       label: 'Billing',
-                      gradient: CafeGradients.mint,
+                      gradient: CafeGradients.bronzeFlat,
                       badge: (_unpaid ?? 0) > 0
                           ? formatMoneyCompact(_unpaid!)
+                          : null,
+                      // A dues badge is a warning, not decoration — on a
+                      // neutral chip it needs its own tint or it would fade
+                      // into the tile it sits on.
+                      badgeColor: (_unpaid ?? 0) > 0
+                          ? CafePalette.peach
                           : null,
                       onTap: () => _push(const BillingScreen()),
                     ),
                     QuickActionTile(
                       icon: Icons.restaurant_menu,
                       label: 'Menu',
-                      gradient: CafeGradients.sunrise,
+                      gradient: CafeGradients.bronzeFlat,
                       onTap: () => _push(const MenuEditorScreen()),
                     ),
                     QuickActionTile(
                       icon: Icons.inventory_2,
                       label: 'Inventory',
-                      gradient: CafeGradients.sky,
+                      gradient: CafeGradients.bronzeFlat,
                       badge: (_lowStock ?? 0) > 0 ? '$_lowStock' : null,
+                      // Same reasoning as the dues badge: an urgent count has
+                      // to stay legible once the chip stops shouting.
+                      badgeColor: (_lowStock ?? 0) > 0
+                          ? CafePalette.peach
+                          : null,
                       onTap: () => _push(const InventoryScreen()),
                     ),
                     QuickActionTile(
                       icon: Icons.trending_up,
                       label: 'Growth',
-                      gradient: CafeGradients.berry,
+                      gradient: CafeGradients.bronzeFlat,
                       onTap: () => _push(const GrowthScreen()),
                     ),
                   ];
@@ -537,6 +558,11 @@ class _DashboardScreenState extends State<DashboardScreen>
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
   }
 
+  /// The busiest day, paired with what it earned. A bare weekday ("Tue") read
+  /// as an incomplete value — it answered *when* but not *how much*, so it
+  /// looked like a label that failed to load. Pairing them makes the tile a
+  /// real answer, and it's the same figure the gold bar in "Sales over time"
+  /// is lighting, so the two now tell one story.
   String _peakDay() {
     if (_series.isEmpty) return '—';
     var best = _series.first;
@@ -545,7 +571,8 @@ class _DashboardScreenState extends State<DashboardScreen>
     }
     if (best.grossSales == 0 || best.date.isEmpty) return '—';
     final d = DateTime.tryParse(best.date);
-    return d == null ? '—' : DateFormat('E').format(d);
+    if (d == null) return '—';
+    return '${DateFormat('EEE d').format(d)} · ${formatMoney(best.grossSales)}';
   }
 }
 
@@ -687,16 +714,32 @@ class _Card extends StatelessWidget {
   }
 }
 
-/// Warm coffee/peach/mint series shared by every chart on this screen.
-/// `caramel` stands in for the flat `coffee` brown, which was tuned for the
-/// old white panels — on the dark material card it sank almost to black.
-const _chartColors = [
-  CafePalette.peach,
-  CafePalette.mint,
-  CafePalette.caramel,
-  CafePalette.sunshine,
-  CafePalette.berry,
-];
+/// The trend bars carry no per-bar meaning — they're one series over time.
+/// Colour spent on decoration is colour that can't signal, so every bar is a
+/// single muted metal and only the peak day is lit in gold. Same reasoning as
+/// Stripe's reporting charts: a neutral ramp, one accent.
+const _barBase = CafePalette.bronze;
+const _barPeak = CafePalette.gold;
+
+/// Payment methods are a fixed, known set — key them by name so a given
+/// method renders the same colour in the donut, the legend and anywhere else
+/// it appears. (Keying by list position, as before, meant UPI's dot could
+/// drift to a different hue whenever the API returned the map in another
+/// order.)
+///
+/// Hue alone never carries the meaning: the legend also names each method in
+/// text, so this reads for colour-blind users too. These are the only
+/// saturated colours on the dashboard — the KPI icons and bars around them
+/// are neutral, so "colour = state" holds.
+const _payColors = <String, Color>{
+  'upi': CafePalette.mint,
+  'cash': CafePalette.caramel,
+  'card': CafePalette.sky,
+  'gpay': CafePalette.berry,
+};
+
+Color _payColor(String method) =>
+    _payColors[method] ?? CafePalette.caramel;
 
 class _TrendBars extends StatelessWidget {
   final List<SalesSummary> series;
@@ -752,13 +795,16 @@ class _TrendBars extends StatelessWidget {
                 BarChartRodData(
                   toY: values[i],
                   width: 18,
+                  // One series, one colour. Only the busiest bar is lit, so
+                  // the chart answers "which day?" at a glance instead of
+                  // making the eye parse five hues.
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      _chartColors[i % _chartColors.length]
+                      (values[i] == maxV ? _barPeak : _barBase)
                           .withValues(alpha: 0.95),
-                      _chartColors[i % _chartColors.length]
+                      (values[i] == maxV ? _barPeak : _barBase)
                           .withValues(alpha: 0.35),
                     ],
                   ),
@@ -773,20 +819,14 @@ class _TrendBars extends StatelessWidget {
   }
 }
 
-String _payEmoji(String m) {
-  switch (m) {
-    case 'cash':
-      return '💵';
-    case 'card':
-      return '💳';
-    case 'upi':
-      return '📲';
-    case 'gpay':
-      return '🔷';
-    default:
-      return '💰';
-  }
-}
+/// Payment method display names. Acronyms are spelled out in full — title
+/// casing "upi" as "Upi" reads as a typo to anyone who takes UPI payments.
+const _payNames = <String, String>{
+  'upi': 'UPI',
+  'gpay': 'Google Pay',
+  'cash': 'Cash',
+  'card': 'Card',
+};
 
 class _PaymentDonut extends StatelessWidget {
   final Map<String, int> byPayment;
@@ -814,7 +854,7 @@ class _PaymentDonut extends StatelessWidget {
                     for (var i = 0; i < entries.length; i++)
                       PieChartSectionData(
                         value: entries[i].value.toDouble(),
-                        color: _chartColors[i % _chartColors.length],
+                        color: _payColor(entries[i].key),
                         radius: 42,
                         showTitle: false,
                       ),
@@ -828,7 +868,9 @@ class _PaymentDonut extends StatelessWidget {
                     fit: BoxFit.scaleDown,
                     child: Text(formatMoney(total),
                         style: const TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.w800)),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            fontFeatures: kTabularFigures)),
                   ),
                   Text('sales',
                       style: TextStyle(
@@ -848,23 +890,20 @@ class _PaymentDonut extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 4),
                   child: Row(
                     children: [
-                      Text(_payEmoji(entries[i].key),
-                          style: const TextStyle(fontSize: 14)),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(_pretty(entries[i].key),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 13)),
-                      ),
-                      const SizedBox(width: 6),
                       Container(
                         width: 8,
                         height: 8,
                         decoration: BoxDecoration(
-                          color: _chartColors[i % _chartColors.length],
+                          color: _payColor(entries[i].key),
                           shape: BoxShape.circle,
                         ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(_payNames[entries[i].key] ?? _pretty(entries[i].key),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 13)),
                       ),
                       const SizedBox(width: 6),
                       Flexible(
@@ -873,7 +912,9 @@ class _PaymentDonut extends StatelessWidget {
                           alignment: Alignment.centerRight,
                           child: Text(formatMoney(entries[i].value),
                               style: const TextStyle(
-                                  fontSize: 13, fontWeight: FontWeight.w600)),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  fontFeatures: kTabularFigures)),
                         ),
                       ),
                     ],
@@ -1003,7 +1044,13 @@ class _CategoryBars extends StatelessWidget {
                       value: maxVal == 0 ? 0 : entries[i].value / maxVal,
                       minHeight: 10,
                       backgroundColor: Colors.white.withValues(alpha: 0.10),
-                      color: _chartColors[i % _chartColors.length],
+                      // One uniform metal, deliberately. Unlike the trend
+                      // chart — where "the peak day" is a real answer worth
+                      // lighting — a category bar has no standout worth the
+                      // accent, and length already carries the comparison.
+                      // Spending gold here would dilute the one place it does
+                      // mean something.
+                      color: _barBase,
                     ),
                   ),
                 ),
@@ -1013,7 +1060,9 @@ class _CategoryBars extends StatelessWidget {
                     child: Text(formatMoney(entries[i].value),
                         textAlign: TextAlign.right,
                         style: const TextStyle(
-                            fontSize: 12, fontWeight: FontWeight.w600))),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            fontFeatures: kTabularFigures))),
               ],
             ),
           ),
