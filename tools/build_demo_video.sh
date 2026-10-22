@@ -10,8 +10,10 @@
 # crop; pan scenes slide the tall screenshot over the espresso background.
 # Text overlays are burned in with ASS (Fraunces + Inter, gold keywords).
 #
-# The final file ships SILENT — add music on upload from YouTube's free
-# Audio Library or CapCut. (Keeps licensing clean and the repo small.)
+# Music: marketing/music.m4a (Satie's Gymnopédie No. 1, mastered to a quiet
+# background bed — see MUSIC-CREDITS.md) is mixed in when present; otherwise
+# the file is silent. Swap the track any time: drop a ~60s audio file at
+# marketing/music.m4a and re-run.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -161,10 +163,18 @@ build() {
   zoom_scene  "$GOLD/hero.png"   $hero_y0   1.00 1.15 0.3 6  "$size" $ch "$WORK/s8.mp4"
 
   echo "▶ dissolve + burn text ($aspect)…"
+  # Audio bed: marketing/music.m4a when present (Satie — see MUSIC-CREDITS.md),
+  # otherwise a silent track (still muxed, so players/platforms stay happy).
+  local audio_in
+  if [ -f "$ROOT/marketing/music.m4a" ]; then
+    audio_in=(-i "$ROOT/marketing/music.m4a")
+  else
+    audio_in=(-f lavfi -t $TOTAL -i "anullsrc=r=48000:cl=stereo")
+  fi
   ffmpeg -hide_banner -loglevel error -y \
     -i "$WORK/s1.mp4" -i "$WORK/s2.mp4" -i "$WORK/s3.mp4" -i "$WORK/s4.mp4" \
     -i "$WORK/s5.mp4" -i "$WORK/s6.mp4" -i "$WORK/s7.mp4" -i "$WORK/s8.mp4" \
-    -f lavfi -t $TOTAL -i "anullsrc=r=48000:cl=stereo" \
+    "${audio_in[@]}" \
     -filter_complex "\
 [0:v][1:v]xfade=transition=fade:duration=$XF:offset=3.8[v0];\
 [v0][2:v]xfade=transition=fade:duration=$XF:offset=5.6[v1];\

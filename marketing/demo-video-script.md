@@ -18,9 +18,12 @@ tools/build_demo_video.sh 9x16     # vertical only
 ```
 
 Needs `ffmpeg` + ImageMagick; the screenshots come from the goldens (§0).
-Text overlays (Fraunces + Inter, gold keywords) are burned in. The file is
-silent by design — add a free track when you upload (YouTube Audio Library,
-CapCut). Canva is now optional, only if you want to restyle anything.
+Text overlays (Fraunces + Inter, gold keywords) are burned in, and
+`marketing/music.m4a` (Satie's *Gymnopédie No. 1* by Kevin MacLeod, CC BY) is
+mixed in as the background bed — **post the credit line from
+[`MUSIC-CREDITS.md`](MUSIC-CREDITS.md) with the video.** Swap or remove the
+track by replacing/deleting that file and re-rendering. Canva is now optional,
+only if you want to restyle anything.
 
 **The one rule:** show the real app. No slides, no stock footage. The polish
 you built (dark + gold UI) *is* the pitch.

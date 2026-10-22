@@ -46,12 +46,13 @@ open `docs/index.html`, find the commented-out `<iframe>` in the video section a
 
 ---
 
-## 3. The video (done — add music when you post)
+## 3. The video (done — music baked in)
 
 `marketing/demo-60s.mp4` (9:16) and `docs/demo.mp4` (16:9) are rendered from the
 generated screenshots by `tools/build_demo_video.sh` — storyboard in
-[`demo-video-script.md`](demo-video-script.md). The files are silent on purpose:
-when you post, add a free track (YouTube Audio Library, CapCut) — keep it quiet.
+[`demo-video-script.md`](demo-video-script.md). Background music (Satie's
+*Gymnopédie No. 1*, Kevin MacLeod, CC BY) is mixed in — **paste the credit line
+from [`MUSIC-CREDITS.md`](MUSIC-CREDITS.md) in your caption/description.**
 
 Want a **15s** or **6s** cut for ads? Cut it from the same file in CapCut, or ask:
 the scene timings are in the storyboard.
