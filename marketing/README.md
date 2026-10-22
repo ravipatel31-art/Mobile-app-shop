@@ -6,7 +6,8 @@ Everything you need to sell to local cafés, for ₹0.
 |------|-----------|------------|
 | [`docs/index.html`](../docs/index.html) | **Landing page** — one self-contained file | The link you send after every conversation. Host it free on GitHub Pages. |
 | [`marketing/one-pager.html`](one-pager.html) | **One-pager** — print-ready A4 | Open → `Ctrl+P` → *Save as PDF*. Print it + email it. |
-| [`marketing/demo-video-script.md`](demo-video-script.md) | **60-sec video storyboard** | Screen-record the app, assemble in Canva. Your #1 sales asset. |
+| [`demo-60s.mp4`](demo-60s.mp4) | **60-sec demo video (9:16)** — rendered, ready to post | WhatsApp status, Reels, in-person demos. Add free music on upload. |
+| [`demo-video-script.md`](demo-video-script.md) | **Storyboard** behind the video | Re-render any time with `tools/build_demo_video.sh` (ffmpeg). Canva optional. |
 
 ---
 
@@ -21,7 +22,7 @@ The recurring ones:
 | `+91 00000 00000` | landing + one-pager | your phone number |
 | `hello@cafepos.app` | landing + one-pager | your email |
 | `₹499` | landing + one-pager | your real launch price |
-| `screens/*.png`, `demo.mp4` | landing | your screenshots + exported video |
+| `screens/*.png`, `demo.mp4` | landing | ✅ already rendered — `docs/screens/*.png` + `docs/demo.mp4` |
 
 ---
 
@@ -39,20 +40,21 @@ Then on GitHub:
 Your link will be:
 `https://ravipatel31-art.github.io/Mobile-app-shop/`
 
-*(To add the video: export it and save as `docs/demo.mp4`. To use YouTube instead,
-open `docs/index.html`, find the commented-out `<iframe>` in the video section and swap it in.)*
+The video is already at `docs/demo.mp4` (16:9) and `marketing/demo-60s.mp4` (9:16) —
+rebuild with `tools/build_demo_video.sh` after UI changes. To use YouTube instead,
+open `docs/index.html`, find the commented-out `<iframe>` in the video section and swap it in.
 
 ---
 
-## 3. Make the video (Canva, ~1 hr)
+## 3. The video (done — add music when you post)
 
-Follow [`demo-video-script.md`](demo-video-script.md). Short version:
-1. Screen-record the 8 scenes on your phone (**portrait**, demo data loaded).
-2. Canva → *Mobile Video* 1080×1920 → upload clips → drop on the timeline.
-3. Add the overlay text from the storyboard (gold `#E6B25A`, Fraunces + Inter).
-4. Dissolve transitions (0.2s), quiet music, captions on.
-5. Last 3s: **“Book a free demo” + your number.**
-6. Export **MP4**. Also cut a **15s** and a **6s** version from the same timeline.
+`marketing/demo-60s.mp4` (9:16) and `docs/demo.mp4` (16:9) are rendered from the
+generated screenshots by `tools/build_demo_video.sh` — storyboard in
+[`demo-video-script.md`](demo-video-script.md). The files are silent on purpose:
+when you post, add a free track (YouTube Audio Library, CapCut) — keep it quiet.
+
+Want a **15s** or **6s** cut for ads? Cut it from the same file in CapCut, or ask:
+the scene timings are in the storyboard.
 
 ---
 

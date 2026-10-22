@@ -1,8 +1,26 @@
 # Cafe POS — 60-second demo video (Ken Burns slideshow)
 
 This is your #1 sales asset. It's built from the **generated app screenshots** —
-no screen recording, no camera, no video skills. You assemble it in Canva in
-under an hour.
+no screen recording, no camera, no video skills.
+
+**It's already rendered for you:**
+
+| File | Aspect | Where it plays |
+|------|--------|----------------|
+| `marketing/demo-60s.mp4` | 1080×1920 (9:16) | WhatsApp status, Instagram Reels, in-person demos |
+| `docs/demo.mp4` | 1920×1080 (16:9) | Landing page `#video` section, YouTube |
+
+Rebuild both (or just one) after any UI change:
+
+```bash
+tools/build_demo_video.sh          # both
+tools/build_demo_video.sh 9x16     # vertical only
+```
+
+Needs `ffmpeg` + ImageMagick; the screenshots come from the goldens (§0).
+Text overlays (Fraunces + Inter, gold keywords) are burned in. The file is
+silent by design — add a free track when you upload (YouTube Audio Library,
+CapCut). Canva is now optional, only if you want to restyle anything.
 
 **The one rule:** show the real app. No slides, no stock footage. The polish
 you built (dark + gold UI) *is* the pitch.
