@@ -85,19 +85,13 @@ the scene timings are in the storyboard.
 
 ---
 
-## 5. When you're ready to run Google Ads
+## 5. Run Google Ads (when you're ready)
 
-You now have all three pieces a Google Video campaign needs:
-- **Video:** the 9:16 (Reels/in-feed) + 16:9 (YouTube in-stream) cuts
-- **Destination:** the landing page (it has the demo + a WhatsApp CTA)
-- **Conversion:** the *“Book a demo”* WhatsApp click
-
-Suggested first campaign (small budget, ~₹300/day for 2 weeks):
-- **Goal:** Website traffic (or Leads once you have conversion tracking)
-- **Networks:** YouTube feed + Shorts
-- **Target:** your city, interests = *restaurants / café owners / small business*
-- **Audience:** 25–55, business owners
-- **Keywords to bid on:** “cafe POS software”, “billing app for café”, “restaurant POS small business”, “UPI billing app”
+The complete, paste-ready campaign runner lives in
+[`google-ads-campaign.md`](google-ads-campaign.md): account setup, conversion
+tracking (already wired into `docs/index.html`), Search campaign (₹200/day) +
+Video campaign (₹100/day), all ad copy, negative keywords, and the 14-day
+optimisation routine.
 
 **But first:** get 3–5 paying cafés by hand. Ads scale a message that already works —
 they won't create one.

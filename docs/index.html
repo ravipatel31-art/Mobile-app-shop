@@ -169,6 +169,39 @@
     .nav-links a:not(.btn){display:none}
   }
 </style>
+
+<!-- ══════════ Analytics + ad conversion tracking ══════════
+     ONE thing to replace: G-MEASUREMENT_ID below.
+     1. analytics.google.com → Admin → Create property → name "Cafe POS"
+        → Web → URL ravipatel31-art.github.io/Mobile-app-shop → Create stream
+     2. Copy the Measurement ID (G-XXXXXXXXXX) and paste it in place of
+        G-MEASUREMENT_ID (2 spots, both in the line starting with
+        googletagmanager below). Save; the page goes live in ~2 min.
+     3. GA4 → Admin → Events → find "generate_lead" → toggle
+        "Mark as key event" (= conversion).
+     4. GA4 → Admin → Product links → Google Ads → link your Ads account,
+        then in Google Ads → Conversions → import GA4 → pick generate_lead,
+        set it "Primary".
+     Result: every WhatsApp / call / email tap on this page counts as a
+     conversion in Google Ads. Remove this block and it all stops.        -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-MEASUREMENT_ID"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-MEASUREMENT_ID');
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest && e.target.closest('a[href]');
+    if (!a) return;
+    var href = a.getAttribute('href') || '';
+    if (href.indexOf('wa.me') > -1)
+      gtag('event', 'generate_lead', {method: 'whatsapp', link_text: a.textContent.trim().slice(0,40)});
+    else if (href.indexOf('tel:') === 0)
+      gtag('event', 'generate_lead', {method: 'phone', link_text: a.textContent.trim().slice(0,40)});
+    else if (href.indexOf('mailto:') === 0)
+      gtag('event', 'generate_lead', {method: 'email', link_text: a.textContent.trim().slice(0,40)});
+  });
+</script>
 </head>
 <body>
 
