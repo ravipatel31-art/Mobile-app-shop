@@ -8,6 +8,8 @@ Everything you need to sell to local cafés, for ₹0.
 | [`marketing/one-pager.html`](one-pager.html) | **One-pager** — print-ready A4 | Open → `Ctrl+P` → *Save as PDF*. Print it + email it. |
 | [`demo-60s.mp4`](demo-60s.mp4) | **60-sec demo video (9:16)** — rendered, ready to post | WhatsApp status, Reels, in-person demos. Add free music on upload. |
 | [`demo-video-script.md`](demo-video-script.md) | **Storyboard** behind the video | Re-render any time with `tools/build_demo_video.sh` (ffmpeg). Canva optional. |
+| [`channel-playbook.md`](channel-playbook.md) | **Free marketing map** | WhatsApp, IG, directories, groups, referrals — where to point each asset. |
+| [`google-ads-campaign.md`](google-ads-campaign.md) | **Google Ads runner** | Paste-ready Search + Video campaigns, tracking flow, optimisation routine. |
 
 ---
 
